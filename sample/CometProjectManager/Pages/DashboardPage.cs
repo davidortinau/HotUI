@@ -39,20 +39,23 @@ public class DashboardPage : View
 		var taskCount = project.Tasks.Count;
 		var completedCount = project.Tasks.Count(t => t.IsCompleted);
 
-		return new VStack(spacing: 6)
+		return new Border
 		{
-			new Text(project.Icon).FontSize(28),
-			new Text(project.Name)
-				.FontSize(16)
-				.FontWeight(FontWeight.Semibold),
-			new Text(project.Description)
-				.FontSize(12)
-				.Color(Colors.Gray),
-			new Text($"{completedCount}/{taskCount} tasks")
-				.FontSize(11)
-				.Color(Colors.DarkGray),
+			Content = new VStack(spacing: 6)
+			{
+				new Text(project.Icon).FontSize(28),
+				new Text(project.Name)
+					.FontSize(16)
+					.FontWeight(FontWeight.Semibold),
+				new Text(project.Description)
+					.FontSize(12)
+					.Color(Colors.Gray),
+				new Text($"{completedCount}/{taskCount} tasks")
+					.FontSize(11)
+					.Color(Colors.DarkGray),
+			}
+			.Padding(new Thickness(12)),
 		}
-		.Padding(new Thickness(12))
 		.Frame(width: 180)
 		.Background(new SolidPaint(Colors.WhiteSmoke))
 		.ClipShape(new RoundedRectangle(12))
@@ -98,14 +101,19 @@ public class DashboardPage : View
 					new Text("Projects")
 						.FontSize(20)
 						.FontWeight(FontWeight.Bold)
-						.SemanticHeadingLevel(SemanticHeadingLevel.Level1),
-					new ScrollView(Orientation.Horizontal)
+						.SemanticHeadingLevel(SemanticHeadingLevel.Level1)
+						.IsVisible(projects.Count > 0),
+					new CollectionView<Project>(() => projects)
 					{
-						new HStack(spacing: 12)
-						{
-							projects.Select(p => ProjectCard(p) as View).ToArray()
-						}
-					},
+						ViewFor = project => ProjectCard(project),
+						ItemsLayout = ItemsLayout.Horizontal(12),
+					}
+					.Frame(height: 150)
+					.IsVisible(projects.Count > 0),
+					new Text("No projects yet")
+						.FontSize(14)
+						.Color(Colors.Gray)
+						.IsVisible(projects.Count == 0),
 
 					new HStack
 					{
@@ -135,6 +143,7 @@ public class DashboardPage : View
 					.SemanticDescription("Add a new task"),
 				}
 				.Padding(new Thickness(16))
+				.FlowDirection(FlowDirection.LeftToRight)
 			}
 		}
 		.Title(_store.Today);

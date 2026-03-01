@@ -41,31 +41,41 @@ public class TaskDetailPage : View
 			{
 				new VStack(spacing: 16)
 				{
-					// Title
-					new Text("Task").FontSize(12).Color(Colors.Gray),
-					new TextField(_title, "What needs to be done?")
-						.FontSize(18)
-						.SemanticDescription("Task title"),
-
-					// Completed toggle
-					new HStack(spacing: 12)
+					// Task Info Frame
+					new Frame
 					{
-						new Text("Completed").FontSize(14),
-						new Spacer(),
-						new Text(_isCompleted.Value ? "✅ Yes" : "⬜ No")
-							.FontSize(16)
-							.OnTap(_ => _isCompleted.Value = !_isCompleted.Value)
-							.SemanticDescription("Toggle task completion")
-							.SemanticHint("Tap to toggle completed status"),
-					}
-					.Padding(new Thickness(0, 8)),
+						Content = new VStack(spacing: 16)
+						{
+							// Title
+							new Text("Task").FontSize(12).Color(Colors.Gray),
+							new TextField(_title, "What needs to be done?")
+								.FontSize(18)
+								.SemanticDescription("Task title"),
 
-					// Project picker
-					new Text("Project").FontSize(12).Color(Colors.Gray),
-					new Picker(
-						_projectIndex,
-						projects.Select(p => $"{p.Icon} {p.Name}").ToArray()
-					).SemanticDescription("Assign to project"),
+							// Completed toggle
+							new HStack(spacing: 12)
+							{
+								new Text("Completed").FontSize(14),
+								new Spacer(),
+								new Text(_isCompleted.Value ? "✅ Yes" : "⬜ No")
+									.FontSize(16)
+									.OnTap(_ => _isCompleted.Value = !_isCompleted.Value)
+									.SemanticDescription("Toggle task completion")
+									.SemanticHint("Tap to toggle completed status"),
+							}
+							.Padding(new Thickness(0, 8)),
+
+							// Project picker
+							new Text("Project").FontSize(12).Color(Colors.Gray),
+							new Picker(
+								_projectIndex,
+								projects.Select(p => $"{p.Icon} {p.Name}").ToArray()
+							).SemanticDescription("Assign to project"),
+						}
+						.Padding(new Thickness(12)),
+						CornerRadius = 8,
+						HasShadow = true,
+					},
 
 					new Spacer().Frame(height: 20),
 
@@ -100,6 +110,7 @@ public class TaskDetailPage : View
 
 						Navigation?.Dismiss();
 					})
+					.IsEnabled(!string.IsNullOrWhiteSpace(_title.Value))
 					.SemanticDescription("Save task"),
 
 					// Delete (only for existing tasks)
@@ -114,6 +125,7 @@ public class TaskDetailPage : View
 						: new Spacer().Frame(height: 0) as View,
 				}
 				.Padding(new Thickness(16))
+				.FlowDirection(FlowDirection.LeftToRight)
 			}
 		}
 		.Title("Task");
