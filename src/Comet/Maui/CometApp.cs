@@ -18,7 +18,7 @@ namespace Comet
 			CurrentApp = this;
 #if __IOS__
 			ModalView.PerformPresent = (o) => ThreadHelper.RunOnMainThread(()=> PresentingViewController.PresentViewController(new Comet.iOS.CometViewController{MauiContext = o.GetMauiContext(),CurrentView = o}, true, null));
-			ModalView.PerformDismiss = () => ThreadHelper.RunOnMainThread( ()=> PresentingViewController.DismissModalViewController(true));
+			ModalView.PerformDismiss = () => ThreadHelper.RunOnMainThread( ()=> PresentingViewController.DismissViewController(true, null));
 #elif ANDROID
 
 			ModalView.PerformPresent = Comet.Android.Controls.ModalManager.ShowModal;
@@ -80,9 +80,12 @@ namespace Comet
 		{
 			get
 			{
-				var window = UIKit.UIApplication.SharedApplication.KeyWindow;
-				var vc = window.RootViewController;
-				while (vc.PresentedViewController != null)
+				var window = UIKit.UIApplication.SharedApplication.ConnectedScenes
+					.OfType<UIKit.UIWindowScene>()
+					.SelectMany(s => s.Windows)
+					.FirstOrDefault(w => w.IsKeyWindow);
+				var vc = window?.RootViewController;
+				while (vc?.PresentedViewController != null)
 					vc = vc.PresentedViewController;
 				return vc;
 			}

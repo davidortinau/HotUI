@@ -69,10 +69,21 @@ namespace Comet
 
 		public static void Disposing(View view)
 		{
-			//TODO: Clean up and unsusbscribe from bindings objects
 			if (ViewObjectMappings.TryGetValue(view.Id, out var mappings))
 			{
-				//TODO: clean up mappings
+				foreach (var obj in mappings)
+				{
+					if (NotifyToViewMappings.TryGetValue(obj, out var views))
+					{
+						views.Remove(view);
+						if (views.Count == 0)
+						{
+							NotifyToViewMappings.Remove(obj);
+							StopMonitoring(obj);
+						}
+					}
+				}
+				ViewObjectMappings.Remove(view.Id);
 			}
 
 		}
@@ -180,10 +191,11 @@ namespace Comet
 			MonitoredObjects.Remove(obj);
 			if (!(obj is IAutoImplemented))
 			{
-				obj.PropertyChanged -= Obj_PropertyRead;
+				obj.PropertyChanged -= Obj_PropertyChanged;
 				obj.PropertyRead -= Obj_PropertyRead;
 			}
-			//TODO remove it from all the mappings
+			NotifyToViewMappings.Remove(obj);
+			ChildPropertyNamesMapping.Remove(obj);
 
 		}
 
@@ -266,7 +278,10 @@ namespace Comet
 
 			});
 
-			//TODO: remove disposedViews;
+			foreach (var view in disposedViews)
+			{
+				views.Remove(view);
+			}
 
 			//var first = childrenProperty.FirstOrDefault(x => x.Key.Target == sender);
 			//string parentproperty = first.Value;

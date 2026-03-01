@@ -20,7 +20,7 @@ using Microsoft.Maui.Primitives;
 namespace Comet
 {
 
-	public class View : ContextualObject, IDisposable, IView, IHotReloadableView, ISafeAreaView, IContentTypeHash, IAnimator, ITitledElement, IGestureView, IBorder, IVisualTreeElement, IPadding
+	public class View : ContextualObject, IDisposable, IView, IHotReloadableView, ISafeAreaView, IContentTypeHash, IAnimator, ITitledElement, IGestureView, IVisualTreeElement, IPadding
 	{
 		static internal readonly WeakList<IView> ActiveViews = new WeakList<IView>();
 		HashSet<(string Field, string Key)> usedEnvironmentData = new HashSet<(string Field, string Key)>();
@@ -285,7 +285,7 @@ namespace Comet
 						{
 							builtView = new VStack { new Text(ex.Message.ToString()).LineBreakMode(LineBreakMode.WordWrap) };
 						}
-						else throw ex;
+						else throw;
 					}
 				}
 			}
@@ -823,7 +823,7 @@ namespace Comet
 		IReadOnlyList<IVisualTreeElement> IVisualTreeElement.GetVisualChildren() => Array.Empty<IVisualTreeElement>();
 		IVisualTreeElement IVisualTreeElement.GetVisualParent() => this.Parent;
 
-		IBorderStroke IBorder.Border
+		internal IBorderStroke Border
 		{
 			get
 			{

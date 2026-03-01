@@ -21,8 +21,10 @@ namespace Comet.iOS
 
 			SetTitleColor(UIColor.Blue, UIControlState.Normal);
 
-			ContentEdgeInsets = new UIEdgeInsets(0, CONTENT_SPACING, 0, CONTENT_SPACING);
-			TitleEdgeInsets = new UIEdgeInsets(0, CONTENT_SPACING, 0, -CONTENT_SPACING);
+			var config = UIButtonConfiguration.PlainButtonConfiguration;
+			config.ContentInsets = new NSDirectionalEdgeInsets(0, CONTENT_SPACING, 0, CONTENT_SPACING);
+			config.TitlePadding = CONTENT_SPACING;
+			Configuration = config;
 
 			TouchUpInside += (sender, e) => { if (!IsChecked) IsChecked = true; };
 		}

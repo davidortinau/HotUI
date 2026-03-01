@@ -286,6 +286,7 @@ namespace Comet
 	{
 		readonly Binding<IReadOnlyList<T>> itemsBinding;
 		IReadOnlyList<T> items;
+		readonly List<View> trackedViews = new List<View>();
 
 		public Section() { }
 
@@ -315,9 +316,11 @@ namespace Comet
 			using (new StateBuilder(this))
 			{
 				var view = ViewFor?.Invoke(item);
-				//TODO: Make sure we clean this up. This is a memory leak!!!!
 				if (item is INotifyPropertyRead read && view != null)
+				{
 					StateManager.MonitorListViewObject(view, read);
+					trackedViews.Add(view);
+				}
 				return view;
 			}
 		}
@@ -328,6 +331,17 @@ namespace Comet
 			base.OnParentChange(parent);
 			Header?.SetParent(parent);
 			Footer?.SetParent(parent);
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				foreach (var view in trackedViews)
+					view?.Dispose();
+				trackedViews.Clear();
+			}
+			base.Dispose(disposing);
 		}
 
 	}

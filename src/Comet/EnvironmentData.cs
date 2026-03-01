@@ -197,8 +197,8 @@ namespace Comet
 			{
 
 				StateManager.OnPropertyRead(View.Environment, propertyName);
-				//TODO: Verify this is right. We may need a way to tell allthe views a property changed
-				// View.ActiveViews.ForEach(x => x.GetState()?.OnPropertyRead(this, propertyName));
+				// Property reads on the static environment are broadcast via View.Environment
+				// to all views registered through StateManager.ListenToEnvironment
 			}
 			base.CallPropertyRead(propertyName);
 		}
@@ -218,8 +218,8 @@ namespace Comet
 			else if (isStatic)
 			{
 				StateManager.OnPropertyChanged(View.Environment, key, value);
-				//TODO: Verify this is right. We may need a way to tell allthe views a property changed
-				//View.ActiveViews.ForEach(x => x.GetState()?.OnPropertyChanged(this, key, value));
+				// Property changes on the static environment are broadcast via View.Environment
+				// to all views registered through StateManager.ListenToEnvironment
 			}
 			return true;
 		}

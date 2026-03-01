@@ -23,6 +23,6 @@ namespace Comet.Android.Controls
 			CometView.Click += HandleClick;
 		}
 
-		private void HandleClick(object sender, EventArgs e) => listView?.OnSelected(0, AdapterPosition);
+		private void HandleClick(object sender, EventArgs e) => listView?.OnSelected(0, BindingAdapterPosition);
 	}
 }
