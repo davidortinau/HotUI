@@ -51,7 +51,12 @@ namespace Comet
 
 		void IApplication.ThemeChanged()
 		{
-			//TODO: apply new theme
+			var appInfo = AppInfo.Current;
+			var theme = appInfo.RequestedTheme;
+			if (theme == AppTheme.Dark)
+				Styles.Theme.Current = Styles.Theme.Dark;
+			else
+				Styles.Theme.Current = Styles.Theme.Light;
 		}
 
 		IMauiContext IMauiContextHolder.MauiContext { get; set; }

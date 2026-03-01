@@ -16,7 +16,7 @@ namespace Comet.Android.Controls
 			ViewGroup parent,
 			IListView listView, IMauiContext mauiContext) : base(new CometView(mauiContext))
 		{
-			MauiContext  = MauiContext;
+			MauiContext  = mauiContext;
 			Parent = parent;
 			this.listView = listView;
 

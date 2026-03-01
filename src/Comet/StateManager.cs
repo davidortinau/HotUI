@@ -15,6 +15,7 @@ namespace Comet
 {
 	public static class StateManager
 	{
+		static readonly object _lock = new object();
 		static readonly Dictionary<Thread, WeakStack<View>> ViewsByThread = new Dictionary<Thread, WeakStack<View>>();
 		static readonly Dictionary<Thread, List<(INotifyPropertyRead bindingObject, string property)>> CurrentReadProperiesByThread = new Dictionary<Thread, List<(INotifyPropertyRead bindingObject, string property)>>();
 		public static View CurrentView => ViewsByThread.GetCurrent().Peek() ?? LastView?.Target as View;
@@ -69,23 +70,25 @@ namespace Comet
 
 		public static void Disposing(View view)
 		{
-			if (ViewObjectMappings.TryGetValue(view.Id, out var mappings))
+			lock (_lock)
 			{
-				foreach (var obj in mappings)
+				if (ViewObjectMappings.TryGetValue(view.Id, out var mappings))
 				{
-					if (NotifyToViewMappings.TryGetValue(obj, out var views))
+					foreach (var obj in mappings)
 					{
-						views.Remove(view);
-						if (views.Count == 0)
+						if (NotifyToViewMappings.TryGetValue(obj, out var views))
 						{
-							NotifyToViewMappings.Remove(obj);
-							StopMonitoring(obj);
+							views.Remove(view);
+							if (views.Count == 0)
+							{
+								NotifyToViewMappings.Remove(obj);
+								StopMonitoring(obj);
+							}
 						}
 					}
+					ViewObjectMappings.Remove(view.Id);
 				}
-				ViewObjectMappings.Remove(view.Id);
 			}
-
 		}
 
 		public static void StartBuilding(View view)
@@ -234,15 +237,20 @@ namespace Comet
 				return;
 			}
 
-			if (!views.Any())
+			List<View> viewsCopy;
+			lock (_lock)
 			{
-				Console.WriteLine("I think this means it is a child BindingObject");
-				return;
+				if (!views.Any())
+				{
+					Console.WriteLine("I think this means it is a child BindingObject");
+					return;
+				}
+				viewsCopy = views.ToList();
 			}
 
 			ChildPropertyNamesMapping.TryGetValue(notify, out var mappings);
 			List<View> disposedViews = new List<View>();
-			views.ToList().ForEach((view) => {
+			viewsCopy.ForEach((view) => {
 				if (view == null || view.IsDisposed)
 				{
 					disposedViews.Add(view);
@@ -280,7 +288,10 @@ namespace Comet
 
 			foreach (var view in disposedViews)
 			{
-				views.Remove(view);
+				lock (_lock)
+				{
+					views.Remove(view);
+				}
 			}
 
 			//var first = childrenProperty.FirstOrDefault(x => x.Key.Target == sender);

@@ -66,7 +66,8 @@ namespace Comet.Android.Controls
 
 			public bool OnSingleTapUp(MotionEvent e)
 			{
-				dictionary[e].OnTap();
+				if (dictionary.TryGetValue(e, out var listener))
+					listener.OnTap();
 				return true;
 			}
 

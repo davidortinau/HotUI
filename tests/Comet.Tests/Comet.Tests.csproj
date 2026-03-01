@@ -4,6 +4,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <ImplicitUsings>disable</ImplicitUsings>
+    <!-- Suppress platform compatibility warnings: tests reference maccatalyst DLL from net9.0 -->
+    <NoWarn>CA1416</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
