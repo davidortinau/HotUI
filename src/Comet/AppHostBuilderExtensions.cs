@@ -58,7 +58,7 @@ namespace Comet
 				{ typeof(GraphicsView), typeof(GraphicsViewHandler) },
 				{ typeof(Image) , typeof(ImageHandler) },
 				{ typeof(ImageButton) , typeof(ImageButtonHandler) },
-				//{ typeof(Picker), typeof(PickerHandler) },
+				{ typeof(Picker), typeof(PickerHandler) },
 				{ typeof(ProgressBar), typeof(ProgressBarHandler) },
 				{ typeof(SearchBar), typeof(SearchBarHandler) },
 				{ typeof(SecureField), typeof(EntryHandler) },

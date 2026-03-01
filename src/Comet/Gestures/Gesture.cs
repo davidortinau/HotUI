@@ -24,4 +24,12 @@ namespace Comet
 		}
 
 	}
+
+	public enum GestureStatus
+	{
+		Started,
+		Running,
+		Completed,
+		Canceled
+	}
 }

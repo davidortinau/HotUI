@@ -91,6 +91,18 @@ namespace Comet
 		public static T OnTap<T>(this T view, Action<T> action) where T : View
 			=> view.AddGesture(new TapGesture((g) => action?.Invoke(view)));
 
+		public static T OnLongPress<T>(this T view, Action<T> action) where T : View
+			=> view.AddGesture(new LongPressGesture((g) => action?.Invoke(view)));
+
+		public static T OnPan<T>(this T view, Action<PanGesture> action) where T : View
+			=> view.AddGesture(new PanGesture(action));
+
+		public static T OnPinch<T>(this T view, Action<PinchGesture> action) where T : View
+			=> view.AddGesture(new PinchGesture(action));
+
+		public static T OnSwipe<T>(this T view, Action<SwipeGesture> action, SwipeDirection direction = SwipeDirection.Left) where T : View
+			=> view.AddGesture(new SwipeGesture(action) { Direction = direction });
+
 		public static T OnTapNavigate<T>(this T view, Func<View> destination) where T : View
 			=> view.OnTap((v) => NavigationView.Navigate(view, destination.Invoke()));
 
@@ -178,6 +190,45 @@ namespace Comet
 			view.SetEnvironment(nameof(IView.AnchorX), value, false);
 		public static T AnchorY<T>(this T view, double value) where T : View =>
 			view.SetEnvironment(nameof(IView.AnchorY), value, false);
+
+		// Accessibility / Semantic Properties
+		public static T SemanticDescription<T>(this T view, string description) where T : View
+		{
+			var semantics = view.GetEnvironment<Semantics>(nameof(IView.Semantics)) ?? new Semantics();
+			semantics.Description = description;
+			view.SetEnvironment(nameof(IView.Semantics), semantics, true);
+			return view;
+		}
+
+		public static T SemanticHint<T>(this T view, string hint) where T : View
+		{
+			var semantics = view.GetEnvironment<Semantics>(nameof(IView.Semantics)) ?? new Semantics();
+			semantics.Hint = hint;
+			view.SetEnvironment(nameof(IView.Semantics), semantics, true);
+			return view;
+		}
+
+		public static T SemanticHeadingLevel<T>(this T view, SemanticHeadingLevel level) where T : View
+		{
+			var semantics = view.GetEnvironment<Semantics>(nameof(IView.Semantics)) ?? new Semantics();
+			semantics.HeadingLevel = level;
+			view.SetEnvironment(nameof(IView.Semantics), semantics, true);
+			return view;
+		}
+
+		public static T IsReadOnly<T>(this T view, bool isReadOnly = true) where T : View
+		{
+			view.SetEnvironment("View.IsReadOnly", isReadOnly);
+			return view;
+		}
+
+		// Theming
+		public static T ThemeColor<T>(this T view, Func<Styles.Theme, Color> colorSelector) where T : View
+		{
+			var color = colorSelector(Styles.Theme.Current);
+			view.SetEnvironment("View.Color", color);
+			return view;
+		}
 
 	}
 }
