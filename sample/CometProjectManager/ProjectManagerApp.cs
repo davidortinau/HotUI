@@ -3,8 +3,9 @@ using CometProjectManager.Pages;
 namespace CometProjectManager;
 
 /// <summary>
-/// App entry point — equivalent to the template's AppShell with flyout.
-/// Uses TabView with Dashboard, Projects, and Manage Meta tabs.
+/// App entry point — matches the template's AppShell with flyout navigation.
+/// Uses TabView with Dashboard, Projects, and Manage Meta tabs (matching Shell tabs).
+/// Title "Categories and Tags" matches the template's ManageMetaPage title.
 /// </summary>
 public class ProjectManagerApp : CometApp
 {
@@ -14,7 +15,7 @@ public class ProjectManagerApp : CometApp
 		{
 			new DashboardPage().Title("Dashboard"),
 			new ProjectListPage().Title("Projects"),
-			new ManageMetaPage().Title("Manage Meta"),
+			new ManageMetaPage().Title("Categories and Tags"),
 		};
 }
 

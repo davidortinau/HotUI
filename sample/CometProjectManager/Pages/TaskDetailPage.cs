@@ -3,8 +3,9 @@ using CometProjectManager.Models;
 namespace CometProjectManager.Pages;
 
 /// <summary>
-/// Task detail — equivalent to the template's TaskDetailPage.
-/// Edit task title, toggle completion, assign to project.
+/// Task detail — matches the template's TaskDetailPage exactly.
+/// Task title entry, completed toggle, project picker, save/delete buttons.
+/// Uses the same layout structure: VerticalStackLayout with LayoutPadding/Spacing.
 /// </summary>
 public class TaskDetailPage : View
 {
@@ -15,6 +16,8 @@ public class TaskDetailPage : View
 	readonly State<string> _title;
 	readonly State<bool> _isCompleted;
 	readonly State<int> _projectIndex;
+
+	static readonly Color Primary = Color.FromArgb("#512BD4");
 
 	public TaskDetailPage(ProjectTask? task, int defaultProjectId)
 	{
@@ -37,95 +40,74 @@ public class TaskDetailPage : View
 
 		return new NavigationView
 		{
-			new ScrollView
+			new Grid
 			{
-				new VStack(spacing: 16)
+				new ScrollView
 				{
-					// Task Info Frame
-					new Frame
+					new VStack(spacing: 5) // LayoutSpacing = 5
 					{
-						Content = new VStack(spacing: 16)
-						{
-							// Title
-							new Text("Task").FontSize(12).Color(Colors.Gray),
-							new TextField(_title, "What needs to be done?")
-								.FontSize(18)
-								.SemanticDescription("Task title"),
+						// Task title (matches SfTextInputLayout Hint="Task")
+						new Text("Task").FontSize(12).Color(Colors.Gray),
+						new TextField(_title, "What needs to be done?")
+							.FontSize(17)
+							.SemanticDescription("Title"),
 
-							// Completed toggle
-							new HStack(spacing: 12)
+						// Completed toggle (matches template's CheckBox in SfTextInputLayout)
+						new Text("Completed").FontSize(12).Color(Colors.Gray),
+						new Toggle(_isCompleted)
+						.SemanticDescription("Status")
+						.SemanticHint("Indicates if this task is completed"),
+
+						// Project picker (matches template's Picker in SfTextInputLayout)
+						isExisting
+							? new VStack(spacing: 5)
 							{
-								new Text("Completed").FontSize(14),
-								new Spacer(),
-								new Text(_isCompleted.Value ? "✅ Yes" : "⬜ No")
-									.FontSize(16)
-									.OnTap(_ => _isCompleted.Value = !_isCompleted.Value)
-									.SemanticDescription("Toggle task completion")
-									.SemanticHint("Tap to toggle completed status"),
+								new Text("Project").FontSize(12).Color(Colors.Gray),
+								new Picker(
+									_projectIndex,
+									projects.Select(p => p.Name).ToArray()
+								)
+								.SemanticDescription("Project")
+								.SemanticHint("Which project this task belongs to"),
+							} as View
+							: new Spacer().Frame(height: 0),
+
+						// Save button (matches template: full width, 44pt)
+						new Button("Save", () =>
+						{
+							var title = _title.Value?.Trim();
+							if (string.IsNullOrEmpty(title)) return;
+
+							var allProjects = _store.Projects.Value ?? new List<Project>();
+							var projectId = _projectIndex.Value >= 0 && _projectIndex.Value < allProjects.Count
+								? allProjects[_projectIndex.Value].ID
+								: _defaultProjectId;
+
+							if (_existingTask != null)
+							{
+								_existingTask.Title = title;
+								_existingTask.IsCompleted = _isCompleted.Value;
+								_existingTask.ProjectID = projectId;
+								_store.AllTasks.Value = new List<ProjectTask>(_store.AllTasks.Value!);
 							}
-							.Padding(new Thickness(0, 8)),
-
-							// Project picker
-							new Text("Project").FontSize(12).Color(Colors.Gray),
-							new Picker(
-								_projectIndex,
-								projects.Select(p => $"{p.Icon} {p.Name}").ToArray()
-							).SemanticDescription("Assign to project"),
-						}
-						.Padding(new Thickness(12)),
-						CornerRadius = 8,
-						HasShadow = true,
-					},
-
-					new Spacer().Frame(height: 20),
-
-					// Save
-					new Button("Save", () =>
-					{
-						var title = _title.Value?.Trim();
-						if (string.IsNullOrEmpty(title)) return;
-
-						var allProjects = _store.Projects.Value ?? new List<Project>();
-						var projectId = _projectIndex.Value >= 0 && _projectIndex.Value < allProjects.Count
-							? allProjects[_projectIndex.Value].ID
-							: _defaultProjectId;
-
-						if (_existingTask != null)
-						{
-							_existingTask.Title = title;
-							_existingTask.IsCompleted = _isCompleted.Value;
-							_existingTask.ProjectID = projectId;
-							// Force refresh
-							_store.AllTasks.Value = new List<ProjectTask>(_store.AllTasks.Value!);
-						}
-						else
-						{
-							_store.AddTask(new ProjectTask
+							else
 							{
-								Title = title,
-								IsCompleted = _isCompleted.Value,
-								ProjectID = projectId,
-							});
-						}
+								_store.AddTask(new ProjectTask
+								{
+									Title = title,
+									IsCompleted = _isCompleted.Value,
+									ProjectID = projectId,
+								});
+							}
 
-						Navigation?.Dismiss();
-					})
-					.IsEnabled(!string.IsNullOrWhiteSpace(_title.Value))
-					.SemanticDescription("Save task"),
-
-					// Delete (only for existing tasks)
-					isExisting
-						? new Button("Delete Task", () =>
-						{
-							_store.DeleteTask(_existingTask!.ID);
 							Navigation?.Dismiss();
 						})
-						.Color(Colors.Red)
-						.SemanticDescription("Delete this task")
-						: new Spacer().Frame(height: 0) as View,
-				}
-				.Padding(new Thickness(16))
-				.FlowDirection(FlowDirection.LeftToRight)
+						.Frame(height: 44)
+						.IsEnabled(!string.IsNullOrWhiteSpace(_title.Value))
+						.SemanticDescription("Save task"),
+					}
+					.Padding(new Thickness(15)) // LayoutPadding
+				},
 			}
 		}
 		.Title("Task");

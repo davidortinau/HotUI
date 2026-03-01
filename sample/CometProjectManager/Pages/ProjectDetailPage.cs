@@ -3,8 +3,9 @@ using CometProjectManager.Models;
 namespace CometProjectManager.Pages;
 
 /// <summary>
-/// Project detail — equivalent to the template's ProjectDetailPage.
-/// Edit project name/description, pick category, select icon, manage tags, view tasks.
+/// Project detail — matches the template's ProjectDetailPage exactly.
+/// Name/Description entries, Category picker, Icon picker, Tags, Save button, Tasks section, FAB.
+/// Uses the same layout structure: VerticalStackLayout with LayoutPadding/Spacing.
 /// </summary>
 public class ProjectDetailPage : View
 {
@@ -17,7 +18,13 @@ public class ProjectDetailPage : View
 	readonly State<int> _categoryIndex;
 	readonly State<int> _iconIndex;
 
-	static readonly string[] Icons = { "📁", "📱", "🌐", "🚀", "🏆", "📚", "🤖" };
+	static readonly Color Primary = Color.FromArgb("#512BD4");
+	static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
+	static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
+
+	// Same icons as the template's IconData set
+	static readonly string[] Icons = { "\uea28", "\uf8fe", "\uf837", "\uf5a9", "\ue823", "\ue7ee", "\uea3a" };
+	static readonly string[] IconDescriptions = { "Balance", "Education", "Fitness", "People", "Document", "Settings", "Target" };
 
 	public ProjectDetailPage(Project project)
 	{
@@ -33,6 +40,28 @@ public class ProjectDetailPage : View
 			Math.Max(0, Array.IndexOf(Icons, project.Icon)));
 	}
 
+	View TaskRow(ProjectTask task)
+	{
+		return new Border
+		{
+			Content = new HStack(spacing: 15)
+			{
+				new Text(task.IsCompleted ? "☑" : "☐")
+					.FontSize(22)
+					.OnTap(_ => _store.ToggleTaskComplete(task.ID))
+					.SemanticDescription(task.Title),
+				new Text(task.Title)
+					.FontSize(17)
+					.Color(DarkOnLightBg),
+				new Spacer(),
+			}
+			.Padding(new Thickness(15)),
+		}
+		.Background(new SolidPaint(LightSecondaryBg))
+		.ClipShape(new RoundedRectangle(20))
+		.OnTap(_ => Navigation?.Navigate(new TaskDetailPage(task, _project.ID)));
+	}
+
 	[Body]
 	View body()
 	{
@@ -42,184 +71,144 @@ public class ProjectDetailPage : View
 
 		return new NavigationView
 		{
-			new ScrollView
+			new Grid
 			{
-				new VStack(spacing: 16)
+				new ScrollView
 				{
-					// Basic Info Frame
-					new Frame
+					new VStack(spacing: 5) // LayoutSpacing = 5
 					{
-						Content = new VStack(spacing: 16)
+						// Name field (matches SfTextInputLayout Hint="Name")
+						new Text("Name").FontSize(12).Color(Colors.Gray),
+						new TextField(_name, "Project name")
+							.FontSize(17)
+							.SemanticDescription("Name"),
+
+						// Description field
+						new Text("Description").FontSize(12).Color(Colors.Gray),
+						new TextField(_description, "Project description")
+							.FontSize(17)
+							.SemanticDescription("Description"),
+
+						// Category picker
+						new Text("Category").FontSize(12).Color(Colors.Gray),
+						new Picker(
+							_categoryIndex,
+							categories.Select(c => c.Title).ToArray()
+						).SemanticDescription("Category"),
+
+						// Icon picker — matches template's horizontal CollectionView with selection indicator
+						new Text("Icon")
+							.FontSize(22)
+							.FontWeight(FontWeight.Semibold),
+						new ScrollView(Orientation.Horizontal)
 						{
-							// Name
-							new Text("Name").FontSize(12).Color(Colors.Gray),
-							new TextField(_name, "Project name")
-								.FontSize(18)
-								.SemanticDescription("Project name"),
-
-							// Description
-							new Text("Description").FontSize(12).Color(Colors.Gray),
-							new TextField(_description, "Project description")
-								.FontSize(14)
-								.SemanticDescription("Project description"),
-
-							// Category picker
-							new Text("Category").FontSize(12).Color(Colors.Gray),
-							new Picker(
-								_categoryIndex,
-								categories.Select(c => c.Title).ToArray()
-							).SemanticDescription("Project category"),
-						}
-						.Padding(new Thickness(12)),
-						CornerRadius = 8,
-						HasShadow = true,
-					},
-
-					// Icon picker Frame
-					new Frame
-					{
-						Content = new VStack(spacing: 8)
-						{
-							new Text("Icon").FontSize(12).Color(Colors.Gray),
-							new ScrollView(Orientation.Horizontal)
+							new HStack(spacing: 5)
 							{
-								new HStack(spacing: 12)
+								Icons.Select((icon, idx) =>
 								{
-									Icons.Select((icon, idx) =>
+									var isSelected = _iconIndex.Value == idx;
+									return new VStack(spacing: 6)
 									{
-										var isSelected = _iconIndex.Value == idx;
-										return new VStack
-										{
-											new Text(icon).FontSize(28),
-											isSelected
-												? new ShapeView(new RoundedRectangle(2))
-													.Frame(height: 3)
-													.Background(new SolidPaint(Colors.DodgerBlue))
-												: new Spacer().Frame(height: 3) as View,
-										}
-										.OnTap(_ => _iconIndex.Value = idx)
-										.SemanticDescription($"Icon: {icon}") as View;
-									}).ToArray()
-								}
-							},
+										new Text(icon)
+											.FontSize(24),
+										// Selection indicator bar (matches template's BoxView)
+										isSelected
+											? new ShapeView(new RoundedRectangle(2))
+												.Frame(height: 4)
+												.Background(new SolidPaint(Primary))
+											: new Spacer().Frame(height: 4) as View,
+									}
+									.OnTap(_ => _iconIndex.Value = idx)
+									.SemanticDescription($"Icon: {(idx < IconDescriptions.Length ? IconDescriptions[idx] : "icon")}") as View;
+								}).ToArray()
+							}
 						}
-						.Padding(new Thickness(12)),
-						CornerRadius = 8,
-						HasShadow = true,
-					},
+						.Frame(height: 44)
+						.Margin(new Thickness(0, 0, 0, 15)),
 
-					// Tags
-					new Frame
-					{
-						Content = new VStack(spacing: 8)
+						// Tags — matches template's chip selector
+						new Text("Tags")
+							.FontSize(22)
+							.FontWeight(FontWeight.Semibold),
+						new ScrollView(Orientation.Horizontal)
 						{
-							new Text("Tags").FontSize(12).Color(Colors.Gray),
-							new ScrollView(Orientation.Horizontal)
+							new HStack(spacing: 5)
 							{
-								new HStack(spacing: 8)
+								(_store.Tags.Value ?? new List<Tag>()).Select(tag =>
 								{
-									(_store.Tags.Value ?? new List<Tag>()).Select(tag =>
+									var isSelected = _project.Tags.Any(t => t.ID == tag.ID);
+									return new Border
 									{
-										var isSelected = _project.Tags.Any(t => t.ID == tag.ID);
-										return new Text(tag.Title)
-											.FontSize(14)
-											.Color(isSelected ? Colors.White : Colors.Black)
-											.Background(new SolidPaint(isSelected ? tag.DisplayColor : Colors.LightGray))
-											.Padding(new Thickness(12, 6))
-											.ClipShape(new RoundedRectangle(16))
-											.OnTap(_ =>
-											{
-												if (isSelected)
-													_project.Tags.RemoveAll(t => t.ID == tag.ID);
-												else
-													_project.Tags.Add(new Tag { ID = tag.ID, Title = tag.Title, ColorHex = tag.ColorHex });
-												_store.SaveProject(_project);
-											})
-											.SemanticDescription($"Tag: {tag.Title}, {(isSelected ? "selected" : "not selected")}") as View;
-									}).ToArray()
-								}
-							},
+										Content = new Text(tag.Title)
+											.FontSize(16)
+											.Color(isSelected ? Colors.White : DarkOnLightBg),
+									}
+									.Frame(height: 44)
+									.Background(new SolidPaint(isSelected ? tag.DisplayColor : LightSecondaryBg))
+									.ClipShape(new RoundedRectangle(22))
+									.Padding(new Thickness(18, 0))
+									.OnTap(_ =>
+									{
+										if (isSelected)
+											_project.Tags.RemoveAll(t => t.ID == tag.ID);
+										else
+											_project.Tags.Add(new Tag { ID = tag.ID, Title = tag.Title, ColorHex = tag.ColorHex });
+										_store.SaveProject(_project);
+									})
+									.SemanticDescription($"{tag.Title}") as View;
+								}).ToArray()
+							}
 						}
-						.Padding(new Thickness(12)),
-						CornerRadius = 8,
-						HasShadow = true,
-					},
+						.Frame(height: 44)
+						.Margin(new Thickness(0, 0, 0, 15)),
 
-					// Save button
-					new Button("Save", () =>
-					{
-						var categories2 = _store.Categories.Value ?? new List<Category>();
-						_project.Name = _name.Value ?? "";
-						_project.Description = _description.Value ?? "";
-						if (_categoryIndex.Value >= 0 && _categoryIndex.Value < categories2.Count)
-							_project.CategoryID = categories2[_categoryIndex.Value].ID;
-						if (_iconIndex.Value >= 0 && _iconIndex.Value < Icons.Length)
-							_project.Icon = Icons[_iconIndex.Value];
-
-						_store.SaveProject(_project);
-						Navigation?.Dismiss();
-					})
-					.IsEnabled(!string.IsNullOrWhiteSpace(_name.Value))
-					.SemanticDescription("Save project"),
-
-					// Tasks section
-					new HStack
-					{
-						new Text("Tasks")
-							.FontSize(18)
-							.FontWeight(FontWeight.Semibold)
-							.SemanticHeadingLevel(SemanticHeadingLevel.Level2),
-						new Spacer(),
-						hasCompleted
-							? new Text("🧹")
-								.FontSize(16)
-								.OnTap(_ =>
-								{
-									var completed = tasks.Where(t => t.IsCompleted).Select(t => t.ID).ToList();
-									foreach (var id in completed) _store.DeleteTask(id);
-								})
-								.SemanticDescription("Clean completed tasks")
-							: new Spacer().Frame(width: 0) as View,
-					},
-
-					new VStack(spacing: 4)
-					{
-						tasks.Select(task => new HStack(spacing: 10)
+						// Save button (matches template: full width, 44pt height)
+						new Button("Save", () =>
 						{
-							new Text(task.IsCompleted ? "✅" : "⬜")
-								.FontSize(16)
-								.OnTap(_ => _store.ToggleTaskComplete(task.ID)),
-							new Text(task.Title)
-								.FontSize(14)
-								.Color(task.IsCompleted ? Colors.Gray : Colors.Black),
-							new Spacer(),
-							new Text("✏️")
-								.FontSize(14)
-								.OnTap(_ => Navigation?.Navigate(new TaskDetailPage(task, _project.ID))),
-						}
-						.Padding(new Thickness(4))
-						.SemanticDescription($"Task: {task.Title}") as View).ToArray()
-					},
+							var categories2 = _store.Categories.Value ?? new List<Category>();
+							_project.Name = _name.Value ?? "";
+							_project.Description = _description.Value ?? "";
+							if (_categoryIndex.Value >= 0 && _categoryIndex.Value < categories2.Count)
+								_project.CategoryID = categories2[_categoryIndex.Value].ID;
+							if (_iconIndex.Value >= 0 && _iconIndex.Value < Icons.Length)
+								_project.Icon = Icons[_iconIndex.Value];
 
-					new Button("+ Add Task", () =>
-					{
-						Navigation?.Navigate(new TaskDetailPage(null, _project.ID));
-					})
-					.SemanticDescription("Add task to project"),
-
-					// Delete button (only for existing projects)
-					!_isNew
-						? new Button("Delete Project", () =>
-						{
-							_store.DeleteProject(_project.ID);
+							_store.SaveProject(_project);
 							Navigation?.Dismiss();
 						})
-						.Color(Colors.Red)
-						.SemanticDescription("Delete this project")
-						: new Spacer().Frame(height: 0) as View,
-				}
-				.Padding(new Thickness(16))
-				.FlowDirection(FlowDirection.LeftToRight)
+						.Frame(height: 44)
+						.IsEnabled(!string.IsNullOrWhiteSpace(_name.Value))
+						.SemanticDescription("Save project"),
+
+						// Tasks header with clean button
+						new Grid
+						{
+							new Text("Tasks")
+								.FontSize(22)
+								.FontWeight(FontWeight.Semibold),
+						}
+						.Frame(height: 44),
+
+						// Task list
+						new VStack(spacing: 5)
+						{
+							tasks.Select(task => TaskRow(task) as View).ToArray()
+						},
+					}
+					.Padding(new Thickness(15)) // LayoutPadding
+				},
+
+				// FAB for adding tasks
+				new Button("+", () =>
+				{
+					Navigation?.Navigate(new TaskDetailPage(null, _project.ID));
+				})
+				.Frame(width: 60, height: 60)
+				.Background(new SolidPaint(Primary))
+				.Color(Colors.White)
+				.FontSize(28)
+				.Margin(new Thickness(30))
+				.SemanticDescription("Add task"),
 			}
 		}
 		.Title("Project");

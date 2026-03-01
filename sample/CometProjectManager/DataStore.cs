@@ -3,32 +3,35 @@ using CometProjectManager.Models;
 namespace CometProjectManager;
 
 /// <summary>
-/// In-memory data store replacing the template's repository + seed data service.
+/// In-memory data store matching the MAUI template's SeedData.json exactly.
 /// All state changes trigger reactive UI updates via State<T>.
 /// </summary>
 public class DataStore
 {
 	public static DataStore Instance { get; } = new();
 
-	private int _nextProjectId = 4;
-	private int _nextTaskId = 10;
+	private int _nextProjectId = 5;
+	private int _nextTaskId = 13;
 	private int _nextCategoryId = 5;
-	private int _nextTagId = 5;
+	private int _nextTagId = 6;
 
+	// Match the MAUI template seed data categories
 	public readonly State<List<Category>> Categories = new(new List<Category>
 	{
-		new() { ID = 1, Title = "Development", ColorHex = "#512BD4" },
-		new() { ID = 2, Title = "Design", ColorHex = "#E91E63" },
-		new() { ID = 3, Title = "Marketing", ColorHex = "#FF9800" },
-		new() { ID = 4, Title = "Research", ColorHex = "#4CAF50" },
+		new() { ID = 1, Title = "work", ColorHex = "#3068df" },
+		new() { ID = 2, Title = "education", ColorHex = "#8800FF" },
+		new() { ID = 3, Title = "self", ColorHex = "#FF3300" },
+		new() { ID = 4, Title = "relationships", ColorHex = "#FF9900" },
 	});
 
+	// Match the MAUI template seed data tags
 	public readonly State<List<Tag>> Tags = new(new List<Tag>
 	{
-		new() { ID = 1, Title = "Urgent", ColorHex = "#F44336" },
-		new() { ID = 2, Title = "Bug", ColorHex = "#E91E63" },
-		new() { ID = 3, Title = "Feature", ColorHex = "#2196F3" },
-		new() { ID = 4, Title = "Docs", ColorHex = "#4CAF50" },
+		new() { ID = 1, Title = "work", ColorHex = "#3068df" },
+		new() { ID = 2, Title = "personal", ColorHex = "#FF4500" },
+		new() { ID = 3, Title = "health", ColorHex = "#32CD32" },
+		new() { ID = 4, Title = "family", ColorHex = "#1E90FF" },
+		new() { ID = 5, Title = "friends", ColorHex = "#FF69B4" },
 	});
 
 	public readonly State<List<Project>> Projects;
@@ -36,32 +39,41 @@ public class DataStore
 
 	public DataStore()
 	{
+		// Match the MAUI template SeedData.json exactly
 		var tasks = new List<ProjectTask>
 		{
-			new() { ID = 1, Title = "Set up CI/CD pipeline", IsCompleted = true, ProjectID = 1 },
-			new() { ID = 2, Title = "Implement authentication", IsCompleted = false, ProjectID = 1 },
-			new() { ID = 3, Title = "Write unit tests", IsCompleted = false, ProjectID = 1 },
-			new() { ID = 4, Title = "Create wireframes", IsCompleted = true, ProjectID = 2 },
-			new() { ID = 5, Title = "Design landing page", IsCompleted = false, ProjectID = 2 },
-			new() { ID = 6, Title = "Write blog post", IsCompleted = false, ProjectID = 3 },
-			new() { ID = 7, Title = "Social media campaign", IsCompleted = true, ProjectID = 3 },
-			new() { ID = 8, Title = "Prepare demo", IsCompleted = false, ProjectID = 1 },
-			new() { ID = 9, Title = "Review PRs", IsCompleted = false, ProjectID = 1 },
+			new() { ID = 1, Title = "Survey Employees", IsCompleted = false, ProjectID = 1 },
+			new() { ID = 2, Title = "Analyze Survey Results", IsCompleted = false, ProjectID = 1 },
+			new() { ID = 3, Title = "Develop Action Plan", IsCompleted = false, ProjectID = 1 },
+			new() { ID = 4, Title = "Read a Book", IsCompleted = false, ProjectID = 2 },
+			new() { ID = 5, Title = "Attend a Workshop", IsCompleted = false, ProjectID = 2 },
+			new() { ID = 6, Title = "Practice a Hobby", IsCompleted = false, ProjectID = 2 },
+			new() { ID = 7, Title = "Morning Yoga", IsCompleted = false, ProjectID = 3 },
+			new() { ID = 8, Title = "Evening Run", IsCompleted = false, ProjectID = 3 },
+			new() { ID = 9, Title = "Healthy Cooking Class", IsCompleted = false, ProjectID = 3 },
+			new() { ID = 10, Title = "Plan a Family Reunion", IsCompleted = false, ProjectID = 4 },
+			new() { ID = 11, Title = "Organize a Friends' Get-together", IsCompleted = false, ProjectID = 4 },
+			new() { ID = 12, Title = "Weekly Phone Calls", IsCompleted = false, ProjectID = 4 },
 		};
 
 		AllTasks = new State<List<ProjectTask>>(tasks);
 
 		var projects = new List<Project>
 		{
-			new() { ID = 1, Name = "Mobile App", Description = "Cross-platform mobile application", Icon = "📱", CategoryID = 1,
-				Tags = new() { new() { ID = 1, Title = "Urgent", ColorHex = "#F44336" }, new() { ID = 3, Title = "Feature", ColorHex = "#2196F3" } } },
-			new() { ID = 2, Name = "Website Redesign", Description = "Refresh the company website", Icon = "🌐", CategoryID = 2,
-				Tags = new() { new() { ID = 3, Title = "Feature", ColorHex = "#2196F3" } } },
-			new() { ID = 3, Name = "Product Launch", Description = "Q2 product launch campaign", Icon = "🚀", CategoryID = 3,
-				Tags = new() { new() { ID = 1, Title = "Urgent", ColorHex = "#F44336" }, new() { ID = 4, Title = "Docs", ColorHex = "#4CAF50" } } },
+			new() { ID = 1, Name = "Balance", Description = "Improve work-life balance.",
+				Icon = "\uea28", CategoryID = 1,
+				Tags = new() { new() { ID = 1, Title = "work", ColorHex = "#3068df" } } },
+			new() { ID = 2, Name = "Personal", Description = "Learn to speak another language.",
+				Icon = "\uf8fe", CategoryID = 2,
+				Tags = new() { new() { ID = 2, Title = "personal", ColorHex = "#FF4500" } } },
+			new() { ID = 3, Name = "Fitness", Description = "Promote health and fitness activities",
+				Icon = "\uf837", CategoryID = 3,
+				Tags = new() { new() { ID = 3, Title = "health", ColorHex = "#32CD32" } } },
+			new() { ID = 4, Name = "Family and Friends", Description = "Strengthen relationships with family and friends.",
+				Icon = "\uf5a9", CategoryID = 4,
+				Tags = new() { new() { ID = 4, Title = "family", ColorHex = "#1E90FF" }, new() { ID = 5, Title = "friends", ColorHex = "#FF69B4" } } },
 		};
 
-		// Link tasks to projects
 		foreach (var project in projects)
 			project.Tasks = tasks.Where(t => t.ProjectID == project.ID).ToList();
 
@@ -157,6 +169,11 @@ public class DataStore
 		Categories.Value = cats;
 	}
 
+	public void SaveCategories(List<Category> categories)
+	{
+		Categories.Value = new List<Category>(categories);
+	}
+
 	public void AddTag(Tag tag)
 	{
 		tag.ID = _nextTagId++;
@@ -168,6 +185,21 @@ public class DataStore
 		var tags = new List<Tag>(Tags.Value!);
 		tags.RemoveAll(t => t.ID == tagId);
 		Tags.Value = tags;
+	}
+
+	public void SaveTags(List<Tag> tags)
+	{
+		Tags.Value = new List<Tag>(tags);
+	}
+
+	public void ResetData()
+	{
+		// Re-create seed data
+		var store = new DataStore();
+		Categories.Value = store.Categories.Value;
+		Tags.Value = store.Tags.Value;
+		AllTasks.Value = store.AllTasks.Value;
+		Projects.Value = store.Projects.Value;
 	}
 
 	private void RefreshProjects()

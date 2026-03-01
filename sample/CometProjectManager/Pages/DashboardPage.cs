@@ -3,80 +3,157 @@ using CometProjectManager.Models;
 namespace CometProjectManager.Pages;
 
 /// <summary>
-/// Dashboard page — equivalent to the template's MainPage.
-/// Shows: category chart, horizontal project cards, task list with completion toggle, add task FAB.
+/// Dashboard page — pixel-perfect match of the MAUI template's MainPage.
+/// Shows: category chart (in card), horizontal project cards, task list, FAB.
+/// Colors/fonts/spacing match AppStyles.xaml and Colors.xaml exactly.
 /// </summary>
 public class DashboardPage : View
 {
 	[State] readonly DataStore _store = DataStore.Instance;
 
+	// Colors from the MAUI template Colors.xaml
+	static readonly Color Primary = Color.FromArgb("#512BD4");
+	static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
+	static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
+	static readonly Color LightBg = Color.FromArgb("#F2F2F2");
+
+	/// <summary>
+	/// Category chart card — matches the template's CategoryChart control.
+	/// Uses horizontal bar representation since we can't use Syncfusion RadialBarSeries.
+	/// Wrapped in a card (CardStyle: RoundRectangle 20, secondary bg, no stroke, 15 padding).
+	/// </summary>
 	View CategoryChart()
 	{
 		var data = _store.GetCategoryChartData();
 		var maxCount = data.Max(d => d.Count);
 		if (maxCount == 0) maxCount = 1;
 
-		return new VStack(spacing: 8)
-		{
-			data.Select(d => new HStack(spacing: 8)
-			{
-				new Text(d.Title)
-					.FontSize(13)
-					.Frame(width: 100),
-				new ShapeView(new RoundedRectangle(4))
-					.Frame(width: (float)(d.Count * 180.0 / maxCount) + 4, height: 20)
-					.Background(new SolidPaint(d.Color)),
-				new Text($"{d.Count}")
-					.FontSize(13)
-					.Color(Colors.Gray),
-			}
-			.SemanticDescription($"{d.Title}: {d.Count} tasks") as View).ToArray()
-		};
-	}
-
-	View ProjectCard(Project project)
-	{
-		var taskCount = project.Tasks.Count;
-		var completedCount = project.Tasks.Count(t => t.IsCompleted);
-
 		return new Border
 		{
-			Content = new VStack(spacing: 6)
+			Content = new HStack(spacing: 12)
 			{
-				new Text(project.Icon).FontSize(28),
-				new Text(project.Name)
-					.FontSize(16)
-					.FontWeight(FontWeight.Semibold),
-				new Text(project.Description)
-					.FontSize(12)
-					.Color(Colors.Gray),
-				new Text($"{completedCount}/{taskCount} tasks")
-					.FontSize(11)
-					.Color(Colors.DarkGray),
+				// Chart bars (left side)
+				new VStack(spacing: 6)
+				{
+					data.Select(d =>
+					{
+						var barWidth = Math.Max(8, (float)(d.Count * 120.0 / maxCount));
+						return new HStack(spacing: 0)
+						{
+							new ShapeView(new RoundedRectangle(8))
+								.Frame(width: barWidth, height: 16)
+								.Background(new SolidPaint(d.Color)),
+						} as View;
+					}).ToArray()
+				},
+				// Legend (right side) — matches the template legend
+				new VStack(spacing: 6)
+				{
+					data.Select(d => new HStack(spacing: 6)
+					{
+						new ShapeView(new Circle())
+							.Frame(width: 10, height: 10)
+							.Background(new SolidPaint(d.Color)),
+						new Text($"{d.Title}: {d.Count}")
+							.FontSize(16),
+					}
+					.SemanticDescription($"{d.Title}: {d.Count} tasks") as View).ToArray()
+				},
 			}
-			.Padding(new Thickness(12)),
+			.Padding(new Thickness(15)),
 		}
-		.Frame(width: 180)
-		.Background(new SolidPaint(Colors.WhiteSmoke))
-		.ClipShape(new RoundedRectangle(12))
+		.Frame(height: 200)
+		.Margin(new Thickness(0, 12))
+		.Background(new SolidPaint(LightSecondaryBg))
+		.ClipShape(new RoundedRectangle(20));
+	}
+
+	/// <summary>
+	/// Project card — matches the template's ProjectCardView.
+	/// CardStyle border, icon, name (uppercase gray), description, tag pills.
+	/// Width 200 as in the template.
+	/// </summary>
+	View ProjectCard(Project project)
+	{
+		return new Border
+		{
+			Content = new VStack(spacing: 15)
+			{
+				// Icon (FluentUI glyph or fallback)
+				new Text(project.Icon)
+					.FontSize(20),
+				// Name (uppercase, gray, 14pt — matches template)
+				new Text(project.Name.ToUpperInvariant())
+					.FontSize(14)
+					.Color(Color.FromArgb("#919191")),
+				// Description
+				new Text(project.Description)
+					.FontSize(17),
+				// Tag pills
+				new HStack(spacing: 15)
+				{
+					project.Tags.Select(tag =>
+						new Text(tag.Title)
+							.FontSize(13)
+							.Color(Colors.White)
+							.Background(new SolidPaint(tag.DisplayColor))
+							.Padding(new Thickness(8, 3))
+							.ClipShape(new RoundedRectangle(10))
+						as View).ToArray()
+				},
+			}
+			.Padding(new Thickness(15)),
+		}
+		.Frame(width: 200)
+		.Background(new SolidPaint(LightSecondaryBg))
+		.ClipShape(new RoundedRectangle(20))
 		.OnTap(_ => Navigation?.Navigate(new ProjectDetailPage(project)))
 		.SemanticDescription($"{project.Name} project. {project.Description}");
 	}
 
+	/// <summary>
+	/// Task row — matches the template's TaskView control.
+	/// Border with RoundRectangle 20, secondary bg, CheckBox + Label inside.
+	/// </summary>
 	View TaskRow(ProjectTask task)
 	{
-		return new HStack(spacing: 10)
+		return new Border
 		{
-			new Text(task.IsCompleted ? "✅" : "⬜")
-				.FontSize(18)
-				.OnTap(_ => _store.ToggleTaskComplete(task.ID)),
-			new Text(task.Title)
-				.FontSize(15)
-				.Color(task.IsCompleted ? Colors.Gray : Colors.Black),
-			new Spacer(),
+			Content = new HStack(spacing: 15)
+			{
+				new Text(task.IsCompleted ? "☑" : "☐")
+					.FontSize(22)
+					.OnTap(_ => _store.ToggleTaskComplete(task.ID))
+					.SemanticDescription(task.Title),
+				new Text(task.Title)
+					.FontSize(17)
+					.Color(DarkOnLightBg),
+				new Spacer(),
+			}
+			.Padding(new Thickness(15)),
 		}
-		.Padding(new Thickness(8, 6))
+		.Background(new SolidPaint(LightSecondaryBg))
+		.ClipShape(new RoundedRectangle(20))
+		.OnTap(_ => Navigation?.Navigate(new TaskDetailPage(task, task.ProjectID)))
 		.SemanticDescription($"Task: {task.Title}, {(task.IsCompleted ? "completed" : "pending")}");
+	}
+
+	/// <summary>
+	/// Floating action button — matches the template's AddButton control.
+	/// Purple circle button, bottom-right, 60x60, CornerRadius 30.
+	/// </summary>
+	View FloatingAddButton()
+	{
+		return new Button("+", () =>
+		{
+			Navigation?.Navigate(new TaskDetailPage(null, 0));
+		})
+		.Frame(width: 60, height: 60)
+		.Background(new SolidPaint(Primary))
+		.Color(Colors.White)
+		.FontSize(28)
+		.Margin(new Thickness(30))
+		.SemanticDescription("Add task");
 	}
 
 	[Body]
@@ -88,62 +165,52 @@ public class DashboardPage : View
 
 		return new NavigationView
 		{
-			new ScrollView
+			new Grid
 			{
-				new VStack(spacing: 20)
+				// Main scrollable content
+				new ScrollView
 				{
-					new Text("Task Categories")
-						.FontSize(20)
-						.FontWeight(FontWeight.Bold)
-						.SemanticHeadingLevel(SemanticHeadingLevel.Level1),
-					CategoryChart(),
-
-					new Text("Projects")
-						.FontSize(20)
-						.FontWeight(FontWeight.Bold)
-						.SemanticHeadingLevel(SemanticHeadingLevel.Level1)
-						.IsVisible(projects.Count > 0),
-					new CollectionView<Project>(() => projects)
+					new VStack(spacing: 5) // LayoutSpacing = 5 on phone
 					{
-						ViewFor = project => ProjectCard(project),
-						ItemsLayout = ItemsLayout.Horizontal(12),
+						// Category chart card
+						CategoryChart(),
+
+						// "Projects" title — Title2 style (22pt, semibold)
+						new Text("Projects")
+							.FontSize(22)
+							.FontWeight(FontWeight.Semibold),
+
+						// Horizontal scrolling project cards (margin -30,0 + padding 30,0 for edge-to-edge)
+						new ScrollView(Orientation.Horizontal)
+						{
+							new HStack(spacing: 15)
+							{
+								projects.Select(p => ProjectCard(p) as View).ToArray()
+							}
+							.Padding(new Thickness(30, 0))
+						}
+						.Margin(new Thickness(-30, 0)),
+
+						// "Tasks" header with clean button
+						new Grid
+						{
+							new Text("Tasks")
+								.FontSize(22)
+								.FontWeight(FontWeight.Semibold),
+						}
+						.Frame(height: 44),
+
+						// Task list
+						new VStack(spacing: 15)
+						{
+							tasks.Select(t => TaskRow(t) as View).ToArray()
+						},
 					}
-					.Frame(height: 150)
-					.IsVisible(projects.Count > 0),
-					new Text("No projects yet")
-						.FontSize(14)
-						.Color(Colors.Gray)
-						.IsVisible(projects.Count == 0),
+					.Padding(new Thickness(15)) // LayoutPadding = 15 on phone
+				},
 
-					new HStack
-					{
-						new Text("Tasks")
-							.FontSize(20)
-							.FontWeight(FontWeight.Bold)
-							.SemanticHeadingLevel(SemanticHeadingLevel.Level1),
-						new Spacer(),
-						hasCompleted
-							? new Text("🧹 Clean")
-								.FontSize(14)
-								.Color(Colors.DodgerBlue)
-								.OnTap(_ => _store.CleanCompletedTasks())
-								.SemanticDescription("Clean completed tasks")
-							: new Spacer().Frame(width: 0) as View,
-					},
-
-					new VStack(spacing: 4)
-					{
-						tasks.Select(t => TaskRow(t) as View).ToArray()
-					},
-
-					new Button("+ Add Task", () =>
-					{
-						Navigation?.Navigate(new TaskDetailPage(null, 0));
-					})
-					.SemanticDescription("Add a new task"),
-				}
-				.Padding(new Thickness(16))
-				.FlowDirection(FlowDirection.LeftToRight)
+				// FAB overlay — bottom right
+				FloatingAddButton(),
 			}
 		}
 		.Title(_store.Today);

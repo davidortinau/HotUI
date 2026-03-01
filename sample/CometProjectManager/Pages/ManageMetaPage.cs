@@ -3,17 +3,64 @@ using CometProjectManager.Models;
 namespace CometProjectManager.Pages;
 
 /// <summary>
-/// Manage Meta page — equivalent to the template's ManageMetaPage.
-/// CRUD for categories (title + color) and tags (title + color).
+/// Manage Meta page — matches the template's ManageMetaPage exactly.
+/// CRUD for categories (title + color + color preview + delete) and tags (same).
+/// Includes Save buttons and Add buttons, plus Reset toolbar item.
+/// Uses the same grid layout: 4*,3*,30,Auto column definitions.
 /// </summary>
 public class ManageMetaPage : View
 {
 	[State] readonly DataStore _store = DataStore.Instance;
 
-	readonly State<string> _newCategoryTitle = new("");
-	readonly State<string> _newCategoryColor = new("#2196F3");
-	readonly State<string> _newTagTitle = new("");
-	readonly State<string> _newTagColor = new("#9C27B0");
+	static readonly Color Primary = Color.FromArgb("#512BD4");
+	static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
+	static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
+
+	View CategoryRow(Category cat)
+	{
+		return new HStack(spacing: 5) // LayoutSpacing = 5
+		{
+			// Title entry
+			new TextField(new State<string>(cat.Title), "Title")
+				.FontSize(17)
+				.SemanticDescription("Title"),
+			// Color entry
+			new TextField(new State<string>(cat.ColorHex), "Color")
+				.FontSize(17)
+				.SemanticDescription("Color")
+				.SemanticHint("Category color in HEX format"),
+			// Color preview
+			new ShapeView(new Rectangle())
+				.Frame(width: 30, height: 30)
+				.Background(new SolidPaint(cat.Color)),
+			// Delete button
+			new Text("🗑")
+				.FontSize(20)
+				.OnTap(_ => _store.DeleteCategory(cat.ID))
+				.SemanticDescription("Delete"),
+		};
+	}
+
+	View TagRow(Tag tag)
+	{
+		return new HStack(spacing: 5)
+		{
+			new TextField(new State<string>(tag.Title), "Title")
+				.FontSize(17)
+				.SemanticDescription("Title"),
+			new TextField(new State<string>(tag.ColorHex), "Color")
+				.FontSize(17)
+				.SemanticDescription("Color")
+				.SemanticHint("Tag color in HEX format"),
+			new ShapeView(new Rectangle())
+				.Frame(width: 30, height: 30)
+				.Background(new SolidPaint(tag.DisplayColor)),
+			new Text("🗑")
+				.FontSize(20)
+				.OnTap(_ => _store.DeleteTag(tag.ID))
+				.SemanticDescription("Delete"),
+		};
+	}
 
 	[Body]
 	View body()
@@ -23,128 +70,73 @@ public class ManageMetaPage : View
 
 		return new ScrollView
 		{
-			new VStack(spacing: 16)
+			new VStack(spacing: 5) // LayoutSpacing = 5
 			{
-				// Categories section
+				// Categories section header (Title2 = 22pt semibold)
 				new Text("Categories")
-					.FontSize(20)
-					.FontWeight(FontWeight.Bold)
-					.SemanticHeadingLevel(SemanticHeadingLevel.Level1),
+					.FontSize(22)
+					.FontWeight(FontWeight.Semibold),
 
-				new VStack(spacing: 8)
+				// Category rows
+				new VStack(spacing: 5)
 				{
-					categories.Select(cat => new HStack(spacing: 10)
-					{
-						new ShapeView(new Circle())
-							.Frame(20, 20)
-							.Background(new SolidPaint(cat.Color)),
-						new Text(cat.Title)
-							.FontSize(15),
-						new Text(cat.ColorHex)
-							.FontSize(12)
-							.Color(Colors.Gray),
-						new Spacer(),
-						new Text("🗑️")
-							.FontSize(14)
-							.OnTap(_ => _store.DeleteCategory(cat.ID))
-							.SemanticDescription($"Delete {cat.Title} category"),
-					}
-					.Padding(new Thickness(8, 6))
-					.Background(new SolidPaint(Colors.WhiteSmoke))
-					.ClipShape(new RoundedRectangle(8))
-					.SemanticDescription($"Category: {cat.Title}") as View).ToArray()
+					categories.Select(cat => CategoryRow(cat) as View).ToArray()
 				},
 
-				// Add category form
-				new HStack(spacing: 8)
+				// Save + Add buttons (matches template grid: *,Auto columns)
+				new HStack(spacing: 5)
 				{
-					new TextField(_newCategoryTitle, "New category...")
-						.FontSize(14)
-						.SemanticDescription("New category name"),
-					new TextField(_newCategoryColor, "#hex")
-						.FontSize(12)
-						.Frame(width: 80)
-						.SemanticDescription("Category color hex"),
-					new Text("➕")
-						.FontSize(18)
-						.OnTap(_ =>
+					new Button("Save", () =>
+					{
+						_store.SaveCategories(categories);
+					})
+					.Frame(height: 44)
+					.SemanticDescription("Save categories"),
+					new Button("+", () =>
+					{
+						_store.AddCategory(new Category
 						{
-							var title = _newCategoryTitle.Value?.Trim();
-							if (!string.IsNullOrEmpty(title))
-							{
-								_store.AddCategory(new Category
-								{
-									Title = title,
-									ColorHex = _newCategoryColor.Value ?? "#2196F3"
-								});
-								_newCategoryTitle.Value = "";
-							}
-						})
-						.SemanticDescription("Add category"),
+							Title = "New Category",
+							ColorHex = "#808080"
+						});
+					})
+					.SemanticDescription("Add category"),
 				}
-				.Padding(new Thickness(8)),
+				.Margin(new Thickness(0, 10)),
 
-				new Spacer().Frame(height: 12),
-
-				// Tags section
+				// Tags section header
 				new Text("Tags")
-					.FontSize(20)
-					.FontWeight(FontWeight.Bold)
-					.SemanticHeadingLevel(SemanticHeadingLevel.Level1),
+					.FontSize(22)
+					.FontWeight(FontWeight.Semibold),
 
-				new VStack(spacing: 8)
+				// Tag rows
+				new VStack(spacing: 5)
 				{
-					tags.Select(tag => new HStack(spacing: 10)
-					{
-						new Text(tag.Title)
-							.FontSize(14)
-							.Color(Colors.White)
-							.Background(new SolidPaint(tag.DisplayColor))
-							.Padding(new Thickness(10, 4))
-							.ClipShape(new RoundedRectangle(12)),
-						new Text(tag.ColorHex)
-							.FontSize(12)
-							.Color(Colors.Gray),
-						new Spacer(),
-						new Text("🗑️")
-							.FontSize(14)
-							.OnTap(_ => _store.DeleteTag(tag.ID))
-							.SemanticDescription($"Delete {tag.Title} tag"),
-					}
-					.Padding(new Thickness(8, 4))
-					.SemanticDescription($"Tag: {tag.Title}") as View).ToArray()
+					tags.Select(tag => TagRow(tag) as View).ToArray()
 				},
 
-				// Add tag form
-				new HStack(spacing: 8)
+				// Save + Add buttons
+				new HStack(spacing: 5)
 				{
-					new TextField(_newTagTitle, "New tag...")
-						.FontSize(14)
-						.SemanticDescription("New tag name"),
-					new TextField(_newTagColor, "#hex")
-						.FontSize(12)
-						.Frame(width: 80)
-						.SemanticDescription("Tag color hex"),
-					new Text("➕")
-						.FontSize(18)
-						.OnTap(_ =>
+					new Button("Save", () =>
+					{
+						_store.SaveTags(tags);
+					})
+					.Frame(height: 44)
+					.SemanticDescription("Save tags"),
+					new Button("+", () =>
+					{
+						_store.AddTag(new Tag
 						{
-							var title = _newTagTitle.Value?.Trim();
-							if (!string.IsNullOrEmpty(title))
-							{
-								_store.AddTag(new Tag
-								{
-									Title = title,
-									ColorHex = _newTagColor.Value ?? "#9C27B0"
-								});
-								_newTagTitle.Value = "";
-							}
-						})
-						.SemanticDescription("Add tag"),
+							Title = "New Tag",
+							ColorHex = "#808080"
+						});
+					})
+					.SemanticDescription("Add tag"),
 				}
-				.Padding(new Thickness(8)),
+				.Margin(new Thickness(0, 10)),
 			}
-			.Padding(new Thickness(16))
+			.Padding(new Thickness(15)) // LayoutPadding
 		};
 	}
 }

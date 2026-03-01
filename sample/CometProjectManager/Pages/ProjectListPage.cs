@@ -3,12 +3,15 @@ using CometProjectManager.Models;
 namespace CometProjectManager.Pages;
 
 /// <summary>
-/// Project list — equivalent to the template's ProjectListPage.
-/// Shows all projects in a vertical list with name/description, add button.
+/// Project list — matches the template's ProjectListPage exactly.
+/// Vertical list of projects in Border cards, FAB button.
 /// </summary>
 public class ProjectListPage : View
 {
 	[State] readonly DataStore _store = DataStore.Instance;
+
+	static readonly Color Primary = Color.FromArgb("#512BD4");
+	static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
 
 	[Body]
 	View body()
@@ -17,46 +20,52 @@ public class ProjectListPage : View
 
 		return new NavigationView
 		{
-			new VStack
+			new Grid
 			{
-				new ListView<Project>(() => projects)
+				new ScrollView
 				{
-					ViewFor = project => new HStack(spacing: 12)
+					new VStack(spacing: 5) // LayoutSpacing = 5
 					{
-						new Text(project.Icon).FontSize(24),
-						new VStack(spacing: 2)
-						{
-							new Text(project.Name)
-								.FontSize(18)
-								.FontWeight(FontWeight.Semibold),
-							new Text(project.Description)
-								.FontSize(13)
-								.Color(Colors.Gray),
-						},
-						new Spacer(),
-						new Text($"{project.Tasks.Count} tasks")
-							.FontSize(12)
-							.Color(Colors.DarkGray),
+						projects.Select(project =>
+							new Border
+							{
+								Content = new VStack(spacing: 4)
+								{
+									new Text(project.Name)
+										.FontSize(24),
+									new Text(project.Description)
+										.FontSize(17),
+								}
+								.Padding(new Thickness(10)),
+							}
+							.Background(new SolidPaint(LightSecondaryBg))
+							.ClipShape(new RoundedRectangle(20))
+							.OnTap(_ => Navigation?.Navigate(new ProjectDetailPage(project)))
+							.SemanticDescription($"{project.Name} project")
+						as View).ToArray()
 					}
-					.Padding(new Thickness(12, 10))
-					.OnTap(_ => Navigation?.Navigate(new ProjectDetailPage(project)))
-					.SemanticDescription($"{project.Name} project"),
+					.Padding(new Thickness(15)) // LayoutPadding
 				},
 
-				new Button("+ Add Project", () =>
+				// FAB
+				new Button("+", () =>
 				{
 					var newProject = new Project
 					{
 						Name = "New Project",
 						Description = "Tap to edit",
-						Icon = "📁",
+						Icon = "\uea28",
 						CategoryID = 1,
 					};
 					_store.AddProject(newProject);
 					Navigation?.Navigate(new ProjectDetailPage(newProject));
 				})
-				.Padding(new Thickness(16, 12))
-				.SemanticDescription("Add a new project"),
+				.Frame(width: 60, height: 60)
+				.Background(new SolidPaint(Primary))
+				.Color(Colors.White)
+				.FontSize(28)
+				.Margin(new Thickness(30))
+				.SemanticDescription("Add project"),
 			}
 		}
 		.Title("Projects");
