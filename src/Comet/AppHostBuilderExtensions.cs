@@ -84,6 +84,7 @@ namespace Comet
 				{ typeof(ListView),typeof(ListViewHandler) },
 				{ typeof(CollectionView),typeof(ListViewHandler) },
 				{ typeof(CarouselView),typeof(ListViewHandler) },
+				{ typeof(BoxView), typeof(Handlers.ShapeViewHandler) },
 #if __MOBILE__
 				{typeof(ScrollView), typeof(Handlers.ScrollViewHandler) },
 				{typeof(ShapeView), typeof(Handlers.ShapeViewHandler)},

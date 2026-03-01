@@ -27,6 +27,17 @@ namespace Comet
 			_current = this;
 		}
 
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				if (_current == this)
+					_current = null;
+				_navigationStack.Clear();
+			}
+			base.Dispose(disposing);
+		}
+
 		public static void RegisterRoute(string route, Type type)
 		{
 			if (!typeof(View).IsAssignableFrom(type))

@@ -39,8 +39,8 @@ namespace Comet
 			}
 		}
 
-		public static bool IsBuilding => isBuilding;
-		static bool isBuilding = false;
+		[ThreadStatic] static bool _isTrackingProperties;
+		public static bool IsBuilding => ViewsByThread.GetCurrent().Count > 0 || _isTrackingProperties;
 		public static void ConstructingView(View view)
 		{
 			LastView = new WeakReference(view);
@@ -109,7 +109,6 @@ namespace Comet
 			//TODO: Grab objects and add them to previous views globals
 			var currentBuildingView = ViewsByThread.GetCurrent();
 			currentBuildingView.Push(view);
-			isBuilding = true;
 			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
 			if (currentReadProperies.Any())
 			{
@@ -123,8 +122,7 @@ namespace Comet
 			var currentBuildingView = ViewsByThread.GetCurrent();
 			var v = currentBuildingView.Pop();
 			Debug.Assert(v == view);
-			isBuilding = currentBuildingView.Count != 0;
-			if (!isBuilding)
+			if (currentBuildingView.Count == 0)
 			{
 				var thread = Thread.CurrentThread;
 				ViewsByThread.Remove(thread);
@@ -234,7 +232,7 @@ namespace Comet
 		}
 		public static void OnPropertyRead(object sender, string propertyName)
 		{
-			if (!isBuilding)
+			if (!IsBuilding)
 				return;
 			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
 			currentReadProperies.Add((sender as INotifyPropertyRead, propertyName));
@@ -334,7 +332,7 @@ namespace Comet
 
 		internal static IReadOnlyList<(INotifyPropertyRead BindingObject, string PropertyName)> EndProperty()
 		{
-
+			_isTrackingProperties = false;
 			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
 			var changed = currentReadProperies.ToList().Distinct().ToList();
 			currentReadProperies.Clear();
@@ -345,7 +343,7 @@ namespace Comet
 
 		internal static void StartProperty()
 		{
-			isBuilding = true;
+			_isTrackingProperties = true;
 			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
 			if (currentReadProperies.Any())
 			{

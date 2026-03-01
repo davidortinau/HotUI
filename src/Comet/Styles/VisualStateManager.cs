@@ -12,7 +12,7 @@ namespace Comet
 		public static readonly string FocusedState = "Focused";
 		public static readonly string PointerOverState = "PointerOver";
 
-		static readonly Dictionary<View, List<VisualStateGroup>> _visualStateGroups = new Dictionary<View, List<VisualStateGroup>>();
+		static readonly System.Runtime.CompilerServices.ConditionalWeakTable<View, List<VisualStateGroup>> _visualStateGroups = new();
 
 		public static bool GoToState(View view, string stateName)
 		{
@@ -43,7 +43,7 @@ namespace Comet
 			if (view == null)
 				return;
 
-			_visualStateGroups[view] = groups;
+			_visualStateGroups.AddOrUpdate(view, groups);
 		}
 
 		public static List<VisualStateGroup> GetVisualStateGroups(View view)

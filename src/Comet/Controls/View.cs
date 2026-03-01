@@ -121,7 +121,7 @@ namespace Comet
 		}
 		protected virtual void OnParentChange(View parent)
 		{
-			this.Navigation = parent.Navigation ?? parent as NavigationView;
+			this.Navigation = parent?.Navigation ?? parent as NavigationView;
 		}
 		public NavigationView Navigation { get; set; }
 		protected BindingState State { get; set; }

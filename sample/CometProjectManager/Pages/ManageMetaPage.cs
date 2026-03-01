@@ -18,22 +18,22 @@ public class ManageMetaPage : View
 
 	View CategoryRow(Category cat)
 	{
-		return new HStack(spacing: 5) // LayoutSpacing = 5
+		// Create states that write back to the model on change
+		var titleState = new State<string>(cat.Title);
+		var colorState = new State<string>(cat.ColorHex);
+
+		return new HStack(spacing: 5)
 		{
-			// Title entry
-			new TextField(new State<string>(cat.Title), "Title")
+			new TextField(titleState, "Title")
 				.FontSize(17)
 				.SemanticDescription("Title"),
-			// Color entry
-			new TextField(new State<string>(cat.ColorHex), "Color")
+			new TextField(colorState, "Color")
 				.FontSize(17)
 				.SemanticDescription("Color")
 				.SemanticHint("Category color in HEX format"),
-			// Color preview
 			new ShapeView(new Rectangle())
 				.Frame(width: 30, height: 30)
 				.Background(new SolidPaint(cat.Color)),
-			// Delete button
 			new Text("🗑")
 				.FontSize(20)
 				.OnTap(_ => _store.DeleteCategory(cat.ID))
@@ -43,12 +43,15 @@ public class ManageMetaPage : View
 
 	View TagRow(Tag tag)
 	{
+		var titleState = new State<string>(tag.Title);
+		var colorState = new State<string>(tag.ColorHex);
+
 		return new HStack(spacing: 5)
 		{
-			new TextField(new State<string>(tag.Title), "Title")
+			new TextField(titleState, "Title")
 				.FontSize(17)
 				.SemanticDescription("Title"),
-			new TextField(new State<string>(tag.ColorHex), "Color")
+			new TextField(colorState, "Color")
 				.FontSize(17)
 				.SemanticDescription("Color")
 				.SemanticHint("Tag color in HEX format"),
