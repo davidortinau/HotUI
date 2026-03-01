@@ -23,26 +23,32 @@ namespace System.Collections.Generic
 
 		public Action<KeyValuePair<T, T1>> OnDequeue { get; set; }
 
+		readonly object _lock = new object();
 		Dictionary<T, T1> dictionary = new Dictionary<T, T1>();
 		FixedSizedQueue<T> queue;
 		public T1 this[T key]
 		{
 			get
 			{
-				if (key == null)
-					return default(T1);
-				if (dictionary.TryGetValue(key, out var value))
+				lock (_lock)
 				{
-					// Moving this in the queue.  Most recently accessed is most important.
-					queue.Enqueue(key);
-					return value;
+					if (key == null)
+						return default(T1);
+					if (dictionary.TryGetValue(key, out var value))
+					{
+						queue.Enqueue(key);
+						return value;
+					}
+					return default(T1);
 				}
-				return default(T1);
 			}
 			set
 			{
-				queue.Enqueue(key);
-				dictionary[key] = value;
+				lock (_lock)
+				{
+					queue.Enqueue(key);
+					dictionary[key] = value;
+				}
 			}
 		}
 
@@ -66,16 +72,20 @@ namespace System.Collections.Generic
 
 		public void Clear()
 		{
-			queue.Clear();
-			var items = dictionary.ToList();
-			dictionary.Clear();
+			List<KeyValuePair<T, T1>> items;
+			lock (_lock)
+			{
+				queue.Clear();
+				items = dictionary.ToList();
+				dictionary.Clear();
+			}
 			foreach (var item in items)
 				OnDequeue?.Invoke(item);
 		}
 
-		public bool Contains(KeyValuePair<T, T1> item) => dictionary.Contains(item);
+		public bool Contains(KeyValuePair<T, T1> item) { lock (_lock) return dictionary.Contains(item); }
 
-		public bool ContainsKey(T key) => dictionary.ContainsKey(key);
+		public bool ContainsKey(T key) { lock (_lock) return dictionary.ContainsKey(key); }
 
 		public void CopyTo(KeyValuePair<T, T1>[] array, int arrayIndex)
 		{
@@ -87,11 +97,11 @@ namespace System.Collections.Generic
 
 		public IEnumerator<KeyValuePair<T, T1>> GetEnumerator() => dictionary.GetEnumerator();
 
-		public bool Remove(T key) => queue.Remove(key);
+		public bool Remove(T key) { lock (_lock) return queue.Remove(key); }
 
-		public bool Remove(KeyValuePair<T, T1> item) => queue.Remove(item.Key);
+		public bool Remove(KeyValuePair<T, T1> item) { lock (_lock) return queue.Remove(item.Key); }
 
-		public bool TryGetValue(T key, out T1 value) => dictionary.TryGetValue(key, out value);
+		public bool TryGetValue(T key, out T1 value) { lock (_lock) return dictionary.TryGetValue(key, out value); }
 
 		IEnumerator IEnumerable.GetEnumerator() => dictionary.GetEnumerator();
 	}

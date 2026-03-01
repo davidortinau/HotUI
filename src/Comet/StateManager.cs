@@ -30,10 +30,13 @@ namespace Comet
 
 		static T GetCurrent<T>(this Dictionary<Thread,T> dictionary) where T : new ()
 		{
-			var thread = Thread.CurrentThread;
-			if (dictionary.TryGetValue(thread, out var item))
-				return item;
-			return dictionary[thread] = new T();
+			lock (_lock)
+			{
+				var thread = Thread.CurrentThread;
+				if (dictionary.TryGetValue(thread, out var item))
+					return item;
+				return dictionary[thread] = new T();
+			}
 		}
 
 		public static bool IsBuilding => isBuilding;
@@ -41,15 +44,17 @@ namespace Comet
 		public static void ConstructingView(View view)
 		{
 			LastView = new WeakReference(view);
-			// currentBuildingView.Push(view);
 
 			var mappings = CheckForStateAttributes(view, view).ToList();
 			if (mappings.Any())
 			{
-				ViewObjectMappings[view.Id] = mappings;
-				foreach (var obj in mappings)
+				lock (_lock)
 				{
-					NotifyToViewMappings.GetOrCreateForKey(obj).Add(view);
+					ViewObjectMappings[view.Id] = mappings;
+					foreach (var obj in mappings)
+					{
+						NotifyToViewMappings.GetOrCreateForKey(obj).Add(view);
+					}
 				}
 			}
 			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
@@ -64,8 +69,11 @@ namespace Comet
 
 		public static void MonitorListViewObject(View view, INotifyPropertyRead obj)
 		{
-			ViewObjectMappings.GetOrCreateForKey(view.Id).Add(obj);
-			NotifyToViewMappings.GetOrCreateForKey(obj).Add(view);
+			lock (_lock)
+			{
+				ViewObjectMappings.GetOrCreateForKey(view.Id).Add(obj);
+				NotifyToViewMappings.GetOrCreateForKey(obj).Add(view);
+			}
 		}
 
 		public static void Disposing(View view)
@@ -165,22 +173,26 @@ namespace Comet
 
 		public static void RegisterChild(View view, INotifyPropertyRead value, string fieldName)
 		{
-			ChildPropertyNamesMapping.GetOrCreateForKey(value)[view?.Id ?? ""] = fieldName;
-			if (!MonitoredObjects.Contains(value))
+			lock (_lock)
 			{
-				StartMonitoring(value);
+				ChildPropertyNamesMapping.GetOrCreateForKey(value)[view?.Id ?? ""] = fieldName;
+				if (!MonitoredObjects.Contains(value))
+				{
+					StartMonitoring(value);
+				}
 			}
 		}
 
 		static public void StartMonitoring(INotifyPropertyRead obj)
 		{
-			if (MonitoredObjects.Contains(obj))
-				return;
-			MonitoredObjects.Add(obj);
-			//Check in for more properties!
+			lock (_lock)
+			{
+				if (MonitoredObjects.Contains(obj))
+					return;
+				MonitoredObjects.Add(obj);
+			}
 			CheckForStateAttributes(obj, null).ToList();
 
-			//if it is a binding object we auto monitor!!!!
 			if (!(obj is IAutoImplemented))
 			{
 				obj.PropertyChanged += Obj_PropertyChanged;
@@ -189,17 +201,22 @@ namespace Comet
 		}
 		public static void StopMonitoring(INotifyPropertyRead obj)
 		{
-			if (!MonitoredObjects.Contains(obj))
-				return;
-			MonitoredObjects.Remove(obj);
+			lock (_lock)
+			{
+				if (!MonitoredObjects.Contains(obj))
+					return;
+				MonitoredObjects.Remove(obj);
+			}
 			if (!(obj is IAutoImplemented))
 			{
 				obj.PropertyChanged -= Obj_PropertyChanged;
 				obj.PropertyRead -= Obj_PropertyRead;
 			}
-			NotifyToViewMappings.Remove(obj);
-			ChildPropertyNamesMapping.Remove(obj);
-
+			lock (_lock)
+			{
+				NotifyToViewMappings.Remove(obj);
+				ChildPropertyNamesMapping.Remove(obj);
+			}
 		}
 
 		static void Obj_PropertyRead(object sender, PropertyChangedEventArgs e) => OnPropertyRead(sender, e.PropertyName);
@@ -231,10 +248,12 @@ namespace Comet
 			var notify = sender as INotifyPropertyRead;
 			if (notify == null)
 				throw new Exception("Error, this is null!!!");
-			if (!NotifyToViewMappings.TryGetValue(notify, out var views))
+
+			HashSet<View> views;
+			lock (_lock)
 			{
-				//StopMonitoring(notify);
-				return;
+				if (!NotifyToViewMappings.TryGetValue(notify, out views))
+					return;
 			}
 
 			List<View> viewsCopy;
@@ -248,7 +267,11 @@ namespace Comet
 				viewsCopy = views.ToList();
 			}
 
-			ChildPropertyNamesMapping.TryGetValue(notify, out var mappings);
+			Dictionary<string, string> mappings;
+			lock (_lock)
+			{
+				ChildPropertyNamesMapping.TryGetValue(notify, out mappings);
+			}
 			List<View> disposedViews = new List<View>();
 			viewsCopy.ForEach((view) => {
 				if (view == null || view.IsDisposed)
@@ -334,16 +357,21 @@ namespace Comet
 
 		internal static void UpdateBinding(Binding binding, View view)
 		{
-			foreach (var prop in binding.BoundProperties)
+			lock (_lock)
 			{
-				//ChildPropertyNamesMapping.GetOrCreateForKey(prop.BindingObject).Add(view.Id,)
-				NotifyToViewMappings.GetOrCreateForKey(prop.BindingObject).Add(view);
+				foreach (var prop in binding.BoundProperties)
+				{
+					NotifyToViewMappings.GetOrCreateForKey(prop.BindingObject).Add(view);
+				}
 			}
 		}
 
 		internal static void ListenToEnvironment(View view)
 		{
-			NotifyToViewMappings.GetOrCreateForKey(View.Environment).Add(view);
+			lock (_lock)
+			{
+				NotifyToViewMappings.GetOrCreateForKey(View.Environment).Add(view);
+			}
 		}
 	}
 }

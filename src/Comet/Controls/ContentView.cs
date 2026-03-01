@@ -79,7 +79,7 @@ namespace Comet
 
 		public override void ViewDidDisappear()
 		{
-			Content?.ViewDidAppear();
+			Content?.ViewDidDisappear();
 			base.ViewDidDisappear();
 		}
 

@@ -90,6 +90,7 @@ namespace Comet
 				
 				{typeof(NavigationView), typeof (Microsoft.Maui.Handlers.NavigationViewHandler)},
 #endif
+				{typeof(WebView), typeof(Microsoft.Maui.Handlers.WebViewHandler)},
 			}));
 
 

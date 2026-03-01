@@ -54,7 +54,7 @@ namespace Comet
 		{
 			if (dictionary.TryGetValue(propertyName, out object val))
 			{
-				if (EqualityComparer<T>.Default.Equals((T)val, value))
+				if (val is T typedVal && EqualityComparer<T>.Default.Equals(typedVal, value))
 					return false;
 			}
 

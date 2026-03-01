@@ -16,8 +16,8 @@
   <PropertyGroup>
     <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
   </PropertyGroup>
-  <Target Name="CopydllDependencies" AfterTargets="Build">
-    <Copy SourceFiles="$(PkgStubble_Core)\lib\netstandard2.0\Stubble.Core.dll" DestinationFolder="$(OutDir)" />
+  <Target Name="CopydllDependencies" AfterTargets="Build" Condition="'$(PkgStubble_Core)' != ''">
+    <Copy SourceFiles="$(PkgStubble_Core)\lib\netstandard2.0\Stubble.Core.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
 
   <Target Name="GetDependencyTargetPaths">
