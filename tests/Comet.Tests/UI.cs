@@ -6,42 +6,43 @@ using Comet.Tests.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui;
 using Microsoft.Maui.Hosting;
-using Microsoft.Maui.Hosting.Internal;
 using Microsoft.Maui.HotReload;
-using static Microsoft.Maui.Hosting.HandlerMauiAppBuilderExtensions;
 
 namespace Comet.Tests
 {
 	public static class UI
 	{
 		static bool hasInit;
-		public static IMauiHandlersFactory Handlers { get; set; }
+		public static IServiceProvider Services { get; set; }
 		public static void Init(bool force = false)
 		{
 			if (hasInit && !force)
 				return;
 			hasInit = true;
 			ThreadHelper.SetFireOnMainThread((a) => a?.Invoke()); 
-			var handlers = new Dictionary<Type, Type> {
-					{ typeof(Button), typeof(GenericViewHandler)},
-					{ typeof(ContentView), typeof(GenericViewHandler)},
-					{ typeof(Image), typeof(GenericViewHandler)},
-					{ typeof(HStack), typeof(GenericViewHandler)},
-					{ typeof(ListView), typeof(GenericViewHandler)},
-					{ typeof(Text), typeof(TextHandler)},
-					{ typeof(TextField), typeof(TextFieldHandler)},
-					{ typeof(ProgressBar), typeof(ProgressBarHandler)},
-					{ typeof(SecureField), typeof(SecureFieldHandler)},
-					{ typeof(ScrollView), typeof(GenericViewHandler)},
-					{ typeof(Slider), typeof(SliderHandler)},
-					{ typeof(Toggle), typeof(GenericViewHandler)},
-					{ typeof(View), typeof(GenericViewHandler)},
-					{ typeof(VStack), typeof(GenericViewHandler)},
-					{ typeof(ZStack), typeof(GenericViewHandler)},
-				};
-			
 
-			Handlers = new MauiHandlersFactory(handlers.Select(x=> new HandlerRegistration((a)=> a.AddHandler(x.Key,x.Value))));
+			var builder = MauiApp.CreateBuilder();
+			builder.ConfigureMauiHandlers(handlers =>
+			{
+				handlers.AddHandler<Button, GenericViewHandler>();
+				handlers.AddHandler<ContentView, GenericViewHandler>();
+				handlers.AddHandler<Image, GenericViewHandler>();
+				handlers.AddHandler<HStack, GenericViewHandler>();
+				handlers.AddHandler<ListView, GenericViewHandler>();
+				handlers.AddHandler<Text, TextHandler>();
+				handlers.AddHandler<TextField, TextFieldHandler>();
+				handlers.AddHandler<ProgressBar, ProgressBarHandler>();
+				handlers.AddHandler<SecureField, SecureFieldHandler>();
+				handlers.AddHandler<ScrollView, GenericViewHandler>();
+				handlers.AddHandler<Slider, SliderHandler>();
+				handlers.AddHandler<Toggle, GenericViewHandler>();
+				handlers.AddHandler<View, GenericViewHandler>();
+				handlers.AddHandler<VStack, GenericViewHandler>();
+				handlers.AddHandler<ZStack, GenericViewHandler>();
+			});
+
+			var app = builder.Build();
+			Services = app.Services;
 
 			MauiHotReloadHelper.IsEnabled = true;
 

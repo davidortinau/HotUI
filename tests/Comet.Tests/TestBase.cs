@@ -1,4 +1,5 @@
 ﻿using Comet.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.HotReload;
@@ -22,7 +23,8 @@ namespace Comet.Tests
 			if (handler == null)
 			{
 				var v = view.ReplacedView;
-				handler = UI.Handlers.GetHandler(view.GetType());
+				var factory = UI.Services.GetRequiredService<IMauiHandlersFactory>();
+				handler = factory.GetHandler(view.GetType());
 				view.ViewHandler = handler;
 				handler.SetVirtualView(view);
 
@@ -60,7 +62,6 @@ namespace Comet.Tests
 		{
 			var v = new View();
 			v.ResetGlobalEnvironment();
-			//v.DisposeAllViews();
 			UI.Init(true);
 			MauiHotReloadHelper.Reset();
 			v?.Dispose();

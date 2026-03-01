@@ -1,4 +1,0 @@
-[submodule "External/Maui"]
-	path = External/Maui
-	url = https://github.com/dotnet/maui
-	branch = net6.0

@@ -1,10 +1,8 @@
 name: main-build
 
-#this drops to nuget
-
 on:
   push:
-    branches: [ main]
+    branches: [ main ]
     paths-ignore:
       - 'templates/**'
 
@@ -12,99 +10,64 @@ on:
 
 jobs:
   build:
-    name: Build Comet-Nuget
+    name: Build Comet
     env:
-        NUPKG_MAJOR: 0.2
-        BASE: 334
-    runs-on: windows-2022
+        NUPKG_MAJOR: 0.4
+        BASE: 1
+    runs-on: macos-latest
 
     steps: 
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-          
-      - uses: actions/setup-java@v2
-        with:
-          distribution: 'zulu' # See 'Supported distributions' for available options
-          java-version: '11'
+      - uses: actions/checkout@v4
 
-      - name:  install .NET 
-        shell: pwsh
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
-          & .\dotnet-install.ps1 -InstallDir "$env:ProgramFiles\dotnet\" -Verbose -Channel STS
-          & dotnet --list-sdks    
-              
-      # - name: Install Visual Studio Preview
-      #   shell: pwsh
-      #   run: powershell .\build\install-vs.ps1
-      
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.1
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          vs-prerelease: true
+          dotnet-version: '9.0.x'
 
-      
-      - name: Install Maui Workload
-        shell: pwsh
-        run: |
-          & dotnet workload install maui `
-            --skip-sign-check 
-     
-      - name: Restore Comet-Nuget.sln
-        run: msbuild /r build/Comet-Nuget.sln
- 
-      - name: Build Comet-Nuget.sln
-        run: MSBuild build/Comet-Nuget.sln
-        
-      - name: Nuget Pack step
-        shell: bash
+      - name: Install MAUI Workload
+        run: dotnet workload install maui
+
+      - name: Build Source Generator
+        run: dotnet build src/Comet.SourceGenerator/Comet.SourceGenerator.csproj -c Release
+
+      - name: Build Comet
+        run: dotnet build src/Comet/Comet.csproj -c Release
+
+      - name: Run Tests
+        run: dotnet test tests/Comet.Tests/Comet.Tests.csproj -c Release
+
+      - name: Pack NuGet
         run: |
           MINOR_VERSION=$(( $BASE + $GITHUB_RUN_NUMBER ))
-          VERSION=0.3.$MINOR_VERSION-beta
+          VERSION=0.4.$MINOR_VERSION
           echo "PACKAGE VERSION: $VERSION"
-          nuget pack Comet.nuspec -version $VERSION -Symbols -SymbolPackageFormat snupkg
+          dotnet pack src/Comet/Comet.csproj -c Release -p:PackageVersion=$VERSION -o ./artifacts
 
-      # - name: Nuget Pack Template step
-      #   shell: bash
-      #   run: |
-      #     MINOR_VERSION=$(( $BASE + $GITHUB_RUN_NUMBER ))
-      #     VERSION=0.3.$MINOR_VERSION-beta
-      #     echo "PACKAGE VERSION: $VERSION"
-      #     nuget pack "templates\comet-templates.nuspec" -version $VERSION
-
-      - uses: actions/upload-artifact@v2
-        name: Upload Nuget Artifact
+      - uses: actions/upload-artifact@v4
+        name: Upload NuGet Artifact
         with:
           name: nuget-artifact
           path: |
-            **\*.nupkg
-            **\*.snupkg
-            **\*.symbols.nupkg
-  
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+
   publish:
       name: Publish
       needs:
         - build
-      runs-on: windows-latest
+      runs-on: ubuntu-latest
       steps:
         - name: Download Artifacts
-          uses: actions/download-artifact@v1
+          uses: actions/download-artifact@v4
           with:
             name: nuget-artifact
+            path: nuget-artifact
         
-        - name: Setup .NET Core
-          uses: actions/setup-dotnet@v1
+        - name: Setup .NET
+          uses: actions/setup-dotnet@v4
           with:
-            dotnet-version: 3.1.100
+            dotnet-version: '9.0.x'
             
-        - name: Setup NuGet
-          uses: nuget/setup-nuget@v1
-          with:
-            nuget-api-key: ${{ secrets.NUGET_API_KEY }}
-            nuget-version: 'latest'
-            
-        - name: Push nuget to Nuget.org
+        - name: Push to NuGet.org
           run: |
-            nuget push nuget-artifact\*.nupkg -Source https://api.nuget.org/v3/index.json -ApiKey ${{ secrets.NUGET_ORG_API_KEY }} -SkipDuplicate
+            dotnet nuget push "nuget-artifact/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_ORG_API_KEY }} --skip-duplicate
