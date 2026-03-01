@@ -65,6 +65,7 @@ namespace Comet
 				{ typeof(IndicatorView), typeof(IndicatorViewHandler) },
 				{ typeof(Picker), typeof(PickerHandler) },
 				{ typeof(ProgressBar), typeof(ProgressBarHandler) },
+				{ typeof(RadioButton), typeof(RadioButtonHandler) },
 				{ typeof(RefreshView), typeof(RefreshViewHandler) },
 				{ typeof(SearchBar), typeof(SearchBarHandler) },
 				{ typeof(SecureField), typeof(EntryHandler) },
