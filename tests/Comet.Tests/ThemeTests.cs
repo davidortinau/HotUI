@@ -96,9 +96,10 @@ namespace Comet.Tests
 				Theme.Current = Theme.Light;
 				var view = new Text("Hello").ThemeColor(t => t.PrimaryColor);
 
-				var color = view.GetEnvironment<Color>("View.Color");
-				Assert.NotNull(color);
-				Assert.Equal(Theme.Current.PrimaryColor, color);
+				var bg = view.GetEnvironment<Paint>(nameof(Microsoft.Maui.IView.Background));
+				Assert.NotNull(bg);
+				var solidPaint = Assert.IsType<SolidPaint>(bg);
+				Assert.Equal(Theme.Current.PrimaryColor, solidPaint.Color);
 			}
 			finally
 			{
@@ -115,8 +116,10 @@ namespace Comet.Tests
 				Theme.Current = Theme.Dark;
 				var view = new Text("Hello").ThemeColor(t => t.TextColor);
 
-				var color = view.GetEnvironment<Color>("View.Color");
-				Assert.Equal(Colors.White, color);
+				var bg = view.GetEnvironment<Paint>(nameof(Microsoft.Maui.IView.Background));
+				Assert.NotNull(bg);
+				var solidPaint = Assert.IsType<SolidPaint>(bg);
+				Assert.Equal(Colors.White, solidPaint.Color);
 			}
 			finally
 			{

@@ -226,7 +226,14 @@ namespace Comet
 		public static T ThemeColor<T>(this T view, Func<Styles.Theme, Color> colorSelector) where T : View
 		{
 			var color = colorSelector(Styles.Theme.Current);
-			view.SetEnvironment("View.Color", color);
+			view.SetEnvironment(nameof(IView.Background), (Paint)new SolidPaint(color), false);
+			return view;
+		}
+
+		public static T ThemeTextColor<T>(this T view, Func<Styles.Theme, Color> colorSelector) where T : View
+		{
+			var color = colorSelector(Styles.Theme.Current);
+			view.SetEnvironment(nameof(ITextStyle.TextColor), color, false);
 			return view;
 		}
 
