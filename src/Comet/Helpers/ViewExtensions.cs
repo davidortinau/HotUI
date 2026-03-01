@@ -237,5 +237,123 @@ namespace Comet
 			return view;
 		}
 
+		// Visibility
+		public static T IsVisible<T>(this T view, bool visible = true) where T : View =>
+			view.SetEnvironment(nameof(IView.Visibility), visible ? Visibility.Visible : Visibility.Collapsed);
+
+		public static T InputTransparent<T>(this T view, bool value = true) where T : View =>
+			view.SetEnvironment(nameof(IView.InputTransparent), value);
+
+		public static T ZIndex<T>(this T view, int value) where T : View =>
+			view.SetEnvironment(nameof(IView.ZIndex), value, false);
+
+		public static T FlowDirection<T>(this T view, FlowDirection direction) where T : View =>
+			view.SetEnvironment(nameof(IView.FlowDirection), direction);
+
+		public static T Shadow<T>(this T view, Graphics.Shadow shadow) where T : View =>
+			view.SetEnvironment(EnvironmentKeys.View.Shadow, shadow, false);
+
+		public static T IsEnabled<T>(this T view, bool enabled = true) where T : View =>
+			view.SetEnvironment(nameof(IView.IsEnabled), enabled);
+
+		public static T MinimumHeight<T>(this T view, double value) where T : View =>
+			view.SetEnvironment(nameof(IView.MinimumHeight), value, false);
+
+		public static T MaximumHeight<T>(this T view, double value) where T : View =>
+			view.SetEnvironment(nameof(IView.MaximumHeight), value, false);
+
+		public static T MinimumWidth<T>(this T view, double value) where T : View =>
+			view.SetEnvironment(nameof(IView.MinimumWidth), value, false);
+
+		public static T MaximumWidth<T>(this T view, double value) where T : View =>
+			view.SetEnvironment(nameof(IView.MaximumWidth), value, false);
+
+		// ResourceDictionary
+		public static TValue StaticResource<TValue>(this View view, string key)
+		{
+			if (view.Resources?.TryGetResource(key, out var value) == true && value is TValue typedValue)
+				return typedValue;
+
+			var parent = view.Parent;
+			while (parent != null)
+			{
+				if (parent.Resources?.TryGetResource(key, out value) == true && value is TValue typedValue2)
+					return typedValue2;
+				parent = parent.Parent;
+			}
+
+			return default;
+		}
+
+		public static object DynamicResource(this View view, string key)
+		{
+			return view.StaticResource<object>(key);
+		}
+
+		// Behaviors
+		public static T AddBehavior<T>(this T view, Behavior behavior) where T : View
+		{
+			if (behavior == null)
+				throw new ArgumentNullException(nameof(behavior));
+
+			var behaviors = view.Behaviors as List<Behavior>;
+			behaviors.Add(behavior);
+			behavior.Attach(view);
+			return view;
+		}
+
+		public static T RemoveBehavior<T>(this T view, Behavior behavior) where T : View
+		{
+			if (behavior == null)
+				throw new ArgumentNullException(nameof(behavior));
+
+			var behaviors = view.Behaviors as List<Behavior>;
+			if (behaviors.Remove(behavior))
+				behavior.Detach();
+			return view;
+		}
+
+		// Triggers
+		public static T AddTrigger<T>(this T view, DataTrigger trigger) where T : View
+		{
+			if (trigger == null)
+				throw new ArgumentNullException(nameof(trigger));
+
+			var triggers = view.Triggers as List<DataTrigger>;
+			triggers.Add(trigger);
+			trigger.Attach(view);
+			return view;
+		}
+
+		public static T RemoveTrigger<T>(this T view, DataTrigger trigger) where T : View
+		{
+			if (trigger == null)
+				throw new ArgumentNullException(nameof(trigger));
+
+			var triggers = view.Triggers as List<DataTrigger>;
+			if (triggers.Remove(trigger))
+				trigger.Detach();
+			return view;
+		}
+
+		// Effects
+		public static T AddEffect<T>(this T view, PlatformBehavior effect) where T : View
+		{
+			return view.AddBehavior(effect);
+		}
+
+		// Visual States
+		public static T WithVisualStateGroups<T>(this T view, params VisualStateGroup[] groups) where T : View
+		{
+			VisualStateManager.SetVisualStateGroups(view, new List<VisualStateGroup>(groups));
+			return view;
+		}
+
+		public static T GoToState<T>(this T view, string stateName) where T : View
+		{
+			VisualStateManager.GoToState(view, stateName);
+			return view;
+		}
+
 	}
 }

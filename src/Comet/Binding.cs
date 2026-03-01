@@ -263,5 +263,31 @@ namespace Comet
 				return defaultValue;
 			return binding.CurrentValue;
 		}
+
+		public static Binding<TTarget> Convert<TSource, TTarget>(this Binding<TSource> binding, IValueConverter converter, object parameter = null)
+		{
+			if (binding == null)
+				throw new ArgumentNullException(nameof(binding));
+			if (converter == null)
+				throw new ArgumentNullException(nameof(converter));
+
+			return new Binding<TTarget>(
+				getValue: () => (TTarget)converter.Convert(binding.CurrentValue, typeof(TTarget), parameter, System.Globalization.CultureInfo.CurrentCulture),
+				setValue: (v) => binding.Set((TSource)converter.ConvertBack(v, typeof(TSource), parameter, System.Globalization.CultureInfo.CurrentCulture))
+			);
+		}
+
+		public static Binding<TTarget> Convert<TSource, TTarget>(this Binding<TSource> binding, Func<TSource, TTarget> convert, Func<TTarget, TSource> convertBack = null)
+		{
+			if (binding == null)
+				throw new ArgumentNullException(nameof(binding));
+			if (convert == null)
+				throw new ArgumentNullException(nameof(convert));
+
+			return new Binding<TTarget>(
+				getValue: () => convert(binding.CurrentValue),
+				setValue: convertBack != null ? (v) => binding.Set(convertBack(v)) : null
+			);
+		}
 	}
 }

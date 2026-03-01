@@ -86,5 +86,58 @@ namespace Comet
 				Repeats = repeats,
 			};
 		}
+
+		public static void AbortAnimation<T>(this T view, string id) where T : View
+		{
+			view.RemoveAnimation(id);
+		}
+
+		public static T FadeTo<T>(this T view, double opacity, double duration = 0.25, Easing easing = null) where T : View
+		{
+			return view.Animate(easing ?? Easing.Default, v => v.Opacity(opacity), duration: duration);
+		}
+
+		public static T TranslateTo<T>(this T view, double x, double y, double duration = 0.25, Easing easing = null) where T : View
+		{
+			return view.Animate(easing ?? Easing.Default, v =>
+			{
+				v.TranslationX(x);
+				v.TranslationY(y);
+			}, duration: duration);
+		}
+
+		public static T ScaleTo<T>(this T view, double scale, double duration = 0.25, Easing easing = null) where T : View
+		{
+			return view.Animate(easing ?? Easing.Default, v => v.Scale(scale), duration: duration);
+		}
+
+		public static T ScaleTo<T>(this T view, double scaleX, double scaleY, double duration = 0.25, Easing easing = null) where T : View
+		{
+			return view.Animate(easing ?? Easing.Default, v =>
+			{
+				v.ScaleX(scaleX);
+				v.ScaleY(scaleY);
+			}, duration: duration);
+		}
+
+		public static T RotateTo<T>(this T view, double rotation, double duration = 0.25, Easing easing = null) where T : View
+		{
+			return view.Animate(easing ?? Easing.Default, v => v.Rotation(rotation), duration: duration);
+		}
+
+		public static T RotateXTo<T>(this T view, double rotation, double duration = 0.25, Easing easing = null) where T : View
+		{
+			return view.Animate(easing ?? Easing.Default, v => v.RotationX(rotation), duration: duration);
+		}
+
+		public static T RotateYTo<T>(this T view, double rotation, double duration = 0.25, Easing easing = null) where T : View
+		{
+			return view.Animate(easing ?? Easing.Default, v => v.RotationY(rotation), duration: duration);
+		}
+
+		public static T ColorTo<T>(this T view, Color targetColor, double duration = 0.25, Easing easing = null) where T : View
+		{
+			return view.Animate(easing ?? Easing.Default, v => v.Background(targetColor), duration: duration);
+		}
 	}
 }

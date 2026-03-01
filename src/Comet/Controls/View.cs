@@ -69,7 +69,33 @@ namespace Comet
 			internal set => SetPropertyInContext(value);
 		}
 
+		public ResourceDictionary Resources
+		{
+			get => GetPropertyFromContext<ResourceDictionary>();
+			set => SetPropertyInContext(value);
+		}
+
+		public IList<Behavior> Behaviors
+		{
+			get => GetPropertyFromContext<List<Behavior>>() ?? (IList<Behavior>)(SetPropertyInContext(new List<Behavior>()));
+			internal set => SetPropertyInContext(value);
+		}
+
+		public IList<DataTrigger> Triggers
+		{
+			get => GetPropertyFromContext<List<DataTrigger>>() ?? (IList<DataTrigger>)(SetPropertyInContext(new List<DataTrigger>()));
+			internal set => SetPropertyInContext(value);
+		}
+
 		internal T GetPropertyFromContext<T>([CallerMemberName] string property = null) => this.GetEnvironment<T>(property, false);
+		internal T SetPropertyInContext<T>(T value, [CallerMemberName] string property = null)
+		{
+			if (this.IsDisposed)
+				return value;
+			this.SetEnvironment(property, value, false);
+			return value;
+		}
+
 		internal void SetPropertyInContext(object value, [CallerMemberName] string property = null)
 		{
 			if (this.IsDisposed)
@@ -659,6 +685,13 @@ namespace Comet
 			GetAnimations(false)?.Remove(animation);
 		}
 
+		public void RemoveAnimation(string id)
+		{
+			var animation = GetAnimations(false)?.FirstOrDefault(a => a is ContextualAnimation ca && ca.Id == id);
+			if (animation != null)
+				RemoveAnimation(animation);
+		}
+
 		public void RemoveAnimations() => GetAnimations(false)?.ToList().ForEach(animation => {
 			animations.Remove(animation);
 			RemoveAnimationsFromManager(animation);
@@ -757,7 +790,7 @@ namespace Comet
 
 		bool ISafeAreaView.IgnoreSafeArea => this.GetIgnoreSafeArea(false);
 
-		Visibility IView.Visibility => Visibility.Visible;
+		Visibility IView.Visibility => this.GetEnvironment<Visibility?>(nameof(IView.Visibility)) ?? Visibility.Visible;
 
 		double IView.Opacity => this.GetOpacity();
 

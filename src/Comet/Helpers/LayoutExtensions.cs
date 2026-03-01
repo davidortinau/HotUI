@@ -225,6 +225,92 @@ namespace Comet
 			return constraints ?? defaultContraints;
 		}
 
+		// AbsoluteLayout extensions
+		public static T LayoutBounds<T>(this T view, Rect bounds) where T : View
+		{
+			view.SetEnvironment("AbsoluteLayout.LayoutBounds", bounds, false);
+			return view;
+		}
+
+		public static T LayoutFlags<T>(this T view, AbsoluteLayoutFlags flags) where T : View
+		{
+			view.SetEnvironment("AbsoluteLayout.LayoutFlags", flags, false);
+			return view;
+		}
+
+		public static Rect GetLayoutBounds(this View view)
+		{
+			var bounds = view.GetEnvironment<Rect?>("AbsoluteLayout.LayoutBounds");
+			return bounds ?? new Rect(0, 0, -1, -1); // -1 means AutoSize
+		}
+
+		public static AbsoluteLayoutFlags GetLayoutFlags(this View view)
+		{
+			var flags = view.GetEnvironment<AbsoluteLayoutFlags?>("AbsoluteLayout.LayoutFlags");
+			return flags ?? AbsoluteLayoutFlags.None;
+		}
+
+		// FlexLayout extensions
+		public static T FlexBasis<T>(this T view, double basis) where T : View
+		{
+			view.SetEnvironment("FlexLayout.Basis", basis, false);
+			return view;
+		}
+
+		public static T FlexGrow<T>(this T view, double grow) where T : View
+		{
+			view.SetEnvironment("FlexLayout.Grow", grow, false);
+			return view;
+		}
+
+		public static T FlexShrink<T>(this T view, double shrink) where T : View
+		{
+			view.SetEnvironment("FlexLayout.Shrink", shrink, false);
+			return view;
+		}
+
+		public static T FlexAlignSelf<T>(this T view, FlexAlignSelf alignSelf) where T : View
+		{
+			view.SetEnvironment("FlexLayout.AlignSelf", alignSelf, false);
+			return view;
+		}
+
+		public static T FlexOrder<T>(this T view, int order) where T : View
+		{
+			view.SetEnvironment("FlexLayout.Order", order, false);
+			return view;
+		}
+
+		public static double GetFlexBasis(this View view)
+		{
+			var basis = view.GetEnvironment<double?>("FlexLayout.Basis");
+			return basis ?? -1;
+		}
+
+		public static double GetFlexGrow(this View view)
+		{
+			var grow = view.GetEnvironment<double?>("FlexLayout.Grow");
+			return grow ?? 0;
+		}
+
+		public static double GetFlexShrink(this View view)
+		{
+			var shrink = view.GetEnvironment<double?>("FlexLayout.Shrink");
+			return shrink ?? 1;
+		}
+
+		public static Comet.FlexAlignSelf GetFlexAlignSelf(this View view)
+		{
+			var align = view.GetEnvironment<Comet.FlexAlignSelf?>("FlexLayout.AlignSelf");
+			return align ?? Comet.FlexAlignSelf.Auto;
+		}
+
+		public static int GetFlexOrder(this View view)
+		{
+			var order = view.GetEnvironment<int?>("FlexLayout.Order");
+			return order ?? 0;
+		}
+
 		public static T Margin<T>(this T view, Thickness margin, bool cascades = false) where T : View
 		{
 			view.SetEnvironment(EnvironmentKeys.Layout.Margin, margin, cascades);
