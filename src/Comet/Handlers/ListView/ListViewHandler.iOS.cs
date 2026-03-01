@@ -19,7 +19,9 @@ namespace Comet.Handlers
 			PlatformView.SizeToFit();
 		}
 
+#nullable enable
 		public static void MapReloadData(ListViewHandler viewHandler, IListView virtualView, object? value)
+#nullable restore
 		{
 			var PlatformView = (CUITableView)viewHandler.PlatformView;
 			PlatformView?.ReloadData();

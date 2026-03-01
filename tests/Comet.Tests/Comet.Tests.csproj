@@ -22,10 +22,9 @@
     <ProjectReference Include="..\..\src\Comet.SourceGenerator\Comet.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
-  <!-- Reference Comet's net9.0-maccatalyst output directly for non-platform test compilation -->
   <ItemGroup>
     <Reference Include="Comet">
-      <HintPath>..\..\src\Comet\bin\Debug\net9.0-maccatalyst\Comet.dll</HintPath>
+      <HintPath>..\..\src\Comet\bin\$(Configuration)\net9.0-maccatalyst\Comet.dll</HintPath>
     </Reference>
   </ItemGroup>
 

@@ -136,5 +136,16 @@ namespace Comet.Tests
 			Assert.NotNull(ipicker.Items);
 			Assert.Empty(ipicker.Items);
 		}
+
+		[Fact]
+		public void PickerSetSelectedIndexOnDefaultConstructorDoesNotThrow()
+		{
+			var picker = new Picker();
+			IPicker ipicker = picker;
+
+			// Should not throw NullReferenceException
+			var exception = Record.Exception(() => ipicker.SelectedIndex = 0);
+			Assert.Null(exception);
+		}
 	}
 }

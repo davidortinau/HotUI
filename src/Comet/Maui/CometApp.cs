@@ -17,8 +17,11 @@ namespace Comet
 		{
 			CurrentApp = this;
 #if __IOS__
-			ModalView.PerformPresent = (o) => ThreadHelper.RunOnMainThread(()=> PresentingViewController.PresentViewController(new Comet.iOS.CometViewController{MauiContext = o.GetMauiContext(),CurrentView = o}, true, null));
-			ModalView.PerformDismiss = () => ThreadHelper.RunOnMainThread( ()=> PresentingViewController.DismissViewController(true, null));
+			ModalView.PerformPresent = (o) => ThreadHelper.RunOnMainThread(()=> {
+				var vc = PresentingViewController;
+				vc?.PresentViewController(new Comet.iOS.CometViewController{MauiContext = o.GetMauiContext(),CurrentView = o}, true, null);
+			});
+			ModalView.PerformDismiss = () => ThreadHelper.RunOnMainThread( ()=> PresentingViewController?.DismissViewController(true, null));
 #elif ANDROID
 
 			ModalView.PerformPresent = Comet.Android.Controls.ModalManager.ShowModal;
