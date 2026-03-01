@@ -44,7 +44,17 @@ namespace Comet
 
 		public static Dictionary<string, string> ParseQueryString(string route)
 		{
-			var (_, queryParams) = new CometShell().ParseRouteInternal(route);
+			var parts = route.Split('?');
+			var queryParams = new Dictionary<string, string>();
+			if (parts.Length > 1)
+			{
+				foreach (var param in parts[1].Split('&'))
+				{
+					var keyValue = param.Split('=');
+					if (keyValue.Length == 2)
+						queryParams[Uri.UnescapeDataString(keyValue[0])] = Uri.UnescapeDataString(keyValue[1]);
+				}
+			}
 			return queryParams;
 		}
 

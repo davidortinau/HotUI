@@ -54,6 +54,12 @@ namespace Comet
 			_visualStateGroups.TryGetValue(view, out var groups);
 			return groups;
 		}
+
+		public static void ClearVisualStateGroups(View view)
+		{
+			if (view != null)
+				_visualStateGroups.Remove(view);
+		}
 	}
 
 	public class VisualState

@@ -528,6 +528,7 @@ namespace Comet
 			body = null;
 			Context(false)?.Clear();
 			StateManager.Disposing(this);
+			VisualStateManager.ClearVisualStateGroups(this);
 			State.Clear();
 			State = null;
 
@@ -608,7 +609,7 @@ namespace Comet
 					ms.Height = frameConstraints.Height.Value;
 
 				ms.Width += margins.HorizontalThickness;
-				ms.Height += margins.HorizontalThickness;
+				ms.Height += margins.VerticalThickness;
 				MeasuredSize = ms;
 			}
 			MeasurementValid = this.ViewHandler != null;
