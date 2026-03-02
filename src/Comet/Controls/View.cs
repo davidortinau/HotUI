@@ -517,18 +517,17 @@ namespace Comet
 			Debug.WriteLine($"Active View Count: {ActiveViews.Count}");
 
 			MauiHotReloadHelper.UnRegister(this);
-			var vh = ViewHandler;
-			ViewHandler = null;
-			//TODO: Ditch the cast
-			(vh as IDisposable)?.Dispose();
-			replacedView?.Dispose();
-			replacedView = null;
-			builtView?.Dispose();
-			builtView = null;
-			body = null;
 
 			try
 			{
+				var vh = ViewHandler;
+				ViewHandler = null;
+				(vh as IDisposable)?.Dispose();
+				replacedView?.Dispose();
+				replacedView = null;
+				builtView?.Dispose();
+				builtView = null;
+				body = null;
 				Context(false)?.Clear();
 				StateManager.Disposing(this);
 				VisualStateManager.ClearVisualStateGroups(this);

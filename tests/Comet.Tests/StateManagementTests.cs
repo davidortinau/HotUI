@@ -289,7 +289,7 @@ namespace Comet.Tests
 			for (int i = 0; i < 5; i++)
 			{
 				var view = new BoundView(obj);
-				view.GetView(); // Force body evaluation to create StateManager subscriptions
+				var _ = view.Body?.Invoke(); // Force body evaluation to create StateManager subscriptions
 				views.Add(view);
 			}
 
@@ -351,7 +351,7 @@ namespace Comet.Tests
 		}
 
 		[Fact]
-		public void DisposeWhilePropertyChangingDoesNotThrow()
+		public void DisposeWhilePropertyChangingDoNotThrow()
 		{
 			var obj = new TestBindingObject();
 			var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
@@ -372,15 +372,15 @@ namespace Comet.Tests
 				}
 			}));
 
-			// Thread 2: create and dispose views
+			// Thread 2: create bound views, build them, then dispose
 			tasks.Add(System.Threading.Tasks.Task.Run(() =>
 			{
 				try
 				{
 					for (int i = 0; i < 50; i++)
 					{
-						var view = new CounterView();
-						view.SetEnvironment("obj", obj, false);
+						var view = new BoundView(obj);
+						var _ = view.Body?.Invoke(); // Force body evaluation and subscriptions
 						view.Dispose();
 					}
 				}
@@ -392,6 +392,16 @@ namespace Comet.Tests
 
 			System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
 			Assert.Empty(exceptions);
+		}
+
+		class BoundView : View
+		{
+			readonly TestBindingObject _obj;
+
+			public BoundView(TestBindingObject obj) => _obj = obj;
+
+			[Body]
+			View body() => new Text(() => $"Name: {_obj.Name}");
 		}
 
 		class CounterView : View
