@@ -12,6 +12,7 @@ using Syncfusion.Maui.Toolkit.TextInputLayout;
 using Grid = Microsoft.Maui.Controls.Grid;
 using ColumnDefinition = Microsoft.Maui.Controls.ColumnDefinition;
 using FontImageSource = Microsoft.Maui.Controls.FontImageSource;
+using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
 
 namespace CometProjectManager.Controls
 {
@@ -20,6 +21,14 @@ namespace CometProjectManager.Controls
         public string Title { get; set; } = "";
         public int Count { get; set; }
         public Color ChartColor { get; set; } = Colors.Gray;
+    }
+
+    /// <summary>
+    /// Custom legend that limits max size coefficient to 50%, matching MAUI reference LegendExt.
+    /// </summary>
+    public class LegendExt : ChartLegend
+    {
+        protected override double GetMaximumSizeCoefficient() => 0.5;
     }
 
     /// <summary>
@@ -37,7 +46,7 @@ namespace CometProjectManager.Controls
             Margin = new Thickness(0, 12);
 
             var chart = new SfCircularChart();
-            var legend = new ChartLegend { Placement = LegendPlacement.Right };
+            var legend = new LegendExt { Placement = LegendPlacement.Right };
             legend.LabelStyle = new ChartLegendLabelStyle
             {
                 TextColor = Color.FromArgb("#0D0D0D"),
@@ -77,6 +86,8 @@ namespace CometProjectManager.Controls
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(20) };
             Background = new SolidColorBrush(Color.FromArgb("#E0E0E0"));
             StrokeThickness = 0;
+            // Match MAUI's SfShimmer CustomView min height for task rows
+            MinimumHeightRequest = 75;
 
             var effectsView = new SfEffectsView
             {
@@ -103,8 +114,6 @@ namespace CometProjectManager.Controls
                 Text = title,
                 VerticalOptions = LayoutOptions.Center,
                 LineBreakMode = LineBreakMode.TailTruncation,
-                TextColor = Color.FromArgb("#0D0D0D"),
-                FontSize = 17,
             };
 
             grid.Add(checkBox, 0, 0);
@@ -164,10 +173,8 @@ namespace CometProjectManager.Controls
                 FontSize = 17,
             });
 
-            var tagLayout = new Microsoft.Maui.Controls.FlexLayout
-            {
-                Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
-            };
+            // Tags (HorizontalStackLayout matching MAUI reference)
+            var tagLayout = new Microsoft.Maui.Controls.HorizontalStackLayout { Spacing = 15 };
             foreach (var (title, color) in tags)
             {
                 tagLayout.Add(new Microsoft.Maui.Controls.Border
@@ -176,8 +183,9 @@ namespace CometProjectManager.Controls
                     HeightRequest = 32,
                     StrokeThickness = 0,
                     Background = new SolidColorBrush(color),
-                    Padding = new Thickness(12, 0),
-                    Margin = new Thickness(0, 0, 8, 4),
+                    Padding = Microsoft.Maui.Devices.DeviceInfo.Platform == Microsoft.Maui.Devices.DevicePlatform.Android
+                        ? new Thickness(12, 0)
+                        : new Thickness(12, 0, 12, 8),
                     Content = new Microsoft.Maui.Controls.Label
                     {
                         Text = title,

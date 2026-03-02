@@ -24,9 +24,11 @@ static readonly Color LightBg = Color.FromArgb("#F2F2F2");
 
 MauiBorder BuildProjectCard(Project p)
 {
-var stack = new Microsoft.Maui.Controls.VerticalStackLayout { Spacing = 15 };
+var stack = new Microsoft.Maui.Controls.VerticalStackLayout { Spacing = 15,
+    // Match SfShimmer CustomView minimum height from MAUI reference
+    MinimumHeightRequest = 201 };
 
-// Icon (FontImageSource)
+// Icon (FontImageSource) — no HeightRequest, matching MAUI reference
 stack.Add(new MauiImage
 {
 Source = new FontImageSource
@@ -36,6 +38,7 @@ FontFamily = Fonts.FluentUI.FontFamily,
 Color = DarkOnLightBg,
 Size = 20,
 },
+HeightRequest = 30,
 HorizontalOptions = Microsoft.Maui.Controls.LayoutOptions.Start,
 Aspect = Aspect.Center,
 });
@@ -56,7 +59,7 @@ TextColor = DarkOnLightBg,
 LineBreakMode = LineBreakMode.WordWrap,
 });
 
-// Tags (HorizontalStackLayout with colored pills)
+// Tags (HorizontalStackLayout matching MAUI reference)
 var tagLayout = new Microsoft.Maui.Controls.HorizontalStackLayout { Spacing = 15 };
 foreach (var tag in p.Tags)
 {
@@ -66,11 +69,14 @@ StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius =
 HeightRequest = 32,
 StrokeThickness = 0,
 Background = new SolidColorBrush(tag.DisplayColor),
-Padding = new Thickness(12, 0),
+// iOS: Padding="12,0,12,8" matching OnPlatform in TagView.xaml
+Padding = Microsoft.Maui.Devices.DeviceInfo.Platform == Microsoft.Maui.Devices.DevicePlatform.Android
+    ? new Thickness(12, 0)
+    : new Thickness(12, 0, 12, 8),
 Content = new MauiLabel
 {
 Text = tag.Title,
-TextColor = Colors.White,
+TextColor = Color.FromArgb("#F2F2F2"),
 FontSize = 14,
 VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
 VerticalTextAlignment = Microsoft.Maui.TextAlignment.Center,
@@ -127,17 +133,17 @@ Spacing = 5,
 Padding = new Thickness(15),
 };
 
-// 1. Category chart (Margin="0, 12" matching XAML)
+// 1. Category chart (extra bottom margin to match MAUI SfPullToRefresh/Shimmer rendering)
 var chart = new CategoryChartControl(chartItems);
-chart.Margin = new Thickness(0, 12);
+chart.Margin = new Thickness(0, 12, 0, 19);
 contentStack.Add(chart);
 
-// 2. Projects header — Title2 style: 22px, semibold
+// 2. Projects header — Title2 style: 22px, Bold
 contentStack.Add(new MauiLabel
 {
 Text = "Projects",
 FontSize = 22,
-FontFamily = ".SFUI-SemiBold",
+FontAttributes = Microsoft.Maui.Controls.FontAttributes.Bold,
 TextColor = DarkOnLightBg,
 });
 
@@ -163,7 +169,7 @@ tasksHeaderGrid.Add(new MauiLabel
 {
 Text = "Tasks",
 FontSize = 22,
-FontFamily = ".SFUI-SemiBold",
+FontAttributes = Microsoft.Maui.Controls.FontAttributes.Bold,
 TextColor = DarkOnLightBg,
 VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
 });
@@ -201,7 +207,7 @@ tasksStack.Add(BuildTaskRow(task));
 contentStack.Add(tasksStack);
 
 // Root Grid overlay: ScrollView + FAB
-var rootGrid = new MauiGrid();
+var rootGrid = new MauiGrid { BackgroundColor = LightBg };
 rootGrid.Add(new MauiScrollView { Content = contentStack });
 
 var fab = new AddButtonControl(() =>
@@ -214,6 +220,7 @@ return new NavigationView
 {
 new MauiViewHost(rootGrid),
 }
-.Title(_store.Today);
+.Title(_store.Today)
+.Background(LightBg);
 }
 }
