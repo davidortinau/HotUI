@@ -18,8 +18,13 @@ public partial class AppShell : Shell
 		{
 			Dispatcher.DispatchAsync(async () =>
 			{
-				await Task.Delay(500);
-				await GoToAsync($"//{ForcePage}");
+				await Task.Delay(1000);
+				if (ForcePage == "projectdetail")
+					await GoToAsync($"//main/project?id=1");
+				else if (ForcePage == "taskdetail")
+					await GoToAsync($"//main/task?id=1");
+				else
+					await GoToAsync($"//{ForcePage}");
 			});
 		}
 	}

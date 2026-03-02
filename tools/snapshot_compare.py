@@ -118,6 +118,8 @@ PAGES = {
     "Dashboard": ("dashboard", "main", 30),
     "Projects": ("projects", "projects", 30),
     "ManageMeta": ("manage", "manage", 10),
+    "ProjectDetail": ("projectdetail", "projectdetail", 35),
+    "TaskDetail": ("taskdetail", "taskdetail", 35),
 }
 
 def main():

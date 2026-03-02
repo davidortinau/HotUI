@@ -22,11 +22,16 @@ View body()
 if (_forcePage != null)
 {
 // Single-page mode for snapshot testing
+var store = DataStore.Instance;
+var firstProject = store.Projects.Value?.FirstOrDefault();
+var firstTask = store.AllTasks.Value?.FirstOrDefault();
 return _forcePage switch
 {
 "dashboard" => new DashboardPage(),
 "projects" => new ProjectListPage(),
 "manage" => new ManageMetaPage(),
+"projectdetail" => new ProjectDetailPage(firstProject ?? new CometProjectManager.Models.Project()),
+"taskdetail" => new TaskDetailPage(firstTask, firstTask?.ProjectID ?? 1),
 _ => new DashboardPage(),
 };
 }
