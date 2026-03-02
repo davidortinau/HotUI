@@ -84,17 +84,61 @@ public class ProjectManagerShell : MauiShell
 
 	/// <summary>
 	/// Wraps a Comet View in a MAUI ContentPage for Shell hosting.
+	/// Uses Loaded event to embed the Comet view's platform representation.
 	/// </summary>
 	static MauiPage MakeCometPage(Comet.View cometView, string title)
 	{
 		var page = new MauiPage
 		{
 			Title = title,
-			Content = new CometHost(cometView),
 			BackgroundColor = Color.FromArgb("#F2F2F2"),
 		};
+		
+		// Create a ContentView container
+		var container = new Microsoft.Maui.Controls.ContentView
+		{
+			BackgroundColor = Color.FromArgb("#F2F2F2"),
+		};
+		
+		page.Content = container;
+		
+		// When the page is loaded and has a handler/MauiContext, embed the Comet view
+		page.Loaded += (s, e) =>
+		{
+			if (page.Handler?.MauiContext == null) return;
+			EmbedCometView(container, cometView, page.Handler.MauiContext);
+		};
+		
 		MauiShell.SetNavBarIsVisible(page, true);
 		return page;
+	}
+	
+	internal static void EmbedCometView(Microsoft.Maui.Controls.ContentView container, Comet.View cometView, IMauiContext mauiContext)
+	{
+		try
+		{
+			// Get the render view (body content). For our pages this returns MauiViewHost.
+			var renderView = cometView.GetView();
+			IView viewToRender = (renderView != null && renderView != cometView) ? renderView : cometView;
+			
+			// If it's a MauiViewHost, extract the hosted MAUI view directly
+			if (viewToRender is MauiViewHost mvh)
+			{
+				var hostedView = mvh.HostedView;
+				if (hostedView is Microsoft.Maui.Controls.View mauiView)
+				{
+					container.Content = mauiView;
+					return;
+				}
+			}
+			
+			// Fallback: use CometHost wrapper
+			container.Content = new CometHost(cometView);
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"[EmbedCometView] Failed: {ex.Message}");
+		}
 	}
 }
 
@@ -122,7 +166,14 @@ public class ProjectDetailShellPage : MauiPage
 			var project = DataStore.Instance.Projects.Value?.FirstOrDefault(p => p.ID == id)
 				?? new CometProjectManager.Models.Project();
 			Title = "Project";
-			Content = new CometHost(new ProjectDetailPage(project, wrapInNav: false));
+			var cometView = new ProjectDetailPage(project, wrapInNav: false);
+			var container = new Microsoft.Maui.Controls.ContentView();
+			Content = container;
+			Loaded += (s, e) =>
+			{
+				if (Handler?.MauiContext == null) return;
+				ProjectManagerShell.EmbedCometView(container, cometView, Handler.MauiContext);
+			};
 		}
 	}
 }
@@ -151,7 +202,14 @@ public class TaskDetailShellPage : MauiPage
 			var task = DataStore.Instance.AllTasks.Value?.FirstOrDefault(t => t.ID == id);
 			var projectId = task?.ProjectID ?? 1;
 			Title = "Task";
-			Content = new CometHost(new TaskDetailPage(task, projectId, wrapInNav: false));
+			var cometView = new TaskDetailPage(task, projectId, wrapInNav: false);
+			var container = new Microsoft.Maui.Controls.ContentView();
+			Content = container;
+			Loaded += (s, e) =>
+			{
+				if (Handler?.MauiContext == null) return;
+				ProjectManagerShell.EmbedCometView(container, cometView, Handler.MauiContext);
+			};
 		}
 	}
 }

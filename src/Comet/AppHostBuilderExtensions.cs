@@ -54,7 +54,6 @@ namespace Comet
 				{ typeof(ActivityIndicator), typeof(ActivityIndicatorHandler) },
 				{ typeof(Border), typeof(ContentViewHandler) },
 			{ typeof(MauiViewHost), typeof(Handlers.MauiViewHostHandler) },
-			{ typeof(CometHost), typeof(Handlers.CometHostHandler) },
 				{ typeof(Button), typeof(ButtonHandler) },
 				{ typeof(CheckBox), typeof(CheckBoxHandler) },
 				{ typeof(CometWindow), typeof(WindowHandler) },
@@ -138,6 +137,7 @@ namespace Comet
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Layout, Microsoft.Maui.Handlers.LayoutHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Frame, Microsoft.Maui.Handlers.BorderHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.ScrollView, Microsoft.Maui.Handlers.ScrollViewHandler>();
+				handlersCollection.AddHandler<CometHost, Handlers.CometHostHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Grid, Microsoft.Maui.Handlers.LayoutHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.StackLayout, Microsoft.Maui.Handlers.LayoutHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.HorizontalStackLayout, Microsoft.Maui.Handlers.LayoutHandler>();

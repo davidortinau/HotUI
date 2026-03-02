@@ -261,7 +261,7 @@ namespace Comet
 		public bool HasContent => Body != null && (MauiHotReloadHelper.IsEnabled || hasGlobalState);
 
 		bool hasGlobalState => State.GlobalProperties.Any();
-		internal View GetView() => GetRenderView();
+		public View GetView() => GetRenderView();
 		View replacedView;
 		protected virtual View GetRenderView()
 		{
