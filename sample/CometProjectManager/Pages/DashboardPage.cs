@@ -13,21 +13,82 @@ static readonly Color DarkText = Color.FromArgb("#0D0D0D");
 
 View ProjectCard(Project project)
 {
-var tags = project.Tags?.Select(t => (t.Title, t.DisplayColor)).ToList()
-?? new List<(string, Color)>();
-return new MauiViewHost(new ProjectCardControl(
-project.Icon, project.Name, project.Description, tags,
-() => Navigation?.Navigate(new ProjectDetailPage(project))
-)).Frame(width: 200, height: 220);
+var stack = new Microsoft.Maui.Controls.VerticalStackLayout { Spacing = 10 };
+stack.Add(new Microsoft.Maui.Controls.Label
+{
+Text = project.Icon,
+FontSize = 20,
+});
+stack.Add(new Microsoft.Maui.Controls.Label
+{
+Text = project.Name.ToUpperInvariant(),
+TextColor = Color.FromArgb("#919191"),
+FontSize = 14,
+});
+stack.Add(new Microsoft.Maui.Controls.Label
+{
+Text = project.Description,
+TextColor = DarkText,
+FontSize = 17,
+LineBreakMode = Microsoft.Maui.LineBreakMode.WordWrap,
+});
+
+var border = new Microsoft.Maui.Controls.Border
+{
+StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(20) },
+Background = new Microsoft.Maui.Controls.SolidColorBrush(CardBg),
+StrokeThickness = 0,
+Padding = new Thickness(15),
+WidthRequest = 200,
+Content = stack,
+};
+
+var tapGesture = new Microsoft.Maui.Controls.TapGestureRecognizer();
+tapGesture.Tapped += (s, e) => Navigation?.Navigate(new ProjectDetailPage(project));
+border.GestureRecognizers.Add(tapGesture);
+
+return new MauiViewHost(border).Frame(width: 200, height: 220);
 }
 
 View TaskRow(ProjectTask task)
 {
-return new MauiViewHost(new TaskViewControl(
-task.Title, task.IsCompleted,
-isChecked => _store.ToggleTaskComplete(task.ID),
-() => Navigation?.Navigate(new TaskDetailPage(task, task.ProjectID))
-)).Frame(height: 60);
+var grid = new Microsoft.Maui.Controls.Grid
+{
+ColumnSpacing = 15,
+Padding = new Thickness(15),
+};
+grid.ColumnDefinitions.Add(new Microsoft.Maui.Controls.ColumnDefinition(GridLength.Auto));
+grid.ColumnDefinitions.Add(new Microsoft.Maui.Controls.ColumnDefinition(GridLength.Star));
+
+var checkBox = new Microsoft.Maui.Controls.CheckBox
+{
+IsChecked = task.IsCompleted,
+VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
+};
+checkBox.CheckedChanged += (s, e) => _store.ToggleTaskComplete(task.ID);
+
+var label = new Microsoft.Maui.Controls.Label
+{
+Text = task.Title,
+VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
+TextColor = DarkText,
+FontSize = 17,
+};
+
+Microsoft.Maui.Controls.Grid.SetColumn(checkBox, 0);
+Microsoft.Maui.Controls.Grid.SetColumn(label, 1);
+grid.Children.Add(checkBox);
+grid.Children.Add(label);
+
+var border = new Microsoft.Maui.Controls.Border
+{
+StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(16) },
+Background = new Microsoft.Maui.Controls.SolidColorBrush(CardBg),
+StrokeThickness = 0,
+Content = grid,
+};
+
+return new MauiViewHost(border).Frame(height: 60);
 }
 
 [Body]

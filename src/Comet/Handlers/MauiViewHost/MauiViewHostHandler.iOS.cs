@@ -15,15 +15,11 @@ new PropertyMapper<MauiViewHost, MauiViewHostHandler>(ViewHandler.ViewMapper);
 public MauiViewHostHandler() : base(Mapper) { }
 
 protected override MauiViewHostContainerView CreatePlatformView()
-{
-Console.WriteLine("[MVH] CreatePlatformView");
-return new MauiViewHostContainerView();
-}
+=> new MauiViewHostContainerView();
 
 protected override void ConnectHandler(MauiViewHostContainerView platformView)
 {
 base.ConnectHandler(platformView);
-Console.WriteLine($"[MVH] ConnectHandler hosted={VirtualView?.HostedView?.GetType().FullName}");
 UpdateHostedView();
 }
 
@@ -36,20 +32,16 @@ base.DisconnectHandler(platformView);
 void UpdateHostedView()
 {
 if (VirtualView?.HostedView == null || MauiContext == null)
-{
-Console.WriteLine($"[MVH] UpdateHostedView SKIP hosted={VirtualView?.HostedView} ctx={MauiContext}");
 return;
-}
 
 try
 {
 var hostedPlatformView = VirtualView.HostedView.ToPlatform(MauiContext);
-Console.WriteLine($"[MVH] ToPlatform OK: {hostedPlatformView?.GetType().Name} frame={hostedPlatformView?.Frame}");
 PlatformView.SetHostedView(hostedPlatformView);
 }
 catch (Exception ex)
 {
-Console.WriteLine($"[MVH] ToPlatform EXCEPTION: {ex}");
+System.Diagnostics.Debug.WriteLine($"[MauiViewHostHandler] ToPlatform failed: {ex.Message}");
 }
 }
 
@@ -65,7 +57,6 @@ if (_hostedView != null)
 {
 AddSubview(_hostedView);
 SetNeedsLayout();
-Console.WriteLine($"[MVH-Container] SetHostedView {_hostedView.GetType().Name}");
 }
 }
 
@@ -78,21 +69,19 @@ _hostedView = null;
 public override void LayoutSubviews()
 {
 base.LayoutSubviews();
-if (_hostedView != null)
+if (_hostedView != null && Bounds.Width > 0 && Bounds.Height > 0)
 {
 _hostedView.Frame = Bounds;
-Console.WriteLine($"[MVH-Container] LayoutSubviews bounds={Bounds} hostedFrame={_hostedView.Frame}");
+// Force nested MAUI Controls to propagate layout to children
+_hostedView.SetNeedsLayout();
+_hostedView.LayoutIfNeeded();
 }
 }
 
 public override CGSize SizeThatFits(CGSize size)
 {
 if (_hostedView != null)
-{
-var result = _hostedView.SizeThatFits(size);
-Console.WriteLine($"[MVH-Container] SizeThatFits({size}) => {result}");
-return result;
-}
+return _hostedView.SizeThatFits(size);
 return base.SizeThatFits(size);
 }
 

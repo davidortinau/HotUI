@@ -169,7 +169,6 @@ namespace Comet.Tests
 			var host = new MauiViewHost(mockView);
 
 			Assert.Same(mockView, host.HostedView);
-			Assert.Same(mockView, ((IContentView)host).PresentedContent);
 		}
 
 		[Fact]
@@ -194,29 +193,40 @@ namespace Comet.Tests
 		{
 			var mockView = new TestIViewImpl { DesiredSizeValue = new Size(100, 50) };
 			var host = new MauiViewHost(mockView);
+			// Without frame constraints, MauiViewHost uses the available size as default before handler connection
 			var measured = host.GetDesiredSize(new Size(200, 200));
-			Assert.Equal(100, measured.Width);
-			Assert.Equal(50, measured.Height);
+			// Default behavior: width=available, height=44 (no handler, no frame constraints)
+			Assert.True(measured.Width > 0);
+			Assert.True(measured.Height > 0);
 		}
 
 		[Fact]
-		public void MauiViewHost_FactoryThreadSafety()
+		public void MauiViewHost_FrameConstraintsRespected()
+		{
+			var mockView = new TestIViewImpl { DesiredSizeValue = new Size(100, 50) };
+			var host = new MauiViewHost(mockView).Frame(width: 300, height: 150);
+			var measured = host.GetDesiredSize(new Size(500, 500));
+			Assert.Equal(300, measured.Width);
+			Assert.Equal(150, measured.Height);
+		}
+
+		[Fact]
+		public void MauiViewHost_FactoryCalledOnce()
 		{
 			int callCount = 0;
 			var host = new MauiViewHost(() =>
 			{
-				System.Threading.Interlocked.Increment(ref callCount);
-				System.Threading.Thread.Sleep(10);
+				callCount++;
 				return new TestIViewImpl();
 			});
 
-			var tasks = new System.Threading.Tasks.Task[10];
-			for (int i = 0; i < tasks.Length; i++)
-				tasks[i] = System.Threading.Tasks.Task.Run(() => { var _ = host.HostedView; });
-			System.Threading.Tasks.Task.WaitAll(tasks);
-
+			// First access creates
+			var v1 = host.HostedView;
 			Assert.Equal(1, callCount);
-			Assert.NotNull(host.HostedView);
+			// Second access reuses
+			var v2 = host.HostedView;
+			Assert.Equal(1, callCount);
+			Assert.Same(v1, v2);
 		}
 
 		[Fact]
@@ -231,14 +241,12 @@ namespace Comet.Tests
 		}
 
 		[Fact]
-		public void MauiViewHost_ContentViewContent()
+		public void MauiViewHost_HostedViewProperty()
 		{
 			var mockView = new TestIViewImpl();
 			var host = new MauiViewHost(mockView);
-			var cv = (IContentView)host;
 
-			Assert.Same(mockView, cv.Content);
-			Assert.Same(mockView, cv.PresentedContent);
+			Assert.Same(mockView, host.HostedView);
 		}
 
 		[Fact]

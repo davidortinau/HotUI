@@ -13,7 +13,7 @@ namespace Comet
 	///   new MauiViewHost(() => new MyExpensiveControl())
 	///   new MauiViewHost(new MyChart()).Frame(width: 300, height: 200)
 	/// </summary>
-	public class MauiViewHost : View, IReplaceableView, IContentView
+	public class MauiViewHost : View
 	{
 		private IView _hostedView;
 		private Func<IView> _factory;
@@ -45,32 +45,6 @@ namespace Comet
 					}
 				}
 				return _hostedView;
-			}
-		}
-
-		IView IReplaceableView.ReplacedView => HostedView ?? this;
-
-		// IContentView implementation
-		object IContentView.Content => HostedView;
-		IView IContentView.PresentedContent => HostedView;
-		Size IContentView.CrossPlatformMeasure(double widthConstraint, double heightConstraint)
-			=> HostedView?.Measure(widthConstraint, heightConstraint) ?? Size.Zero;
-		Size IContentView.CrossPlatformArrange(Rect bounds)
-			=> HostedView?.Arrange(bounds) ?? Size.Zero;
-
-		public override void LayoutSubviews(Rect frame)
-		{
-			this.Frame = frame;
-			HostedView?.Arrange(frame);
-		}
-
-		public override Rect Frame
-		{
-			get => base.Frame;
-			set
-			{
-				base.Frame = value;
-				HostedView?.Handler?.PlatformArrange(value);
 			}
 		}
 
