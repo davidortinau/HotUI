@@ -15,6 +15,9 @@ namespace CometProjectManager.Pages;
 public class DashboardPage : View
 {
 [State] readonly DataStore _store = DataStore.Instance;
+readonly Action? _onMenuTap;
+
+public DashboardPage(Action? onMenuTap = null) { _onMenuTap = onMenuTap; }
 
 static readonly Color Primary = Color.FromArgb("#512BD4");
 static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
@@ -216,11 +219,11 @@ Navigation?.Navigate(new ProjectDetailPage(new Project()));
 });
 rootGrid.Add(fab);
 
-return new NavigationView
+var nav = new NavigationView
 {
 new MauiViewHost(rootGrid),
-}
-.Title(_store.Today)
-.Background(LightBg);
+};
+if (_onMenuTap != null) { nav.LeadingBarAction = _onMenuTap; }
+return nav.Title(_store.Today).Background(LightBg);
 }
 }

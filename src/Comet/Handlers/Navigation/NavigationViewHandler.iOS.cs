@@ -36,6 +36,16 @@ namespace Comet.Handlers
 			nav.SetPerformPop(() => navigationController.PopViewController(true));
 			navigationController.PushViewController(vc, true);
 
+			// Add leading bar button (hamburger icon) if configured
+			if (nav.LeadingBarAction != null)
+			{
+				var action = nav.LeadingBarAction;
+				vc.NavigationItem.LeftBarButtonItem = new UIBarButtonItem(
+					nav.LeadingBarIcon ?? "☰",
+					UIBarButtonItemStyle.Plain,
+					(s, e) => action());
+			}
+
 			return navigationController.View;
 		}
 

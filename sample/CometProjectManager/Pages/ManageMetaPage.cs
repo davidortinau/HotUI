@@ -21,6 +21,9 @@ namespace CometProjectManager.Pages;
 public class ManageMetaPage : View
 {
 [State] readonly DataStore _store = DataStore.Instance;
+readonly Action? _onMenuTap;
+
+public ManageMetaPage(Action? onMenuTap = null) { _onMenuTap = onMenuTap; }
 
 static readonly Color Primary = Color.FromArgb("#512BD4");
 static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
@@ -296,11 +299,11 @@ tagButtonGrid.Add(addTagBtn);
 
 contentStack.Add(tagButtonGrid);
 
-return new NavigationView
+var nav = new NavigationView
 {
 new MauiViewHost(new MauiScrollView { Content = contentStack, BackgroundColor = LightBg }),
-}
-.Title("Categories and Tags")
-.Background(LightBg);
+};
+if (_onMenuTap != null) { nav.LeadingBarAction = _onMenuTap; }
+return nav.Title("Categories and Tags").Background(LightBg);
 }
 }

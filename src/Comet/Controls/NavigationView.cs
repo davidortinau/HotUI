@@ -5,6 +5,18 @@ namespace Comet
 	public class NavigationView : ContentView, IStackNavigationView
 	{
 		List<IView> _views = new List<IView>();
+
+		/// <summary>
+		/// Action and icon for the leading (left) navigation bar button.
+		/// Used for hamburger menu icons in flyout navigation.
+		/// </summary>
+		public Action LeadingBarAction { get; set; }
+
+		/// <summary>
+		/// Unicode character or system icon name for the leading bar button.
+		/// Default is "☰" (hamburger icon).
+		/// </summary>
+		public string LeadingBarIcon { get; set; } = "☰";
 		public void Navigate(View view)
 		{
 			view.Navigation = this;
