@@ -49,6 +49,13 @@ public class StressTestShell : MauiShell
 			Route = "state"
 		});
 
+		tabBar.Items.Add(new Microsoft.Maui.Controls.ShellContent
+		{
+			Title = "Swipe",
+			ContentTemplate = new DataTemplate(() => MakeCometPage(new SwipeTestPage(), "Swipe")),
+			Route = "swipe"
+		});
+
 		Items.Add(tabBar);
 	}
 

@@ -45,6 +45,8 @@ namespace Comet.Handlers
 			MapCometEmptyView(cv, listView);
 			MapCometHeaderFooter(cv, listView);
 
+			// Store reference to current listView that can be updated when VirtualView changes
+			var listViewRef = new WeakReference<IListView>(listView);
 			cv.ItemTemplate = new Microsoft.Maui.Controls.DataTemplate(() =>
 			{
 				var container = new Microsoft.Maui.Controls.ContentView();
@@ -52,7 +54,9 @@ namespace Comet.Handlers
 				{
 					if (container.BindingContext is not CollectionViewItemProxy proxy)
 						return;
-					var cometView = listView.ViewFor(proxy.Section, proxy.Row);
+					if (!listViewRef.TryGetTarget(out var currentListView))
+						return;
+					var cometView = currentListView.ViewFor(proxy.Section, proxy.Row);
 					container.Content = cometView != null ? new CometHost(cometView) : null;
 				};
 				return container;
@@ -62,7 +66,10 @@ namespace Comet.Handlers
 			{
 				var selected = e.CurrentSelection?.FirstOrDefault();
 				if (selected is CollectionViewItemProxy proxy)
-					listView.OnSelected(proxy.Section, proxy.Row);
+				{
+					if (listViewRef.TryGetTarget(out var currentListView))
+						currentListView.OnSelected(proxy.Section, proxy.Row);
+				}
 			};
 		}
 

@@ -125,8 +125,11 @@ namespace Comet
 			if (currentBuildingView.Count == 0)
 			{
 				var thread = Thread.CurrentThread;
-				ViewsByThread.Remove(thread);
-				CurrentReadProperiesByThread.Remove(thread);
+				lock (_lock)
+				{
+					ViewsByThread.Remove(thread);
+					CurrentReadProperiesByThread.Remove(thread);
+				}
 			}
 		}
 
@@ -199,12 +202,14 @@ namespace Comet
 		}
 		public static void StopMonitoring(INotifyPropertyRead obj)
 		{
+			bool wasTracked;
 			lock (_lock)
 			{
-				if (!MonitoredObjects.Contains(obj))
-					return;
-				MonitoredObjects.Remove(obj);
+				wasTracked = MonitoredObjects.Remove(obj);
 			}
+			if (!wasTracked)
+				return;
+
 			if (!(obj is IAutoImplemented))
 			{
 				obj.PropertyChanged -= Obj_PropertyChanged;
