@@ -1,12 +1,8 @@
 using CometProjectManager.Pages;
+using Syncfusion.Maui.Toolkit.Hosting;
 
 namespace CometProjectManager;
 
-/// <summary>
-/// App entry point — matches the template's AppShell with flyout navigation.
-/// Uses TabView with Dashboard, Projects, and Manage Meta tabs (matching Shell tabs).
-/// Title "Categories and Tags" matches the template's ManageMetaPage title.
-/// </summary>
 public class ProjectManagerApp : CometApp
 {
 	[Body]
@@ -24,7 +20,15 @@ public static class MauiProgram
 	public static MauiApp CreateMauiApp()
 	{
 		var builder = MauiApp.CreateBuilder();
-		builder.UseCometApp<ProjectManagerApp>();
+		builder.UseCometApp<ProjectManagerApp>()
+			.ConfigureSyncfusionToolkit()
+			.ConfigureFonts(fonts =>
+			{
+				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+				fonts.AddFont("SegoeUI-Semibold.ttf", "SegoeSemibold");
+				fonts.AddFont("FluentSystemIcons-Regular.ttf", Fonts.FluentUI.FontFamily);
+			});
 		return builder.Build();
 	}
 }

@@ -169,7 +169,7 @@ namespace Comet.Tests
 			var host = new MauiViewHost(mockView);
 
 			Assert.Same(mockView, host.HostedView);
-			Assert.Same(mockView, ((IReplaceableView)host).ReplacedView);
+			Assert.Same(mockView, ((IContentView)host).PresentedContent);
 		}
 
 		[Fact]

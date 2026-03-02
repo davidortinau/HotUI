@@ -52,13 +52,14 @@ namespace Comet
 				{ typeof(AbsoluteLayout), typeof(LayoutHandler) },
 				{ typeof(FlexLayout), typeof(LayoutHandler) },
 				{ typeof(ActivityIndicator), typeof(ActivityIndicatorHandler) },
-				{ typeof(Border), typeof(BorderHandler) },
+				{ typeof(Border), typeof(ContentViewHandler) },
+			{ typeof(MauiViewHost), typeof(ContentViewHandler) },
 				{ typeof(Button), typeof(ButtonHandler) },
 				{ typeof(CheckBox), typeof(CheckBoxHandler) },
 				{ typeof(CometWindow), typeof(WindowHandler) },
 				{ typeof(DatePicker), typeof(DatePickerHandler) },
 				{ typeof(FlyoutView), typeof(FlyoutViewHandler) },
-				{ typeof(Frame), typeof(BorderHandler) },
+				{ typeof(Frame), typeof(ContentViewHandler) },
 				{ typeof(GraphicsView), typeof(GraphicsViewHandler) },
 				{ typeof(Image) , typeof(ImageHandler) },
 				{ typeof(ImageButton) , typeof(ImageButtonHandler) },
@@ -103,6 +104,50 @@ namespace Comet
 #endif
 				{typeof(WebView), typeof(Microsoft.Maui.Handlers.WebViewHandler)},
 			}));
+
+			// Register standard MAUI Controls handlers for MauiViewHost embedding.
+			// These enable Microsoft.Maui.Controls types (Label, Entry, Border, etc.)
+			// to be rendered when hosted inside a Comet view tree via MauiViewHost.
+			builder.ConfigureMauiHandlers((handlersCollection) =>
+			{
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Label, Microsoft.Maui.Handlers.LabelHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Entry, Microsoft.Maui.Handlers.EntryHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Editor, Microsoft.Maui.Handlers.EditorHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Button, Microsoft.Maui.Handlers.ButtonHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.CheckBox, Microsoft.Maui.Handlers.CheckBoxHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Switch, Microsoft.Maui.Handlers.SwitchHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Slider, Microsoft.Maui.Handlers.SliderHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Stepper, Microsoft.Maui.Handlers.StepperHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Picker, Microsoft.Maui.Handlers.PickerHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.DatePicker, Microsoft.Maui.Handlers.DatePickerHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.TimePicker, Microsoft.Maui.Handlers.TimePickerHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Image, Microsoft.Maui.Handlers.ImageHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.ImageButton, Microsoft.Maui.Handlers.ImageButtonHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.SearchBar, Microsoft.Maui.Handlers.SearchBarHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.ProgressBar, Microsoft.Maui.Handlers.ProgressBarHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.ActivityIndicator, Microsoft.Maui.Handlers.ActivityIndicatorHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.RadioButton, Microsoft.Maui.Handlers.RadioButtonHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Border, Microsoft.Maui.Handlers.BorderHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.BoxView, Microsoft.Maui.Handlers.ShapeViewHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.ContentView, Microsoft.Maui.Handlers.ContentViewHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Frame, Microsoft.Maui.Handlers.BorderHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.ScrollView, Microsoft.Maui.Handlers.ScrollViewHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Grid, Microsoft.Maui.Handlers.LayoutHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.StackLayout, Microsoft.Maui.Handlers.LayoutHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.HorizontalStackLayout, Microsoft.Maui.Handlers.LayoutHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.VerticalStackLayout, Microsoft.Maui.Handlers.LayoutHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.FlexLayout, Microsoft.Maui.Handlers.LayoutHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.AbsoluteLayout, Microsoft.Maui.Handlers.LayoutHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.RefreshView, Microsoft.Maui.Handlers.RefreshViewHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.SwipeView, Microsoft.Maui.Handlers.SwipeViewHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.IndicatorView, Microsoft.Maui.Handlers.IndicatorViewHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.WebView, Microsoft.Maui.Handlers.WebViewHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Page, Microsoft.Maui.Handlers.PageHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.ContentPage, Microsoft.Maui.Handlers.PageHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.NavigationPage, Microsoft.Maui.Handlers.NavigationViewHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.TabbedPage, Microsoft.Maui.Handlers.TabbedViewHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.FlyoutPage, Microsoft.Maui.Handlers.FlyoutViewHandler>();
+			});
 
 
 			ThreadHelper.SetFireOnMainThread(MainThread.BeginInvokeOnMainThread);
