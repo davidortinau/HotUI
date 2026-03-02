@@ -55,7 +55,7 @@ public class ProjectManagerShell : MauiShell
 		{
 			Title = "Dashboard",
 			Icon = MakeIcon(Fonts.FluentUI.diagram_24_regular),
-			ContentTemplate = new DataTemplate(() => MakeCometPage(new DashboardPage(wrapInNav: false), "Dashboard")),
+			ContentTemplate = new DataTemplate(() => MakeCometPage(new DashboardPage(wrapInNav: false), DataStore.Instance.Today)),
 			Route = "dashboard"
 		});
 

@@ -7,6 +7,7 @@ using Microsoft.Maui.Graphics;
 using Syncfusion.Maui.Toolkit;
 using Syncfusion.Maui.Toolkit.Charts;
 using Syncfusion.Maui.Toolkit.EffectsView;
+using Syncfusion.Maui.Toolkit.Shimmer;
 using Syncfusion.Maui.Toolkit.TextInputLayout;
 
 using Grid = Microsoft.Maui.Controls.Grid;
@@ -72,7 +73,16 @@ namespace CometProjectManager.Controls
             series.PaletteBrushes = brushes;
 
             chart.Series.Add(series);
-            Content = chart;
+
+            // Wrap in SfShimmer to match MAUI reference layout (shimmer inactive = transparent pass-through)
+            var shimmer = new SfShimmer
+            {
+                BackgroundColor = Colors.Transparent,
+                VerticalOptions = LayoutOptions.FillAndExpand,
+                IsActive = false,
+                Content = chart
+            };
+            Content = shimmer;
         }
     }
 
