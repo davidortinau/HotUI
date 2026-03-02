@@ -157,6 +157,7 @@ public class ProjectDetailShellPage : MauiPage
 	string _projectId = "";
 	Microsoft.Maui.Controls.ContentView _container = new();
 	Comet.View? _cometView;
+	bool _embedded;
 
 	public ProjectDetailShellPage()
 	{
@@ -179,16 +180,23 @@ public class ProjectDetailShellPage : MauiPage
 		var project = DataStore.Instance.Projects.Value?.FirstOrDefault(p => p.ID == id)
 			?? new CometProjectManager.Models.Project();
 		Title = "Project";
+		_cometView?.Dispose();
 		_cometView = new ProjectDetailPage(project, wrapInNav: false);
-		if (Handler?.MauiContext != null)
-			ProjectManagerShell.EmbedCometView(_container, _cometView, Handler.MauiContext);
+		_embedded = false;
+		TryEmbed();
+	}
+
+	void TryEmbed()
+	{
+		if (_embedded || _cometView == null || Handler?.MauiContext == null) return;
+		ProjectManagerShell.EmbedCometView(_container, _cometView, Handler.MauiContext);
+		_embedded = true;
 	}
 
 	protected override void OnHandlerChanged()
 	{
 		base.OnHandlerChanged();
-		if (Handler?.MauiContext != null && _cometView != null)
-			ProjectManagerShell.EmbedCometView(_container, _cometView, Handler.MauiContext);
+		TryEmbed();
 	}
 }
 
@@ -201,6 +209,7 @@ public class TaskDetailShellPage : MauiPage
 	string _taskId = "";
 	Microsoft.Maui.Controls.ContentView _container = new();
 	Comet.View? _cometView;
+	bool _embedded;
 
 	public TaskDetailShellPage()
 	{
@@ -223,16 +232,23 @@ public class TaskDetailShellPage : MauiPage
 		var task = DataStore.Instance.AllTasks.Value?.FirstOrDefault(t => t.ID == id);
 		var projectId = task?.ProjectID ?? 1;
 		Title = "Task";
+		_cometView?.Dispose();
 		_cometView = new TaskDetailPage(task, projectId, wrapInNav: false);
-		if (Handler?.MauiContext != null)
-			ProjectManagerShell.EmbedCometView(_container, _cometView, Handler.MauiContext);
+		_embedded = false;
+		TryEmbed();
+	}
+
+	void TryEmbed()
+	{
+		if (_embedded || _cometView == null || Handler?.MauiContext == null) return;
+		ProjectManagerShell.EmbedCometView(_container, _cometView, Handler.MauiContext);
+		_embedded = true;
 	}
 
 	protected override void OnHandlerChanged()
 	{
 		base.OnHandlerChanged();
-		if (Handler?.MauiContext != null && _cometView != null)
-			ProjectManagerShell.EmbedCometView(_container, _cometView, Handler.MauiContext);
+		TryEmbed();
 	}
 }
 
