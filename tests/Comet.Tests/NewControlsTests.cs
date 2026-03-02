@@ -70,6 +70,85 @@ namespace Comet.Tests
 			Assert.NotNull(swipe.Content);
 		}
 
+		[Fact]
+		public void SwipeViewLeftItems()
+		{
+			var swipe = new SwipeView();
+			swipe.LeftItems = new SwipeItems
+			{
+				new SwipeItem { Text = "Delete", BackgroundColor = Colors.Red },
+				new SwipeItem { Text = "Archive", BackgroundColor = Colors.Blue }
+			};
+			Assert.Equal(2, swipe.LeftItems.Count);
+			Assert.Equal("Delete", swipe.LeftItems[0].Text);
+		}
+
+		[Fact]
+		public void SwipeViewAllDirections()
+		{
+			var swipe = new SwipeView();
+			swipe.LeftItems = new SwipeItems { new SwipeItem { Text = "Left" } };
+			swipe.RightItems = new SwipeItems { new SwipeItem { Text = "Right" } };
+			swipe.TopItems = new SwipeItems { new SwipeItem { Text = "Top" } };
+			swipe.BottomItems = new SwipeItems { new SwipeItem { Text = "Bottom" } };
+
+			Assert.NotNull(swipe.LeftItems);
+			Assert.NotNull(swipe.RightItems);
+			Assert.NotNull(swipe.TopItems);
+			Assert.NotNull(swipe.BottomItems);
+		}
+
+		[Fact]
+		public void SwipeViewSwipeMode()
+		{
+			var items = new SwipeItems { Mode = SwipeMode.Execute };
+			Assert.Equal(SwipeMode.Execute, items.Mode);
+
+			var defaultItems = new SwipeItems();
+			Assert.Equal(SwipeMode.Reveal, defaultItems.Mode);
+		}
+
+		[Fact]
+		public void SwipeItemOnInvoked()
+		{
+			bool invoked = false;
+			var item = new SwipeItem
+			{
+				Text = "Delete",
+				OnInvoked = () => invoked = true
+			};
+			item.OnInvoked?.Invoke();
+			Assert.True(invoked);
+		}
+
+		// ---- RefreshView Tests ----
+
+		[Fact]
+		public void RefreshViewCreation()
+		{
+			var rv = new RefreshView();
+			rv.Add(new Text("Refreshable content"));
+			Assert.NotNull(rv);
+			Assert.NotNull(rv.Content);
+		}
+
+		[Fact]
+		public void RefreshViewIsRefreshing()
+		{
+			var rv = new RefreshView(false);
+			Assert.NotNull(rv);
+		}
+
+		[Fact]
+		public void RefreshViewDispose()
+		{
+			var rv = new RefreshView();
+			var content = new Text("Content");
+			rv.Add(content);
+			rv.Dispose();
+			Assert.Null(rv.Content);
+		}
+
 		// ---- CollectionView Tests ----
 
 		[Fact]

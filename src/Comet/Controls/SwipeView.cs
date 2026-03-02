@@ -7,10 +7,52 @@ using Microsoft.Maui.Graphics;
 
 namespace Comet
 {
+	/// <summary>
+	/// Represents a swipe action item for use in SwipeView.
+	/// </summary>
+	public class SwipeItem
+	{
+		public string Text { get; set; }
+		public string IconImageSource { get; set; }
+		public Color BackgroundColor { get; set; }
+		public Action OnInvoked { get; set; }
+		public ICommand Command { get; set; }
+		public object CommandParameter { get; set; }
+	}
+
+	/// <summary>
+	/// A collection of SwipeItem objects for a specific swipe direction.
+	/// </summary>
+	public class SwipeItems : List<SwipeItem>
+	{
+		public SwipeMode Mode { get; set; } = SwipeMode.Reveal;
+
+		public SwipeItems() { }
+		public SwipeItems(IEnumerable<SwipeItem> items) : base(items) { }
+	}
+
+	public enum SwipeMode
+	{
+		Reveal,
+		Execute
+	}
+
 	public class SwipeView : View, IEnumerable, IContainerView, IContentView
 	{
 		IEnumerator IEnumerable.GetEnumerator() => new[] { Content }.GetEnumerator();
 		public View Content { get; set; }
+
+		/// <summary>Swipe items revealed when swiping from left to right.</summary>
+		public SwipeItems LeftItems { get; set; }
+
+		/// <summary>Swipe items revealed when swiping from right to left.</summary>
+		public SwipeItems RightItems { get; set; }
+
+		/// <summary>Swipe items revealed when swiping from top to bottom.</summary>
+		public SwipeItems TopItems { get; set; }
+
+		/// <summary>Swipe items revealed when swiping from bottom to top.</summary>
+		public SwipeItems BottomItems { get; set; }
 
 		object IContentView.Content => Content;
 

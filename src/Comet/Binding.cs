@@ -31,7 +31,7 @@ namespace Comet
 		public virtual void BindingValueChanged(INotifyPropertyRead bindingObject, string propertyName, object value)
 		{
 			Value = value;
-			View.ViewPropertyChanged(propertyName, value);
+			View?.ViewPropertyChanged(propertyName, value);
 		}
 
 	}

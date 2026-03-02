@@ -4,6 +4,7 @@ namespace Comet
 {
 	public class NavigationView : ContentView, IStackNavigationView
 	{
+		readonly object _viewsLock = new();
 		List<IView> _views = new List<IView>();
 
 		/// <summary>

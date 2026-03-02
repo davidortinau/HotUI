@@ -32,6 +32,9 @@ namespace Comet
 			set => this.SetBindingValue(ref source, value);
 		}
 
+		public Action<string> OnNavigated { get; set; }
+		public Action<string> OnNavigating { get; set; }
+
 		IWebViewSource IWebView.Source
 		{
 			get
@@ -49,14 +52,24 @@ namespace Comet
 		bool IWebView.CanGoBack { get; set; }
 		bool IWebView.CanGoForward { get; set; }
 		string IWebView.UserAgent { get; set; }
-		CookieContainer IWebView.Cookies => new CookieContainer();
+		CookieContainer IWebView.Cookies => _cookies ??= new CookieContainer();
+		CookieContainer _cookies;
 
-		void IWebView.GoBack() { }
-		void IWebView.GoForward() { }
-		void IWebView.Reload() { }
-		void IWebView.Eval(string script) { }
+		void IWebView.GoBack() => ViewHandler?.Invoke(nameof(IWebView.GoBack));
+		void IWebView.GoForward() => ViewHandler?.Invoke(nameof(IWebView.GoForward));
+		void IWebView.Reload() => ViewHandler?.Invoke(nameof(IWebView.Reload));
+		void IWebView.Eval(string script) => ViewHandler?.Invoke(nameof(IWebView.Eval), script);
 		Task<string> IWebView.EvaluateJavaScriptAsync(string script) => Task.FromResult<string>(null);
-		bool IWebView.Navigating(WebNavigationEvent evnt, string url) => true;
-		void IWebView.Navigated(WebNavigationEvent evnt, string url, WebNavigationResult result) { }
+
+		bool IWebView.Navigating(WebNavigationEvent evnt, string url)
+		{
+			OnNavigating?.Invoke(url);
+			return true;
+		}
+
+		void IWebView.Navigated(WebNavigationEvent evnt, string url, WebNavigationResult result)
+		{
+			OnNavigated?.Invoke(url);
+		}
 	}
 }

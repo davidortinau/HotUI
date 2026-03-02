@@ -23,6 +23,7 @@ namespace Comet
 	public class View : ContextualObject, IDisposable, IView, IHotReloadableView, ISafeAreaView, IContentTypeHash, IAnimator, ITitledElement, IGestureView, IVisualTreeElement, IPadding
 	{
 		static internal readonly WeakList<IView> ActiveViews = new WeakList<IView>();
+		static internal readonly object ActiveViewsLock = new object();
 		HashSet<(string Field, string Key)> usedEnvironmentData = new HashSet<(string Field, string Key)>();
 		protected static Dictionary<string, string> HandlerPropertyMapper = new()
 		{
@@ -129,7 +130,8 @@ namespace Comet
 
 		public View()
 		{
-			ActiveViews.Add(this);
+			lock (ActiveViewsLock)
+				ActiveViews.Add(this);
 			Debug.WriteLine($"Active View Count: {ActiveViews.Count}");
 			//HotReloadHelper.Register(this);
 			//TODO: Should this need its view?
@@ -398,7 +400,10 @@ namespace Comet
 		{
 			Environment.SetValue(key, value, true);
 			ThreadHelper.RunOnMainThread(() => {
-				ActiveViews.OfType<View>().ForEach(x => x.ViewPropertyChanged(key, value));
+				List<View> views;
+				lock (ActiveViewsLock)
+					views = ActiveViews.OfType<View>().ToList();
+				views.ForEach(x => x.ViewPropertyChanged(key, value));
 			});
 
 		}
@@ -408,7 +413,10 @@ namespace Comet
 			var typedKey = string.IsNullOrWhiteSpace(styleId) ? key : $"{styleId}.{key}";
 			Environment.SetValue(typedKey, value, true);
 			ThreadHelper.RunOnMainThread(() => {
-				ActiveViews.OfType<View>().ForEach(x => x.ViewPropertyChanged(typedKey, value));
+				List<View> views;
+				lock (ActiveViewsLock)
+					views = ActiveViews.OfType<View>().ToList();
+				views.ForEach(x => x.ViewPropertyChanged(typedKey, value));
 			});
 		}
 
@@ -417,7 +425,10 @@ namespace Comet
 			var typedKey = ContextualObject.GetTypedKey(type, key);
 			Environment.SetValue(typedKey, value, true);
 			ThreadHelper.RunOnMainThread(() => {
-				ActiveViews.OfType<View>().ForEach(x => x.ViewPropertyChanged(typedKey, value));
+				List<View> views;
+				lock (ActiveViewsLock)
+					views = ActiveViews.OfType<View>().ToList();
+				views.ForEach(x => x.ViewPropertyChanged(typedKey, value));
 			});
 		}
 
@@ -505,7 +516,8 @@ namespace Comet
 			if (!disposing)
 				return;
 
-			ActiveViews.Remove(this);
+			lock (ActiveViewsLock)
+				ActiveViews.Remove(this);
 
 			var gestures = Gestures;
 			if (gestures?.Any() ?? false)

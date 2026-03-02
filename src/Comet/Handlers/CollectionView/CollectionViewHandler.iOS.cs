@@ -57,9 +57,24 @@ namespace Comet.Handlers
 
 		public override Microsoft.Maui.Graphics.Size GetDesiredSize(double widthConstraint, double heightConstraint)
 		{
-			var w = double.IsInfinity(widthConstraint) ? 400 : widthConstraint;
-			var h = double.IsInfinity(heightConstraint) ? 800 : heightConstraint;
-			return new Microsoft.Maui.Graphics.Size(w, h);
+			// Use platform view's intrinsic size when constraints are unconstrained
+			if (_mauiCollectionView != null)
+			{
+				var platformView = _mauiCollectionView.Handler?.PlatformView as UIView;
+				if (platformView != null)
+				{
+					var fitting = platformView.SizeThatFits(new CoreGraphics.CGSize(
+						double.IsInfinity(widthConstraint) ? double.MaxValue : widthConstraint,
+						double.IsInfinity(heightConstraint) ? double.MaxValue : heightConstraint));
+					var w = double.IsInfinity(widthConstraint) ? fitting.Width : widthConstraint;
+					var h = double.IsInfinity(heightConstraint) ? fitting.Height : heightConstraint;
+					if (w > 0 && h > 0)
+						return new Microsoft.Maui.Graphics.Size(w, h);
+				}
+			}
+			return new Microsoft.Maui.Graphics.Size(
+				double.IsInfinity(widthConstraint) ? 400 : widthConstraint,
+				double.IsInfinity(heightConstraint) ? 600 : heightConstraint);
 		}
 
 		public class CollectionViewContainer : UIView

@@ -182,8 +182,8 @@ namespace Comet
 
 				Views[index] = value;
 
-				value.Parent = null;
-				value.Navigation = null;
+				value.Parent = this;
+				value.Navigation = this.Navigation;
 
 //				ChildrenChanged?.Invoke(this, new LayoutEventArgs(index, 1, removed));
 			}
