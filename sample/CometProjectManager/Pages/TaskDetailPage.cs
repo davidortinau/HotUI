@@ -1,11 +1,13 @@
+using CometProjectManager.Controls;
 using CometProjectManager.Models;
+using Syncfusion.Maui.Toolkit.TextInputLayout;
 
 namespace CometProjectManager.Pages;
 
 /// <summary>
 /// Task detail — matches the template's TaskDetailPage exactly.
-/// Task title entry, completed toggle, project picker, save/delete buttons.
-/// Uses the same layout structure: VerticalStackLayout with LayoutPadding/Spacing.
+/// Delete toolbar icon, SfTextInputLayout for Title/Completed/Project,
+/// Save button (44pt height).
 /// </summary>
 public class TaskDetailPage : View
 {
@@ -13,23 +15,12 @@ public class TaskDetailPage : View
 	readonly ProjectTask? _existingTask;
 	readonly int _defaultProjectId;
 
-	readonly State<string> _title;
-	readonly State<bool> _isCompleted;
-	readonly State<int> _projectIndex;
-
-	static readonly Color Primary = Color.FromArgb("#512BD4");
+	static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
 
 	public TaskDetailPage(ProjectTask? task, int defaultProjectId)
 	{
 		_existingTask = task;
 		_defaultProjectId = defaultProjectId;
-		_title = new State<string>(task?.Title ?? "");
-		_isCompleted = new State<bool>(task?.IsCompleted ?? false);
-
-		var projects = DataStore.Instance.Projects.Value ?? new List<Project>();
-		var projectId = task?.ProjectID ?? defaultProjectId;
-		_projectIndex = new State<int>(
-			Math.Max(0, projects.FindIndex(p => p.ID == projectId)));
 	}
 
 	[Body]
@@ -38,55 +29,93 @@ public class TaskDetailPage : View
 		var projects = _store.Projects.Value ?? new List<Project>();
 		var isExisting = _existingTask != null;
 
+		// MAUI input controls — values read directly on Save
+		var titleEntry = new Microsoft.Maui.Controls.Entry
+		{
+			Text = _existingTask?.Title ?? "",
+			Placeholder = "What needs to be done?",
+			FontSize = 17,
+		};
+
+		var completedCheck = new Microsoft.Maui.Controls.CheckBox
+		{
+			IsChecked = _existingTask?.IsCompleted ?? false,
+		};
+
+		var projectPicker = new Microsoft.Maui.Controls.Picker
+		{
+			ItemsSource = projects.Select(p => p.Name).ToList(),
+			SelectedIndex = Math.Max(0, projects.FindIndex(p =>
+				p.ID == (_existingTask?.ProjectID ?? _defaultProjectId))),
+		};
+
 		return new NavigationView
 		{
 			new Grid
 			{
 				new ScrollView
 				{
-					new VStack(spacing: 5) // LayoutSpacing = 5
+					new VStack(spacing: 5)
 					{
-						// Task title (matches SfTextInputLayout Hint="Task")
-						new Text("Task").FontSize(12).Color(Colors.Gray),
-						new TextField(_title, "What needs to be done?")
-							.FontSize(17)
-							.SemanticDescription("Title"),
-
-						// Completed toggle (matches template's CheckBox in SfTextInputLayout)
-						new Text("Completed").FontSize(12).Color(Colors.Gray),
-						new Toggle(_isCompleted)
-						.SemanticDescription("Status")
-						.SemanticHint("Indicates if this task is completed"),
-
-						// Project picker (matches template's Picker in SfTextInputLayout)
+						// Delete toolbar item (right-aligned, FluentUI delete icon)
 						isExisting
-							? new VStack(spacing: 5)
+							? new HStack
 							{
-								new Text("Project").FontSize(12).Color(Colors.Gray),
-								new Picker(
-									_projectIndex,
-									projects.Select(p => p.Name).ToArray()
-								)
-								.SemanticDescription("Project")
-								.SemanticHint("Which project this task belongs to"),
-							} as View
+								new Spacer(),
+								new MauiViewHost(new Microsoft.Maui.Controls.Image
+								{
+									Source = new Microsoft.Maui.Controls.FontImageSource
+									{
+										Glyph = Fonts.FluentUI.delete_24_regular,
+										FontFamily = Fonts.FluentUI.FontFamily,
+										Color = DarkOnLightBg,
+										Size = 24,
+									},
+									HeightRequest = 24,
+									WidthRequest = 24,
+								}).Frame(width: 24, height: 24),
+							}
+							.OnTap(_ =>
+							{
+								_store.DeleteTask(_existingTask!.ID);
+								this.Dismiss();
+							})
+							.SemanticDescription("Delete task")
+							as View
 							: new Spacer().Frame(height: 0),
 
-						// Save button (matches template: full width, 44pt)
+						// Task title (SfTextInputLayout > Entry)
+						new MauiViewHost(new TextInputControl("Task", titleEntry))
+							.Frame(height: 60)
+							.SemanticDescription("Title"),
+
+						// Completed (SfTextInputLayout > CheckBox)
+						new MauiViewHost(new TextInputControl("Completed", completedCheck))
+							.Frame(height: 60)
+							.SemanticDescription("Status"),
+
+						// Project picker (SfTextInputLayout > Picker, visible only for existing tasks)
+						isExisting
+							? new MauiViewHost(new TextInputControl("Project", projectPicker))
+								.Frame(height: 60)
+								.SemanticDescription("Project") as View
+							: new Spacer().Frame(height: 0),
+
+						// Save button (full width, 44pt)
 						new Button("Save", () =>
 						{
-							var title = _title.Value?.Trim();
+							var title = titleEntry.Text?.Trim();
 							if (string.IsNullOrEmpty(title)) return;
 
 							var allProjects = _store.Projects.Value ?? new List<Project>();
-							var projectId = _projectIndex.Value >= 0 && _projectIndex.Value < allProjects.Count
-								? allProjects[_projectIndex.Value].ID
+							var projectId = projectPicker.SelectedIndex >= 0 && projectPicker.SelectedIndex < allProjects.Count
+								? allProjects[projectPicker.SelectedIndex].ID
 								: _defaultProjectId;
 
 							if (_existingTask != null)
 							{
 								_existingTask.Title = title;
-								_existingTask.IsCompleted = _isCompleted.Value;
+								_existingTask.IsCompleted = completedCheck.IsChecked;
 								_existingTask.ProjectID = projectId;
 								_store.AllTasks.Value = new List<ProjectTask>(_store.AllTasks.Value!);
 							}
@@ -95,18 +124,17 @@ public class TaskDetailPage : View
 								_store.AddTask(new ProjectTask
 								{
 									Title = title,
-									IsCompleted = _isCompleted.Value,
+									IsCompleted = completedCheck.IsChecked,
 									ProjectID = projectId,
 								});
 							}
 
-							Navigation?.Dismiss();
+							this.Dismiss();
 						})
 						.Frame(height: 44)
-						.IsEnabled(!string.IsNullOrWhiteSpace(_title.Value))
 						.SemanticDescription("Save task"),
 					}
-					.Padding(new Thickness(15)) // LayoutPadding
+					.Padding(new Thickness(15))
 				},
 			}
 		}

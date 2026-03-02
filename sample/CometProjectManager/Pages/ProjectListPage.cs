@@ -1,16 +1,17 @@
+using CometProjectManager.Controls;
 using CometProjectManager.Models;
 
 namespace CometProjectManager.Pages;
 
 /// <summary>
 /// Project list — matches the template's ProjectListPage exactly.
-/// Vertical list of projects in Border cards, FAB button.
+/// ScrollView > VerticalStackLayout of project cards (Border > VStack: Name 24px, Description).
+/// AddButton FAB at bottom-right.
 /// </summary>
 public class ProjectListPage : View
 {
 	[State] readonly DataStore _store = DataStore.Instance;
 
-	static readonly Color Primary = Color.FromArgb("#512BD4");
 	static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
 
 	[Body]
@@ -24,7 +25,7 @@ public class ProjectListPage : View
 			{
 				new ScrollView
 				{
-					new VStack(spacing: 5) // LayoutSpacing = 5
+					new VStack(spacing: 5)
 					{
 						projects.Select(project =>
 							new Border
@@ -44,11 +45,10 @@ public class ProjectListPage : View
 							.SemanticDescription($"{project.Name} project")
 						as View).ToArray()
 					}
-					.Padding(new Thickness(15)) // LayoutPadding
+					.Padding(new Thickness(15))
 				},
 
-				// FAB
-				new Button("+", () =>
+				new MauiViewHost(new AddButtonControl(() =>
 				{
 					var newProject = new Project
 					{
@@ -59,13 +59,8 @@ public class ProjectListPage : View
 					};
 					_store.AddProject(newProject);
 					Navigation?.Navigate(new ProjectDetailPage(newProject));
-				})
-				.Frame(width: 60, height: 60)
-				.Background(new SolidPaint(Primary))
-				.Color(Colors.White)
-				.FontSize(28)
-				.Margin(new Thickness(30))
-				.SemanticDescription("Add project"),
+				}))
+				.Frame(width: 60, height: 60),
 			}
 		}
 		.Title("Projects");

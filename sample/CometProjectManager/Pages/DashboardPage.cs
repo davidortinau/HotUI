@@ -8,8 +8,78 @@ public class DashboardPage : View
 [State] readonly DataStore _store = DataStore.Instance;
 
 static readonly Color Primary = Color.FromArgb("#512BD4");
-static readonly Color CardBg = Color.FromArgb("#E0E0E0");
-static readonly Color DarkText = Color.FromArgb("#0D0D0D");
+static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
+static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
+static readonly Color Gray400 = Color.FromArgb("#919191");
+static readonly Color LightBg = Color.FromArgb("#F2F2F2");
+
+View TagPill(Tag tag)
+{
+return new Border
+{
+Content = new Text(tag.Title)
+.FontSize(14)
+.Color(LightBg),
+}
+.Frame(height: 32)
+.Background(new SolidPaint(tag.DisplayColor))
+.ClipShape(new RoundedRectangle(16))
+.Padding(new Thickness(12, 0))
+.Margin(new Thickness(0, 0, 8, 4));
+}
+
+View ProjectCard(Project p)
+{
+var cardContent = new VStack(spacing: 15)
+{
+new MauiViewHost(new Microsoft.Maui.Controls.Image
+{
+Source = new Microsoft.Maui.Controls.FontImageSource
+{
+Glyph = p.Icon,
+FontFamily = Fonts.FluentUI.FontFamily,
+Color = DarkOnLightBg,
+Size = 20,
+},
+HeightRequest = 20,
+WidthRequest = 20,
+HorizontalOptions = Microsoft.Maui.Controls.LayoutOptions.Start,
+}).Frame(width: 20, height: 20),
+
+new Text(p.Name.ToUpperInvariant())
+.FontSize(14)
+.Color(Gray400),
+
+new Text(p.Description)
+.FontSize(16)
+.Color(DarkOnLightBg),
+
+new HStack(spacing: 0)
+{
+p.Tags.Select(t => TagPill(t) as View).ToArray()
+},
+}
+.Padding(new Thickness(15));
+
+return new Border
+{
+Content = cardContent,
+}
+.Frame(width: 200)
+.Background(new SolidPaint(LightSecondaryBg))
+.ClipShape(new RoundedRectangle(20))
+.OnTap(_ => Navigation?.Navigate(new ProjectDetailPage(p)));
+}
+
+View TaskRow(ProjectTask task)
+{
+return new MauiViewHost(new TaskViewControl(
+task.Title,
+task.IsCompleted,
+isChecked => _store.ToggleTaskComplete(task.ID),
+() => Navigation?.Navigate(new TaskDetailPage(task, task.ProjectID))
+)).Frame(height: 60);
+}
 
 [Body]
 View body()
@@ -17,140 +87,73 @@ View body()
 var tasks = _store.AllTasks.Value ?? new List<ProjectTask>();
 var projects = _store.Projects.Value ?? new List<Project>();
 
+var chartData = _store.GetCategoryChartData();
+var chartItems = chartData.Select(d => new ChartDataItem
+{
+Title = d.Title,
+Count = d.Count,
+ChartColor = d.Color,
+}).ToList();
+
 return new NavigationView
+{
+new Grid
 {
 new ScrollView
 {
 new VStack(spacing: 15)
 {
-new Text("Pure Comet Text Above").FontSize(20).Color(Colors.Green),
+// Category chart (Syncfusion RadialBarSeries via MauiViewHost)
+new MauiViewHost(new CategoryChartControl(chartItems))
+.Frame(height: 200),
 
-// Test 1: MAUI Label - explicit both dimensions
-new MauiViewHost(new Microsoft.Maui.Controls.Label
-{
-Text = "MAUI Label via MauiViewHost",
-TextColor = Microsoft.Maui.Graphics.Colors.White,
-FontSize = 20,
-BackgroundColor = Microsoft.Maui.Graphics.Colors.Purple,
-HorizontalTextAlignment = Microsoft.Maui.TextAlignment.Center,
-VerticalTextAlignment = Microsoft.Maui.TextAlignment.Center,
-}).Frame(width: 350, height: 60),
+// Projects header
+new Text("Projects")
+.FontSize(22)
+.FontWeight(FontWeight.Semibold)
+.Color(DarkOnLightBg),
 
-// Test 2: MAUI Button
-new MauiViewHost(new Microsoft.Maui.Controls.Button
-{
-Text = "MAUI Button Click Me!",
-BackgroundColor = Microsoft.Maui.Graphics.Colors.DarkRed,
-TextColor = Microsoft.Maui.Graphics.Colors.White,
-FontSize = 18,
-CornerRadius = 10,
-}).Frame(width: 300, height: 50),
-
-// Test 3: MAUI Border with content
-new MauiViewHost(new Microsoft.Maui.Controls.Border
-{
-StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(12) },
-BackgroundColor = Microsoft.Maui.Graphics.Colors.LightBlue,
-StrokeThickness = 0,
-Padding = new Thickness(20),
-Content = new Microsoft.Maui.Controls.StackLayout
-{
-Children =
-{
-new Microsoft.Maui.Controls.Label
-{
-Text = "Inside MAUI Border",
-FontSize = 18,
-TextColor = Microsoft.Maui.Graphics.Colors.DarkBlue,
-},
-new Microsoft.Maui.Controls.Label
-{
-Text = "With nested content!",
-FontSize = 14,
-TextColor = Microsoft.Maui.Graphics.Colors.Gray,
-},
-}
-}
-}).Frame(width: 350, height: 100),
-
-new Text("Pure Comet Text Below").FontSize(20).Color(Colors.Blue),
-
-// Projects
-new Text("Projects").FontSize(22).FontWeight(FontWeight.Semibold),
+// Horizontal scrolling project cards
 new ScrollView(Orientation.Horizontal)
 {
 new HStack(spacing: 15)
 {
-projects.Select(p =>
-{
-return new Border
-{
-Content = new VStack(spacing: 10)
-{
-new Text(p.Icon).FontSize(20),
-new Text(p.Name.ToUpperInvariant()).FontSize(14).Color(Color.FromArgb("#919191")),
-new Text(p.Description).FontSize(16),
+projects.Select(p => ProjectCard(p) as View).ToArray()
 }
-.Padding(new Thickness(15)),
+.Padding(new Thickness(30, 0))
 }
-.Frame(width: 200)
-.Background(new SolidPaint(CardBg))
-.ClipShape(new RoundedRectangle(20))
-.OnTap(_ => Navigation?.Navigate(new ProjectDetailPage(p))) as View;
-}).ToArray()
-}
-.Padding(new Thickness(20, 0))
-}
-.Margin(new Thickness(-20, 0)),
+.Margin(new Thickness(-30, 0)),
 
-// Tasks
-new Text("Tasks").FontSize(22).FontWeight(FontWeight.Semibold)
-.Margin(new Thickness(0, 10, 0, 0)),
+// Tasks header with Clean button
+new HStack
+{
+new Text("Tasks")
+.FontSize(22)
+.FontWeight(FontWeight.Semibold)
+.Color(DarkOnLightBg),
+new Spacer(),
+new Button("Clean", () => _store.CleanCompletedTasks())
+.Color(Primary)
+.FontSize(16),
+},
 
+// Task rows
 new VStack(spacing: 8)
 {
-tasks.Select(t =>
-{
-// Use MauiViewHost for CheckBox + Label
-return new MauiViewHost(new Microsoft.Maui.Controls.Grid
-{
-ColumnDefinitions =
-{
-new Microsoft.Maui.Controls.ColumnDefinition(GridLength.Auto),
-new Microsoft.Maui.Controls.ColumnDefinition(GridLength.Star),
-},
-ColumnSpacing = 10,
-BackgroundColor = Microsoft.Maui.Graphics.Colors.WhiteSmoke,
-Children =
-{
-new Microsoft.Maui.Controls.CheckBox
-{
-IsChecked = t.IsCompleted,
-Color = Microsoft.Maui.Graphics.Colors.Purple,
-},
-new Microsoft.Maui.Controls.Label
-{
-Text = t.Title,
-VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
-FontSize = 16,
-}.Apply(lbl => Microsoft.Maui.Controls.Grid.SetColumn(lbl, 1)),
-}
-}).Frame(height: 50) as View;
-}).ToArray()
+tasks.Select(t => TaskRow(t) as View).ToArray()
 },
 }
-.Padding(new Thickness(20, 10))
+.Padding(new Thickness(30, 15))
+},
+
+// FAB (Add button)
+new MauiViewHost(new AddButtonControl(() =>
+{
+Navigation?.Navigate(new ProjectDetailPage(new Project()));
+}))
+.Frame(width: 60, height: 60),
 }
 }
 .Title(_store.Today);
-}
-}
-
-static class ViewExtensions
-{
-public static T Apply<T>(this T view, Action<T> action) where T : Microsoft.Maui.Controls.BindableObject
-{
-action(view);
-return view;
 }
 }
