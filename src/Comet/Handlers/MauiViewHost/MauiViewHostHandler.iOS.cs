@@ -25,6 +25,8 @@ UpdateHostedView();
 
 protected override void DisconnectHandler(MauiViewHostContainerView platformView)
 {
+if (VirtualView?.HostedView?.Handler is IElementHandler hostedHandler)
+hostedHandler.DisconnectHandler();
 platformView.ClearHostedView();
 base.DisconnectHandler(platformView);
 }
@@ -72,7 +74,6 @@ base.LayoutSubviews();
 if (_hostedView != null && Bounds.Width > 0 && Bounds.Height > 0)
 {
 _hostedView.Frame = Bounds;
-// Force nested MAUI Controls to propagate layout to children
 _hostedView.SetNeedsLayout();
 _hostedView.LayoutIfNeeded();
 }

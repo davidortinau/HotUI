@@ -247,35 +247,27 @@ namespace Comet
 			if (notify == null)
 				throw new Exception("Error, this is null!!!");
 
-			HashSet<View> views;
-			lock (_lock)
-			{
-				if (!NotifyToViewMappings.TryGetValue(notify, out views))
-					return;
-			}
-
 			List<View> viewsCopy;
+			Dictionary<string, string> mappings;
+
 			lock (_lock)
 			{
+				if (!NotifyToViewMappings.TryGetValue(notify, out var views))
+					return;
 				if (!views.Any())
 				{
 					Console.WriteLine("I think this means it is a child BindingObject");
 					return;
 				}
 				viewsCopy = views.ToList();
-			}
-
-			Dictionary<string, string> mappings;
-			lock (_lock)
-			{
 				ChildPropertyNamesMapping.TryGetValue(notify, out mappings);
 			}
+
 			List<View> disposedViews = new List<View>();
 			viewsCopy.ForEach((view) => {
 				if (view == null || view.IsDisposed)
 				{
 					disposedViews.Add(view);
-					//Cleanup this View
 					return;
 				}
 				string parentproperty = null;
@@ -284,34 +276,20 @@ namespace Comet
 					parentproperty ??= mappings?.First().Value;
 				}
 				var prop = string.IsNullOrWhiteSpace(parentproperty) ? propertyName : $"{parentproperty}.{propertyName}";
-				//TODO: Change this to use notify and property name
 				ThreadHelper.RunOnMainThread(()=>
 				view.BindingPropertyChanged(notify, propertyName, prop, value));
 
-				//TODO: Make sure we handle nested binding objects
-
-				/*
-                 public class Foo : BindingObject
-                 {
-                     public Bar Bar {get;set;}
-                 }
-
-                 public class Bar : BindingObject
-                 {
-                     public int Count{get;set;}
-                 }
-
-                 //Binding to foo.Bar.Count works when foo.Bar.Count ++;
-
-                */
-
 			});
 
-			foreach (var view in disposedViews)
+			if (disposedViews.Count > 0)
 			{
 				lock (_lock)
 				{
-					views.Remove(view);
+					if (NotifyToViewMappings.TryGetValue(notify, out var views))
+					{
+						foreach (var view in disposedViews)
+							views.Remove(view);
+					}
 				}
 			}
 

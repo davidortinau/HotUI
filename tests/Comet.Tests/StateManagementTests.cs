@@ -275,5 +275,131 @@ namespace Comet.Tests
 				set => SetProperty(value);
 			}
 		}
+
+		// Threading tests for StateManager
+
+		[Fact]
+		public void ConcurrentPropertyChangesDoNotThrow()
+		{
+			var obj = new TestBindingObject();
+			var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+
+			// Create multiple views monitoring the same object
+			var views = new List<CounterView>();
+			for (int i = 0; i < 5; i++)
+			{
+				var view = new CounterView();
+				view.SetEnvironment("testObj", obj, false);
+				views.Add(view);
+			}
+
+			// Hammer property changes from multiple threads
+			var tasks = new List<System.Threading.Tasks.Task>();
+			for (int t = 0; t < 10; t++)
+			{
+				int threadId = t;
+				tasks.Add(System.Threading.Tasks.Task.Run(() =>
+				{
+					try
+					{
+						for (int i = 0; i < 100; i++)
+						{
+							obj.Name = $"Thread{threadId}_Iteration{i}";
+						}
+					}
+					catch (Exception ex)
+					{
+						exceptions.Add(ex);
+					}
+				}));
+			}
+
+			System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
+			Assert.Empty(exceptions);
+		}
+
+		[Fact]
+		public void StateValueCanBeReadFromMultipleThreads()
+		{
+			var state = new State<int>(0);
+			var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+			var values = new System.Collections.Concurrent.ConcurrentBag<int>();
+
+			var tasks = new List<System.Threading.Tasks.Task>();
+			for (int t = 0; t < 10; t++)
+			{
+				tasks.Add(System.Threading.Tasks.Task.Run(() =>
+				{
+					try
+					{
+						for (int i = 0; i < 100; i++)
+						{
+							state.Value = i;
+							values.Add(state.Value);
+						}
+					}
+					catch (Exception ex)
+					{
+						exceptions.Add(ex);
+					}
+				}));
+			}
+
+			System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
+			Assert.Empty(exceptions);
+			Assert.Equal(1000, values.Count);
+		}
+
+		[Fact]
+		public void DisposeWhilePropertyChangingDoesNotThrow()
+		{
+			var obj = new TestBindingObject();
+			var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+
+			var tasks = new List<System.Threading.Tasks.Task>();
+
+			// Thread 1: rapidly change properties
+			tasks.Add(System.Threading.Tasks.Task.Run(() =>
+			{
+				try
+				{
+					for (int i = 0; i < 200; i++)
+						obj.Name = $"Value{i}";
+				}
+				catch (Exception ex)
+				{
+					exceptions.Add(ex);
+				}
+			}));
+
+			// Thread 2: create and dispose views
+			tasks.Add(System.Threading.Tasks.Task.Run(() =>
+			{
+				try
+				{
+					for (int i = 0; i < 50; i++)
+					{
+						var view = new CounterView();
+						view.SetEnvironment("obj", obj, false);
+						view.Dispose();
+					}
+				}
+				catch (Exception ex)
+				{
+					exceptions.Add(ex);
+				}
+			}));
+
+			System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
+			Assert.Empty(exceptions);
+		}
+
+		class CounterView : View
+		{
+			[State] readonly State<int> count = new State<int>(0);
+
+			[Body]
+			View body() => new Text(() => $"Count: {count.Value}");
+		}
 	}
 }

@@ -526,12 +526,18 @@ namespace Comet
 			builtView?.Dispose();
 			builtView = null;
 			body = null;
-			Context(false)?.Clear();
-			StateManager.Disposing(this);
-			VisualStateManager.ClearVisualStateGroups(this);
-			State.Clear();
-			State = null;
 
+			try
+			{
+				Context(false)?.Clear();
+				StateManager.Disposing(this);
+				VisualStateManager.ClearVisualStateGroups(this);
+				State?.Clear();
+			}
+			finally
+			{
+				State = null;
+			}
 		}
 		void OnDispose(bool disposing)
 		{
