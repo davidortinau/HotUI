@@ -1,4 +1,6 @@
 using CometProjectManager.Pages;
+using CommunityToolkit.Maui;
+using Microsoft.Maui.ApplicationModel;
 using Syncfusion.Maui.Toolkit.Hosting;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Hosting;
@@ -78,6 +80,32 @@ public class ProjectManagerShell : MauiShell
 		// Register detail routes
 		Routing.RegisterRoute("project", typeof(ProjectDetailShellPage));
 		Routing.RegisterRoute("task", typeof(TaskDetailShellPage));
+
+		// Flyout footer with theme switcher (matches MAUI reference AppShell)
+		var themeControl = new Syncfusion.Maui.Toolkit.SegmentedControl.SfSegmentedControl
+		{
+			VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
+			HorizontalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
+			SegmentWidth = 40,
+			SegmentHeight = 40,
+		};
+		themeControl.ItemsSource = new Syncfusion.Maui.Toolkit.SegmentedControl.SfSegmentItem[]
+		{
+			new() { ImageSource = MakeIcon(Fonts.FluentUI.weather_sunny_28_regular) },
+			new() { ImageSource = MakeIcon(Fonts.FluentUI.weather_moon_28_regular) },
+		};
+		var currentTheme = Application.Current?.RequestedTheme ?? AppTheme.Light;
+		themeControl.SelectedIndex = currentTheme == AppTheme.Light ? 0 : 1;
+		themeControl.SelectionChanged += (s, e) =>
+		{
+			if (Application.Current != null)
+				Application.Current.UserAppTheme = e.NewIndex == 0 ? AppTheme.Light : AppTheme.Dark;
+		};
+		FlyoutFooter = new Microsoft.Maui.Controls.Grid
+		{
+			Padding = new Thickness(15),
+			Children = { themeControl }
+		};
 	}
 
 	static Microsoft.Maui.Controls.FontImageSource MakeIcon(string glyph) => new Microsoft.Maui.Controls.FontImageSource
@@ -290,6 +318,7 @@ public static class MauiProgram
 		}
 
 		builder.ConfigureSyncfusionToolkit()
+			.UseMauiCommunityToolkit()
 			.UseCometHandlers()
 			.ConfigureFonts(fonts =>
 			{

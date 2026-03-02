@@ -202,7 +202,10 @@ public class DataStore
 		Projects.Value = store.Projects.Value;
 	}
 
-	private void RefreshProjects()
+	/// <summary>
+	/// Re-sync project task lists and trigger reactive UI update.
+	/// </summary>
+	public void RefreshProjects()
 	{
 		var projects = new List<Project>(Projects.Value!);
 		var tasks = AllTasks.Value ?? new();

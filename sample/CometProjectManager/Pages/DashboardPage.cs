@@ -1,5 +1,6 @@
 using CometProjectManager.Controls;
 using CometProjectManager.Models;
+using Syncfusion.Maui.Toolkit.PullToRefresh;
 
 using MauiGrid = Microsoft.Maui.Controls.Grid;
 using MauiLabel = Microsoft.Maui.Controls.Label;
@@ -198,7 +199,11 @@ BackgroundColor = Colors.Transparent,
 BorderWidth = 0,
 Aspect = Aspect.Center,
 };
-cleanButton.Clicked += (s, e) => _store.CleanCompletedTasks();
+cleanButton.Clicked += (s, e) =>
+{
+	_store.CleanCompletedTasks();
+	_ = AppNavigation.ShowToastAsync("All cleaned up!");
+};
 tasksHeaderGrid.Add(cleanButton);
 }
 
@@ -210,9 +215,17 @@ foreach (var task in tasks)
 tasksStack.Add(BuildTaskRow(task));
 contentStack.Add(tasksStack);
 
-// Root Grid overlay: ScrollView + FAB
+// Root Grid overlay: PullToRefresh(ScrollView) + FAB
 var rootGrid = new MauiGrid { BackgroundColor = LightBg };
-rootGrid.Add(new MauiScrollView { Content = contentStack });
+
+var pullToRefresh = new SfPullToRefresh();
+pullToRefresh.PullableContent = new MauiScrollView { Content = contentStack };
+pullToRefresh.Refreshing += (s, e) =>
+{
+	_store.RefreshProjects();
+	pullToRefresh.IsRefreshing = false;
+};
+rootGrid.Add(pullToRefresh);
 
 var fab = new AddButtonControl(() =>
 {

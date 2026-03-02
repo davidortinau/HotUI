@@ -220,9 +220,29 @@ public class ProjectDetailPage : View
 			if (_selectedIconIndex >= 0 && _selectedIconIndex < Icons.Length)
 				_project.Icon = Icons[_selectedIconIndex];
 			_store.SaveProject(_project);
-			this.Dismiss();
+			AppNavigation.GoBack(this);
+			_ = AppNavigation.ShowToastAsync("Project saved");
 		};
 		contentStack.Add(saveBtn);
+
+		// Delete button (only for existing projects)
+		if (_project.ID > 0)
+		{
+			var deleteBtn = new MauiButton
+			{
+				Text = "Delete",
+				HeightRequest = 44,
+				BackgroundColor = Color.FromArgb("#FF3300"),
+				TextColor = Colors.White,
+			};
+			deleteBtn.Clicked += (s, e) =>
+			{
+				_store.DeleteProject(_project.ID);
+				AppNavigation.GoBack(this);
+				_ = AppNavigation.ShowToastAsync("Project deleted");
+			};
+			contentStack.Add(deleteBtn);
+		}
 
 		// Tasks header with clean button
 		var tasksHeader = new MauiGrid { HeightRequest = 44 };
@@ -254,7 +274,11 @@ public class ProjectDetailPage : View
 				BorderWidth = 0,
 				Aspect = Aspect.Center,
 			};
-			cleanBtn.Clicked += (s, e) => _store.CleanCompletedTasks();
+			cleanBtn.Clicked += (s, e) =>
+			{
+				_store.CleanCompletedTasks();
+				_ = AppNavigation.ShowToastAsync("All cleaned up!");
+			};
 			tasksHeader.Add(cleanBtn);
 		}
 		contentStack.Add(tasksHeader);

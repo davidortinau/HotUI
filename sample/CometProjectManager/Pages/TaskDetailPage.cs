@@ -117,9 +117,29 @@ public class TaskDetailPage : View
 					ProjectID = projectId,
 				});
 			}
-			this.Dismiss();
+			AppNavigation.GoBack(this);
+			_ = AppNavigation.ShowToastAsync("Task saved");
 		};
 		contentStack.Add(saveBtn);
+
+		// Delete button (only for existing tasks)
+		if (_existingTask != null)
+		{
+			var deleteBtn = new MauiButton
+			{
+				Text = "Delete",
+				HeightRequest = 44,
+				BackgroundColor = Color.FromArgb("#FF3300"),
+				TextColor = Colors.White,
+			};
+			deleteBtn.Clicked += (s, e) =>
+			{
+				_store.DeleteTask(_existingTask.ID);
+				AppNavigation.GoBack(this);
+				_ = AppNavigation.ShowToastAsync("Task deleted");
+			};
+			contentStack.Add(deleteBtn);
+		}
 
 		// Root
 		var rootGrid = new MauiGrid { BackgroundColor = LightBg };

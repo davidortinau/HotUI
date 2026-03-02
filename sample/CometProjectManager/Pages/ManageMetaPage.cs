@@ -75,7 +75,11 @@ Size = 20,
 },
 BackgroundColor = Colors.Transparent,
 };
-deleteBtn.Clicked += (s, e) => _store.DeleteCategory(cat.ID);
+deleteBtn.Clicked += (s, e) =>
+{
+	_store.DeleteCategory(cat.ID);
+	_ = AppNavigation.ShowToastAsync("Category deleted");
+};
 
 var grid = new MauiGrid
 {
@@ -147,7 +151,11 @@ Size = 20,
 },
 BackgroundColor = Colors.Transparent,
 };
-deleteBtn.Clicked += (s, e) => _store.DeleteTag(tag.ID);
+deleteBtn.Clicked += (s, e) =>
+{
+	_store.DeleteTag(tag.ID);
+	_ = AppNavigation.ShowToastAsync("Tag deleted");
+};
 
 var grid = new MauiGrid
 {
@@ -220,7 +228,11 @@ var saveCatBtn = new MauiButton
 Text = "Save",
 HeightRequest = 44,
 };
-saveCatBtn.Clicked += (s, e) => _store.SaveCategories(categories);
+saveCatBtn.Clicked += (s, e) =>
+{
+	_store.SaveCategories(categories);
+	_ = AppNavigation.ShowToastAsync("Categories saved");
+};
 MauiGrid.SetColumn(saveCatBtn, 0);
 catButtonGrid.Add(saveCatBtn);
 
@@ -234,11 +246,15 @@ Color = Colors.White,
 Size = 20,
 },
 };
-addCatBtn.Clicked += (s, e) => _store.AddCategory(new Category
+addCatBtn.Clicked += (s, e) =>
 {
-Title = "New Category",
-ColorHex = "#808080"
-});
+	_store.AddCategory(new Category
+	{
+		Title = "New Category",
+		ColorHex = "#808080"
+	});
+	_ = AppNavigation.ShowToastAsync("Category added");
+};
 MauiGrid.SetColumn(addCatBtn, 1);
 catButtonGrid.Add(addCatBtn);
 
@@ -276,7 +292,11 @@ var saveTagBtn = new MauiButton
 Text = "Save",
 HeightRequest = 44,
 };
-saveTagBtn.Clicked += (s, e) => _store.SaveTags(tags);
+saveTagBtn.Clicked += (s, e) =>
+{
+	_store.SaveTags(tags);
+	_ = AppNavigation.ShowToastAsync("Tags saved");
+};
 MauiGrid.SetColumn(saveTagBtn, 0);
 tagButtonGrid.Add(saveTagBtn);
 
@@ -290,15 +310,37 @@ Color = Colors.White,
 Size = 20,
 },
 };
-addTagBtn.Clicked += (s, e) => _store.AddTag(new Tag
+addTagBtn.Clicked += (s, e) =>
 {
-Title = "New Tag",
-ColorHex = "#808080"
-});
+	_store.AddTag(new Tag
+	{
+		Title = "New Tag",
+		ColorHex = "#808080"
+	});
+	_ = AppNavigation.ShowToastAsync("Tag added");
+};
 MauiGrid.SetColumn(addTagBtn, 1);
 tagButtonGrid.Add(addTagBtn);
 
 contentStack.Add(tagButtonGrid);
+
+// Reset button — re-seeds all data (matches MAUI reference)
+var resetBtn = new MauiButton
+{
+	Text = "Reset Data",
+	HeightRequest = 44,
+	BackgroundColor = Color.FromArgb("#FF3300"),
+	TextColor = Colors.White,
+	Margin = new Thickness(0, 20, 0, 0),
+};
+resetBtn.Clicked += (s, e) =>
+{
+	_store.ResetData();
+	_ = AppNavigation.ShowToastAsync("Data reset");
+	if (AppNavigation.IsShellMode && Microsoft.Maui.Controls.Shell.Current != null)
+		_ = Microsoft.Maui.Controls.Shell.Current.GoToAsync("//dashboard");
+};
+contentStack.Add(resetBtn);
 
 if (!_wrapInNav) return new MauiViewHost(new MauiScrollView { Content = contentStack, BackgroundColor = LightBg });
 
