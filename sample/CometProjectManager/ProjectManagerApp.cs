@@ -44,6 +44,12 @@ public class ProjectManagerShell : MauiShell
 	public ProjectManagerShell()
 	{
 		FlyoutBehavior = FlyoutBehavior.Flyout;
+		
+		// Match MAUI reference Shell styling
+		MauiShell.SetBackgroundColor(this, Color.FromArgb("#F2F2F2"));
+		MauiShell.SetForegroundColor(this, Colors.Black);
+		MauiShell.SetTitleColor(this, Colors.Black);
+		MauiShell.SetNavBarHasShadow(this, false);
 
 		Items.Add(new Microsoft.Maui.Controls.ShellContent
 		{

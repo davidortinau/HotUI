@@ -106,6 +106,9 @@ namespace CometProjectManager.Controls
             {
                 IsChecked = isCompleted,
                 VerticalOptions = LayoutOptions.Center,
+                Color = Color.FromArgb("#512BD4"),
+                MinimumHeightRequest = 44,
+                MinimumWidthRequest = 44,
             };
             checkBox.CheckedChanged += (s, e) => onToggle?.Invoke(e.Value);
 
