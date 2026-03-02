@@ -200,6 +200,48 @@ namespace Comet.Tests
 		}
 
 		[Fact]
+		public void MauiViewHost_FactoryThreadSafety()
+		{
+			int callCount = 0;
+			var host = new MauiViewHost(() =>
+			{
+				System.Threading.Interlocked.Increment(ref callCount);
+				System.Threading.Thread.Sleep(10);
+				return new TestIViewImpl();
+			});
+
+			var tasks = new System.Threading.Tasks.Task[10];
+			for (int i = 0; i < tasks.Length; i++)
+				tasks[i] = System.Threading.Tasks.Task.Run(() => { var _ = host.HostedView; });
+			System.Threading.Tasks.Task.WaitAll(tasks);
+
+			Assert.Equal(1, callCount);
+			Assert.NotNull(host.HostedView);
+		}
+
+		[Fact]
+		public void MauiViewHost_DisposeNullsHostedView()
+		{
+			var mockView = new TestIViewImpl();
+			var host = new MauiViewHost(mockView);
+			Assert.NotNull(host.HostedView);
+
+			host.Dispose();
+			Assert.Null(host.HostedView);
+		}
+
+		[Fact]
+		public void MauiViewHost_ContentViewContent()
+		{
+			var mockView = new TestIViewImpl();
+			var host = new MauiViewHost(mockView);
+			var cv = (IContentView)host;
+
+			Assert.Same(mockView, cv.Content);
+			Assert.Same(mockView, cv.PresentedContent);
+		}
+
+		[Fact]
 		public void ContainerView_AcceptsIViewDirectly()
 		{
 			var container = new VStack();

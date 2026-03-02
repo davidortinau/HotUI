@@ -17,6 +17,7 @@ namespace Comet
 	{
 		private IView _hostedView;
 		private Func<IView> _factory;
+		private readonly object _lock = new object();
 
 		public MauiViewHost(IView view)
 		{
@@ -34,8 +35,14 @@ namespace Comet
 			{
 				if (_hostedView == null && _factory != null)
 				{
-					_hostedView = _factory();
-					_factory = null;
+					lock (_lock)
+					{
+						if (_hostedView == null && _factory != null)
+						{
+							_hostedView = _factory();
+							_factory = null;
+						}
+					}
 				}
 				return _hostedView;
 			}
@@ -69,15 +76,46 @@ namespace Comet
 
 		public override Size GetDesiredSize(Size availableSize)
 		{
-			if (HostedView != null)
-				return HostedView.Measure(availableSize.Width, availableSize.Height);
-			return base.GetDesiredSize(availableSize);
+			var frameConstraints = this.GetFrameConstraints();
+			var margins = this.GetMargin();
+
+			if (frameConstraints?.Height > 0 && frameConstraints?.Width > 0)
+				return new Size(frameConstraints.Width.Value, frameConstraints.Height.Value);
+
+			Size ms;
+			if (ViewHandler is IViewHandler vh)
+			{
+				ms = vh.GetDesiredSize(availableSize.Width, availableSize.Height);
+			}
+			else if (HostedView != null)
+			{
+				ms = HostedView.Measure(availableSize.Width, availableSize.Height);
+			}
+			else
+			{
+				ms = new Size(
+					frameConstraints?.Width ?? availableSize.Width,
+					frameConstraints?.Height ?? 44);
+			}
+
+			if (frameConstraints?.Width > 0)
+				ms.Width = frameConstraints.Width.Value;
+			if (frameConstraints?.Height > 0)
+				ms.Height = frameConstraints.Height.Value;
+
+			ms.Width += margins.HorizontalThickness;
+			ms.Height += margins.VerticalThickness;
+			MeasuredSize = ms;
+			MeasurementValid = ViewHandler != null;
+			return MeasuredSize;
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing)
 			{
+				if (_hostedView?.Handler is IElementHandler handler)
+					handler.DisconnectHandler();
 				if (_hostedView is IDisposable disposable)
 					disposable.Dispose();
 				_hostedView = null;
