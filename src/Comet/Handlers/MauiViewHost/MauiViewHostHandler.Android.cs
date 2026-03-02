@@ -60,10 +60,27 @@ namespace Comet.Handlers
 			{
 				_hostedPlatformView = VirtualView.HostedView.ToPlatform(MauiContext);
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
-				System.Diagnostics.Debug.WriteLine($"[MauiViewHostHandler] ToPlatform failed: {ex.Message}");
-				return;
+				// Handler not found — try CometApp's MauiContext (has third-party handlers)
+				var fallbackCtx = CometApp.MauiContext;
+				if (fallbackCtx != null && fallbackCtx != MauiContext)
+				{
+					try
+					{
+						_hostedPlatformView = VirtualView.HostedView.ToPlatform(fallbackCtx);
+					}
+					catch (Exception ex2)
+					{
+						System.Diagnostics.Debug.WriteLine(
+							$"[MauiViewHostHandler] All ToPlatform failed for {VirtualView.HostedView.GetType().Name}: {ex2.Message}");
+						return;
+					}
+				}
+				else
+				{
+					return;
+				}
 			}
 
 			if (_hostedPlatformView != null)
