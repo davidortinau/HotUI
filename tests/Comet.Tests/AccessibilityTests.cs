@@ -1,5 +1,4 @@
 using System;
-using Microsoft.Maui;
 using Xunit;
 
 namespace Comet.Tests
@@ -11,7 +10,7 @@ namespace Comet.Tests
 		{
 			var view = new Text("Hello").SemanticDescription("A greeting label");
 
-			var semantics = ((IView)view).Semantics;
+			var semantics = ((Microsoft.Maui.IView)view).Semantics;
 			Assert.NotNull(semantics);
 			Assert.Equal("A greeting label", semantics.Description);
 		}
@@ -21,7 +20,7 @@ namespace Comet.Tests
 		{
 			var view = new Text("Hello").SemanticHint("Double tap to activate");
 
-			var semantics = ((IView)view).Semantics;
+			var semantics = ((Microsoft.Maui.IView)view).Semantics;
 			Assert.NotNull(semantics);
 			Assert.Equal("Double tap to activate", semantics.Hint);
 		}
@@ -29,11 +28,11 @@ namespace Comet.Tests
 		[Fact]
 		public void SemanticHeadingLevelSetsHeading()
 		{
-			var view = new Text("Title").SemanticHeadingLevel(SemanticHeadingLevel.Level1);
+			var view = new Text("Title").SemanticHeadingLevel(Microsoft.Maui.SemanticHeadingLevel.Level1);
 
-			var semantics = ((IView)view).Semantics;
+			var semantics = ((Microsoft.Maui.IView)view).Semantics;
 			Assert.NotNull(semantics);
-			Assert.Equal(SemanticHeadingLevel.Level1, semantics.HeadingLevel);
+			Assert.Equal(Microsoft.Maui.SemanticHeadingLevel.Level1, semantics.HeadingLevel);
 		}
 
 		[Fact]
@@ -42,13 +41,13 @@ namespace Comet.Tests
 			var view = new Text("Hello")
 				.SemanticDescription("Description")
 				.SemanticHint("Hint")
-				.SemanticHeadingLevel(SemanticHeadingLevel.Level2);
+				.SemanticHeadingLevel(Microsoft.Maui.SemanticHeadingLevel.Level2);
 
-			var semantics = ((IView)view).Semantics;
+			var semantics = ((Microsoft.Maui.IView)view).Semantics;
 			Assert.NotNull(semantics);
 			Assert.Equal("Description", semantics.Description);
 			Assert.Equal("Hint", semantics.Hint);
-			Assert.Equal(SemanticHeadingLevel.Level2, semantics.HeadingLevel);
+			Assert.Equal(Microsoft.Maui.SemanticHeadingLevel.Level2, semantics.HeadingLevel);
 		}
 
 		[Fact]
@@ -73,7 +72,7 @@ namespace Comet.Tests
 			var view = new Text("Hello");
 			view.SetAutomationId("testId");
 
-			IView iview = view;
+			Microsoft.Maui.IView iview = view;
 			Assert.Equal("testId", iview.AutomationId);
 		}
 
@@ -102,17 +101,17 @@ namespace Comet.Tests
 				.SemanticDescription("First")
 				.SemanticDescription("Second");
 
-			var semantics = ((IView)view).Semantics;
+			var semantics = ((Microsoft.Maui.IView)view).Semantics;
 			Assert.Equal("Second", semantics.Description);
 		}
 
 		[Fact]
 		public void DifferentHeadingLevels()
 		{
-			foreach (var level in new[] { SemanticHeadingLevel.None, SemanticHeadingLevel.Level1, SemanticHeadingLevel.Level2, SemanticHeadingLevel.Level3 })
+			foreach (var level in new[] { Microsoft.Maui.SemanticHeadingLevel.None, Microsoft.Maui.SemanticHeadingLevel.Level1, Microsoft.Maui.SemanticHeadingLevel.Level2, Microsoft.Maui.SemanticHeadingLevel.Level3 })
 			{
 				var view = new Text("Test").SemanticHeadingLevel(level);
-				var semantics = ((IView)view).Semantics;
+				var semantics = ((Microsoft.Maui.IView)view).Semantics;
 				Assert.Equal(level, semantics.HeadingLevel);
 			}
 		}

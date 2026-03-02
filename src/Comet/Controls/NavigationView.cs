@@ -17,6 +17,12 @@ namespace Comet
 		/// Default is "☰" (hamburger icon).
 		/// </summary>
 		public string LeadingBarIcon { get; set; } = "☰";
+
+		/// <summary>
+		/// Collection of toolbar items to display in the navigation bar.
+		/// </summary>
+		public List<ToolbarItem> ToolbarItems { get; } = new();
+
 		public void Navigate(View view)
 		{
 			view.Navigation = this;

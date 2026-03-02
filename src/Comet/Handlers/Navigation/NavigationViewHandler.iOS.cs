@@ -46,6 +46,25 @@ namespace Comet.Handlers
 					(s, e) => action());
 			}
 
+			// Add toolbar items as right bar button items
+			if (nav.ToolbarItems.Count > 0)
+			{
+				var rightItems = new List<UIBarButtonItem>();
+				foreach (var item in nav.ToolbarItems)
+				{
+					if (item.Order == ToolbarItemOrder.Secondary) continue;
+					var toolbarAction = item.OnClicked;
+					var barItem = new UIBarButtonItem(
+						item.IconGlyph ?? item.Text ?? "",
+						UIBarButtonItemStyle.Plain,
+						(s, e) => toolbarAction?.Invoke());
+					barItem.Enabled = item.IsEnabled;
+					rightItems.Add(barItem);
+				}
+				if (rightItems.Count > 0)
+					vc.NavigationItem.RightBarButtonItems = rightItems.ToArray();
+			}
+
 			return navigationController.View;
 		}
 
