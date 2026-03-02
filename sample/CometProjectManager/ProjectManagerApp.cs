@@ -1,146 +1,169 @@
 using CometProjectManager.Pages;
 using Syncfusion.Maui.Toolkit.Hosting;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Hosting;
+using MauiPage = Microsoft.Maui.Controls.ContentPage;
+using MauiShell = Microsoft.Maui.Controls.Shell;
 
 namespace CometProjectManager;
 
+/// <summary>
+/// CometApp used only for snapshot/force-page testing mode.
+/// Normal launch uses ShellMauiApp with real MAUI Shell navigation.
+/// </summary>
 public class ProjectManagerApp : CometApp
 {
-	// Support launch argument --page=X for screenshot testing
 	static string? _forcePage = null;
 	public static void SetForcePage(string page) => _forcePage = page;
-
-	readonly State<string> _currentPage = "Dashboard";
-
-	void ShowFlyoutMenu()
-	{
-		var menuView = new FlyoutMenuView(
-			_currentPage.Value,
-			(selected) =>
-			{
-				_currentPage.Value = selected;
-				ModalView.Dismiss();
-			});
-		ModalView.Present(menuView);
-	}
+	public static string? ForcePage => _forcePage;
 
 	[Body]
-	View body()
+	Comet.View body()
 	{
-		if (_forcePage != null)
+		var store = DataStore.Instance;
+		var firstProject = store.Projects.Value?.FirstOrDefault();
+		var firstTask = store.AllTasks.Value?.FirstOrDefault();
+		return (_forcePage ?? "dashboard") switch
 		{
-			var store = DataStore.Instance;
-			var firstProject = store.Projects.Value?.FirstOrDefault();
-			var firstTask = store.AllTasks.Value?.FirstOrDefault();
-			return _forcePage switch
-			{
-				"dashboard" => new DashboardPage(),
-				"projects" => new ProjectListPage(),
-				"manage" => new ManageMetaPage(),
-				"projectdetail" => new ProjectDetailPage(firstProject ?? new CometProjectManager.Models.Project()),
-				"taskdetail" => new TaskDetailPage(firstTask, firstTask?.ProjectID ?? 1),
-				_ => new DashboardPage(),
-			};
-		}
-
-		return _currentPage.Value switch
-		{
-			"Projects" => new ProjectListPage(ShowFlyoutMenu),
-			"Manage Meta" => new ManageMetaPage(ShowFlyoutMenu),
-			_ => new DashboardPage(ShowFlyoutMenu),
+			"dashboard" => new DashboardPage(),
+			"projects" => new ProjectListPage(),
+			"manage" => new ManageMetaPage(),
+			"projectdetail" => new ProjectDetailPage(firstProject ?? new CometProjectManager.Models.Project()),
+			"taskdetail" => new TaskDetailPage(firstTask, firstTask?.ProjectID ?? 1),
+			_ => new DashboardPage(),
 		};
 	}
 }
 
 /// <summary>
-/// Flyout menu view matching MAUI Shell flyout appearance
+/// MAUI Shell providing real flyout/hamburger navigation identical to the XAML reference app.
+/// Each page wraps Comet MVU views via MauiViewHost.
 /// </summary>
-public class FlyoutMenuView : View
+public class ProjectManagerShell : MauiShell
 {
-	readonly string _selectedPage;
-	readonly Action<string> _onSelect;
-
-	public FlyoutMenuView(string selectedPage, Action<string> onSelect)
+	public ProjectManagerShell()
 	{
-		_selectedPage = selectedPage;
-		_onSelect = onSelect;
-	}
+		FlyoutBehavior = FlyoutBehavior.Flyout;
 
-	static readonly (string Title, string Icon)[] MenuItems = new[]
-	{
-		("Dashboard", "\uf246"),
-		("Projects", "\uf4e4"),
-		("Manage Meta", "\uf6fa"),
-	};
-
-	[Body]
-	View body()
-	{
-		var stack = new Microsoft.Maui.Controls.VerticalStackLayout
+		Items.Add(new Microsoft.Maui.Controls.ShellContent
 		{
-			Spacing = 0,
-			BackgroundColor = Microsoft.Maui.Graphics.Colors.White,
-			WidthRequest = 300,
-			VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Fill,
-		};
-
-		var header = new Microsoft.Maui.Controls.Label
-		{
-			Text = "Project Manager",
-			FontSize = 20,
-			FontFamily = "SegoeSemibold",
-			Padding = new Microsoft.Maui.Thickness(20, 50, 20, 20),
-		};
-		stack.Add(header);
-
-		stack.Add(new Microsoft.Maui.Controls.BoxView
-		{
-			HeightRequest = 1,
-			Color = Microsoft.Maui.Graphics.Color.FromArgb("#E0E0E0"),
+			Title = "Dashboard",
+			Icon = MakeIcon(Fonts.FluentUI.diagram_24_regular),
+			ContentTemplate = new DataTemplate(() => MakeCometPage(new DashboardPage(wrapInNav: false), "Dashboard")),
+			Route = "dashboard"
 		});
 
-		foreach (var (title, icon) in MenuItems)
+		Items.Add(new Microsoft.Maui.Controls.ShellContent
 		{
-			var isSelected = title == _selectedPage;
-			var row = new Microsoft.Maui.Controls.Grid
-			{
-				Padding = new Microsoft.Maui.Thickness(20, 14),
-				ColumnDefinitions = new Microsoft.Maui.Controls.ColumnDefinitionCollection
-				{
-					new Microsoft.Maui.Controls.ColumnDefinition(new Microsoft.Maui.GridLength(36)),
-					new Microsoft.Maui.Controls.ColumnDefinition(Microsoft.Maui.GridLength.Star),
-				},
-				BackgroundColor = isSelected
-					? Microsoft.Maui.Graphics.Color.FromArgb("#E8E8E8")
-					: Microsoft.Maui.Graphics.Colors.Transparent,
-			};
+			Title = "Projects",
+			Icon = MakeIcon(Fonts.FluentUI.list_24_regular),
+			ContentTemplate = new DataTemplate(() => MakeCometPage(new ProjectListPage(wrapInNav: false), "Projects")),
+			Route = "projects"
+		});
 
-			var iconLabel = new Microsoft.Maui.Controls.Label
-			{
-				Text = icon,
-				FontFamily = Fonts.FluentUI.FontFamily,
-				FontSize = 22,
-				VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
-			};
-			row.Add(iconLabel);
+		Items.Add(new Microsoft.Maui.Controls.ShellContent
+		{
+			Title = "Manage Meta",
+			Icon = MakeIcon(Fonts.FluentUI.info_24_regular),
+			ContentTemplate = new DataTemplate(() => MakeCometPage(new ManageMetaPage(wrapInNav: false), "Manage Meta")),
+			Route = "manage"
+		});
 
-			var titleLabel = new Microsoft.Maui.Controls.Label
-			{
-				Text = title,
-				FontSize = 16,
-				VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
-				FontAttributes = isSelected ? Microsoft.Maui.Controls.FontAttributes.Bold : Microsoft.Maui.Controls.FontAttributes.None,
-			};
-			Microsoft.Maui.Controls.Grid.SetColumn(titleLabel, 1);
-			row.Add(titleLabel);
+		// Register detail routes
+		Routing.RegisterRoute("project", typeof(ProjectDetailShellPage));
+		Routing.RegisterRoute("task", typeof(TaskDetailShellPage));
+	}
 
-			var t = title;
-			var tap = new Microsoft.Maui.Controls.TapGestureRecognizer();
-			tap.Tapped += (s, e) => _onSelect(t);
-			row.GestureRecognizers.Add(tap);
-			stack.Add(row);
+	static Microsoft.Maui.Controls.FontImageSource MakeIcon(string glyph) => new Microsoft.Maui.Controls.FontImageSource
+	{
+		Glyph = glyph,
+		FontFamily = Fonts.FluentUI.FontFamily,
+		Color = Color.FromArgb("#0D0D0D"),
+		Size = 24
+	};
+
+	/// <summary>
+	/// Wraps a Comet View in a MAUI ContentPage for Shell hosting.
+	/// </summary>
+	static MauiPage MakeCometPage(Comet.View cometView, string title)
+	{
+		var page = new MauiPage
+		{
+			Title = title,
+			Content = new CometHost(cometView),
+			BackgroundColor = Color.FromArgb("#F2F2F2"),
+		};
+		MauiShell.SetNavBarIsVisible(page, true);
+		return page;
+	}
+}
+
+/// <summary>
+/// Project detail page for Shell navigation
+/// </summary>
+[QueryProperty(nameof(ProjectId), "id")]
+public class ProjectDetailShellPage : MauiPage
+{
+	string _projectId;
+	public string ProjectId
+	{
+		get => _projectId;
+		set
+		{
+			_projectId = value;
+			LoadProject();
 		}
+	}
 
-		return new MauiViewHost(stack);
+	void LoadProject()
+	{
+		if (int.TryParse(_projectId, out var id))
+		{
+			var project = DataStore.Instance.Projects.Value?.FirstOrDefault(p => p.ID == id)
+				?? new CometProjectManager.Models.Project();
+			Title = "Project";
+			Content = new CometHost(new ProjectDetailPage(project, wrapInNav: false));
+		}
+	}
+}
+
+/// <summary>
+/// Task detail page for Shell navigation
+/// </summary>
+[QueryProperty(nameof(TaskId), "id")]
+public class TaskDetailShellPage : MauiPage
+{
+	string _taskId;
+	public string TaskId
+	{
+		get => _taskId;
+		set
+		{
+			_taskId = value;
+			LoadTask();
+		}
+	}
+
+	void LoadTask()
+	{
+		if (int.TryParse(_taskId, out var id))
+		{
+			var task = DataStore.Instance.AllTasks.Value?.FirstOrDefault(t => t.ID == id);
+			var projectId = task?.ProjectID ?? 1;
+			Title = "Task";
+			Content = new CometHost(new TaskDetailPage(task, projectId, wrapInNav: false));
+		}
+	}
+}
+
+/// <summary>
+/// Standard MAUI Application with Shell for proper flyout navigation.
+/// </summary>
+public class ShellMauiApp : Application
+{
+	protected override Window CreateWindow(IActivationState? activationState)
+	{
+		return new Window(new ProjectManagerShell());
 	}
 }
 
@@ -158,8 +181,20 @@ public static class MauiProgram
 		}
 
 		var builder = MauiApp.CreateBuilder();
-		builder.UseCometApp<ProjectManagerApp>()
-			.ConfigureSyncfusionToolkit()
+
+		if (ProjectManagerApp.ForcePage != null)
+		{
+			// Snapshot testing mode: use CometApp
+			builder.UseCometApp<ProjectManagerApp>();
+		}
+		else
+		{
+			// Normal mode: use real MAUI Shell
+			builder.UseMauiApp<ShellMauiApp>();
+		}
+
+		builder.ConfigureSyncfusionToolkit()
+			.UseCometHandlers()
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -167,6 +202,7 @@ public static class MauiProgram
 				fonts.AddFont("SegoeUI-Semibold.ttf", "SegoeSemibold");
 				fonts.AddFont("FluentSystemIcons-Regular.ttf", Fonts.FluentUI.FontFamily);
 			});
+
 		return builder.Build();
 	}
 }

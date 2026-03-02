@@ -22,8 +22,9 @@ public class ManageMetaPage : View
 {
 [State] readonly DataStore _store = DataStore.Instance;
 readonly Action? _onMenuTap;
+readonly bool _wrapInNav;
 
-public ManageMetaPage(Action? onMenuTap = null) { _onMenuTap = onMenuTap; }
+public ManageMetaPage(Action? onMenuTap = null, bool wrapInNav = true) { _onMenuTap = onMenuTap; _wrapInNav = wrapInNav; }
 
 static readonly Color Primary = Color.FromArgb("#512BD4");
 static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
@@ -298,6 +299,8 @@ MauiGrid.SetColumn(addTagBtn, 1);
 tagButtonGrid.Add(addTagBtn);
 
 contentStack.Add(tagButtonGrid);
+
+if (!_wrapInNav) return new MauiViewHost(new MauiScrollView { Content = contentStack, BackgroundColor = LightBg });
 
 var nav = new NavigationView
 {

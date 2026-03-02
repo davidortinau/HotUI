@@ -54,6 +54,7 @@ namespace Comet
 				{ typeof(ActivityIndicator), typeof(ActivityIndicatorHandler) },
 				{ typeof(Border), typeof(ContentViewHandler) },
 			{ typeof(MauiViewHost), typeof(Handlers.MauiViewHostHandler) },
+			{ typeof(CometHost), typeof(Handlers.CometHostHandler) },
 				{ typeof(Button), typeof(ButtonHandler) },
 				{ typeof(CheckBox), typeof(CheckBoxHandler) },
 				{ typeof(CometWindow), typeof(WindowHandler) },

@@ -24,6 +24,7 @@ public class ProjectDetailPage : View
 {
 	[State] readonly DataStore _store = DataStore.Instance;
 	readonly Project _project;
+	readonly bool _wrapInNav;
 
 	static readonly Color Primary = Color.FromArgb("#512BD4");
 	static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
@@ -36,9 +37,10 @@ public class ProjectDetailPage : View
 	int _selectedIconIndex;
 	int _selectedCategoryIndex;
 
-	public ProjectDetailPage(Project project)
+	public ProjectDetailPage(Project project, bool wrapInNav = true)
 	{
 		_project = project;
+		_wrapInNav = wrapInNav;
 		var categories = DataStore.Instance.Categories.Value ?? new List<Category>();
 		_selectedCategoryIndex = Math.Max(0, categories.FindIndex(c => c.ID == project.CategoryID));
 		_selectedIconIndex = Math.Max(0, Array.IndexOf(Icons, project.Icon));
@@ -265,7 +267,7 @@ public class ProjectDetailPage : View
 				task.Title,
 				task.IsCompleted,
 				isChecked => _store.ToggleTaskComplete(task.ID),
-				() => Navigation?.Navigate(new TaskDetailPage(task, _project.ID))
+				() => AppNavigation.NavigateToTask(task, _project.ID, Navigation)
 			));
 		}
 		contentStack.Add(taskRowsStack);
@@ -275,8 +277,10 @@ public class ProjectDetailPage : View
 		rootGrid.Add(new MauiScrollView { Content = contentStack });
 		rootGrid.Add(new AddButtonControl(() =>
 		{
-			Navigation?.Navigate(new TaskDetailPage(null, _project.ID));
+			AppNavigation.NavigateToTask(null, _project.ID, Navigation);
 		}));
+
+		if (!_wrapInNav) return new MauiViewHost(rootGrid);
 
 		return new NavigationView
 		{

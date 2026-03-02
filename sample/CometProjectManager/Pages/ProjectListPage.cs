@@ -17,8 +17,9 @@ public class ProjectListPage : View
 {
 [State] readonly DataStore _store = DataStore.Instance;
 readonly Action? _onMenuTap;
+readonly bool _wrapInNav;
 
-public ProjectListPage(Action? onMenuTap = null) { _onMenuTap = onMenuTap; }
+public ProjectListPage(Action? onMenuTap = null, bool wrapInNav = true) { _onMenuTap = onMenuTap; _wrapInNav = wrapInNav; }
 
 static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
 static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
@@ -66,7 +67,7 @@ Content = cardContent,
 
 var tap = new Microsoft.Maui.Controls.TapGestureRecognizer();
 var p = project;
-tap.Tapped += (s, e) => Navigation?.Navigate(new ProjectDetailPage(p));
+tap.Tapped += (s, e) => AppNavigation.NavigateToProject(p, Navigation);
 card.GestureRecognizers.Add(tap);
 
 stack.Add(card);
@@ -85,9 +86,11 @@ Icon = "\uea28",
 CategoryID = 1,
 };
 _store.AddProject(newProject);
-Navigation?.Navigate(new ProjectDetailPage(newProject));
+AppNavigation.NavigateToProject(newProject, Navigation);
 });
 rootGrid.Add(fab);
+
+if (!_wrapInNav) return new MauiViewHost(rootGrid);
 
 var nav = new NavigationView
 {

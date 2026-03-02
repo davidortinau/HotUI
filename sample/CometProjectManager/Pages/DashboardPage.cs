@@ -16,8 +16,9 @@ public class DashboardPage : View
 {
 [State] readonly DataStore _store = DataStore.Instance;
 readonly Action? _onMenuTap;
+readonly bool _wrapInNav;
 
-public DashboardPage(Action? onMenuTap = null) { _onMenuTap = onMenuTap; }
+public DashboardPage(Action? onMenuTap = null, bool wrapInNav = true) { _onMenuTap = onMenuTap; _wrapInNav = wrapInNav; }
 
 static readonly Color Primary = Color.FromArgb("#512BD4");
 static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
@@ -99,7 +100,7 @@ Content = stack,
 };
 
 var tap = new Microsoft.Maui.Controls.TapGestureRecognizer();
-tap.Tapped += (s, e) => Navigation?.Navigate(new ProjectDetailPage(p));
+tap.Tapped += (s, e) => AppNavigation.NavigateToProject(p, Navigation);
 card.GestureRecognizers.Add(tap);
 
 return card;
@@ -111,7 +112,7 @@ return new TaskViewControl(
 task.Title,
 task.IsCompleted,
 _ => _store.ToggleTaskComplete(task.ID),
-() => Navigation?.Navigate(new TaskDetailPage(task, task.ProjectID))
+() => AppNavigation.NavigateToTask(task, task.ProjectID, Navigation)
 );
 }
 
@@ -215,9 +216,11 @@ rootGrid.Add(new MauiScrollView { Content = contentStack });
 
 var fab = new AddButtonControl(() =>
 {
-Navigation?.Navigate(new ProjectDetailPage(new Project()));
+AppNavigation.NavigateToProject(new Project(), Navigation);
 });
 rootGrid.Add(fab);
+
+if (!_wrapInNav) return new MauiViewHost(rootGrid);
 
 var nav = new NavigationView
 {

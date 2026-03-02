@@ -399,5 +399,31 @@ namespace Comet.Tests
 			nav.ToolbarItems.Add(new ToolbarItem("Delete", () => { }) { Order = ToolbarItemOrder.Secondary });
 			Assert.Equal(2, nav.ToolbarItems.Count);
 		}
+
+		// --- CometHost Tests ---
+
+		[Fact]
+		public void CometHost_SetsBindableProperty()
+		{
+			var inner = new Text("Hello");
+			var host = new CometHost(inner);
+			Assert.Same(inner, host.CometView);
+		}
+
+		[Fact]
+		public void CometHost_DefaultConstructor()
+		{
+			var host = new CometHost();
+			Assert.Null(host.CometView);
+		}
+
+		[Fact]
+		public void CometHost_UpdatesCometView()
+		{
+			var host = new CometHost(new Text("A"));
+			var viewB = new Text("B");
+			host.CometView = viewB;
+			Assert.Same(viewB, host.CometView);
+		}
 	}
 }

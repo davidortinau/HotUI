@@ -18,14 +18,16 @@ public class TaskDetailPage : View
 	[State] readonly DataStore _store = DataStore.Instance;
 	readonly ProjectTask? _existingTask;
 	readonly int _defaultProjectId;
+	readonly bool _wrapInNav;
 
 	static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
 	static readonly Color LightBg = Color.FromArgb("#F2F2F2");
 
-	public TaskDetailPage(ProjectTask? task, int defaultProjectId)
+	public TaskDetailPage(ProjectTask? task, int defaultProjectId, bool wrapInNav = true)
 	{
 		_existingTask = task;
 		_defaultProjectId = defaultProjectId;
+		_wrapInNav = wrapInNav;
 	}
 
 	[Body]
@@ -122,6 +124,8 @@ public class TaskDetailPage : View
 		// Root
 		var rootGrid = new MauiGrid { BackgroundColor = LightBg };
 		rootGrid.Add(new MauiScrollView { Content = contentStack });
+
+		if (!_wrapInNav) return new MauiViewHost(rootGrid);
 
 		return new NavigationView
 		{
