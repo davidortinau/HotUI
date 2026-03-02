@@ -26,7 +26,11 @@ UpdateHostedView();
 protected override void DisconnectHandler(MauiViewHostContainerView platformView)
 {
 if (VirtualView?.HostedView?.Handler is IElementHandler hostedHandler)
+{
 hostedHandler.DisconnectHandler();
+if (hostedHandler is IDisposable disposableHandler)
+disposableHandler.Dispose();
+}
 platformView.ClearHostedView();
 base.DisconnectHandler(platformView);
 }
@@ -39,7 +43,7 @@ return;
 try
 {
 var hostedPlatformView = VirtualView.HostedView.ToPlatform(MauiContext);
-PlatformView.SetHostedView(hostedPlatformView);
+PlatformView.SetHostedView(hostedPlatformView, VirtualView.HostedView);
 }
 catch (Exception ex)
 {
@@ -49,40 +53,52 @@ System.Diagnostics.Debug.WriteLine($"[MauiViewHostHandler] ToPlatform failed: {e
 
 public class MauiViewHostContainerView : UIView
 {
-UIView _hostedView;
+UIView _hostedPlatformView;
+IView _hostedVirtualView;
 
-public void SetHostedView(UIView view)
+public void SetHostedView(UIView platformView, IView virtualView)
 {
-_hostedView?.RemoveFromSuperview();
-_hostedView = view;
-if (_hostedView != null)
+_hostedPlatformView?.RemoveFromSuperview();
+_hostedPlatformView = platformView;
+_hostedVirtualView = virtualView;
+if (_hostedPlatformView != null)
 {
-AddSubview(_hostedView);
+AddSubview(_hostedPlatformView);
 SetNeedsLayout();
 }
 }
 
 public void ClearHostedView()
 {
-_hostedView?.RemoveFromSuperview();
-_hostedView = null;
+_hostedPlatformView?.RemoveFromSuperview();
+_hostedPlatformView = null;
+_hostedVirtualView = null;
 }
 
 public override void LayoutSubviews()
 {
 base.LayoutSubviews();
-if (_hostedView != null && Bounds.Width > 0 && Bounds.Height > 0)
-{
-_hostedView.Frame = Bounds;
-_hostedView.SetNeedsLayout();
-_hostedView.LayoutIfNeeded();
-}
+if (_hostedPlatformView == null || Bounds.Width <= 0 || Bounds.Height <= 0)
+return;
+
+// Use MAUI's cross-platform layout to arrange children
+var bounds = new Microsoft.Maui.Graphics.Rect(0, 0, Bounds.Width, Bounds.Height);
+_hostedVirtualView?.Measure(Bounds.Width, Bounds.Height);
+_hostedVirtualView?.Arrange(bounds);
+
+// Also set the platform frame directly as a fallback
+_hostedPlatformView.Frame = Bounds;
 }
 
 public override CGSize SizeThatFits(CGSize size)
 {
-if (_hostedView != null)
-return _hostedView.SizeThatFits(size);
+if (_hostedVirtualView != null)
+{
+var measured = _hostedVirtualView.Measure(size.Width, size.Height);
+return new CGSize(measured.Width, measured.Height);
+}
+if (_hostedPlatformView != null)
+return _hostedPlatformView.SizeThatFits(size);
 return base.SizeThatFits(size);
 }
 
@@ -90,8 +106,8 @@ public override CGSize IntrinsicContentSize
 {
 get
 {
-if (_hostedView != null)
-return _hostedView.IntrinsicContentSize;
+if (_hostedPlatformView != null)
+return _hostedPlatformView.IntrinsicContentSize;
 return base.IntrinsicContentSize;
 }
 }

@@ -39,8 +39,9 @@ namespace Comet
 					{
 						if (_hostedView == null && _factory != null)
 						{
-							_hostedView = _factory();
-							_factory = null;
+							var factory = _factory;
+							_factory = null; // Clear first to prevent retry on exception
+							_hostedView = factory();
 						}
 					}
 				}
@@ -56,12 +57,10 @@ namespace Comet
 			if (frameConstraints?.Height > 0 && frameConstraints?.Width > 0)
 				return new Size(frameConstraints.Width.Value, frameConstraints.Height.Value);
 
+			// Measure the hosted view directly — do NOT call ViewHandler.GetDesiredSize()
+			// which would re-enter View.Measure → GetDesiredSize causing infinite recursion.
 			Size ms;
-			if (ViewHandler is IViewHandler vh)
-			{
-				ms = vh.GetDesiredSize(availableSize.Width, availableSize.Height);
-			}
-			else if (HostedView != null)
+			if (HostedView != null)
 			{
 				ms = HostedView.Measure(availableSize.Width, availableSize.Height);
 			}

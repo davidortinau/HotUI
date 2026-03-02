@@ -284,12 +284,12 @@ namespace Comet.Tests
 			var obj = new TestBindingObject();
 			var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
 
-			// Create multiple views monitoring the same object
-			var views = new List<CounterView>();
+			// Create views that actually bind to the object via body evaluation
+			var views = new List<BoundView>();
 			for (int i = 0; i < 5; i++)
 			{
-				var view = new CounterView();
-				view.SetEnvironment("testObj", obj, false);
+				var view = new BoundView(obj);
+				view.GetView(); // Force body evaluation to create StateManager subscriptions
 				views.Add(view);
 			}
 
