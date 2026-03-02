@@ -148,7 +148,15 @@ public class ProjectManagerShell : MauiShell
 [QueryProperty(nameof(ProjectId), "id")]
 public class ProjectDetailShellPage : MauiPage
 {
-	string _projectId;
+	string _projectId = "";
+	Microsoft.Maui.Controls.ContentView _container = new();
+	Comet.View? _cometView;
+
+	public ProjectDetailShellPage()
+	{
+		Content = _container;
+	}
+
 	public string ProjectId
 	{
 		get => _projectId;
@@ -161,20 +169,20 @@ public class ProjectDetailShellPage : MauiPage
 
 	void LoadProject()
 	{
-		if (int.TryParse(_projectId, out var id))
-		{
-			var project = DataStore.Instance.Projects.Value?.FirstOrDefault(p => p.ID == id)
-				?? new CometProjectManager.Models.Project();
-			Title = "Project";
-			var cometView = new ProjectDetailPage(project, wrapInNav: false);
-			var container = new Microsoft.Maui.Controls.ContentView();
-			Content = container;
-			Loaded += (s, e) =>
-			{
-				if (Handler?.MauiContext == null) return;
-				ProjectManagerShell.EmbedCometView(container, cometView, Handler.MauiContext);
-			};
-		}
+		if (!int.TryParse(_projectId, out var id)) return;
+		var project = DataStore.Instance.Projects.Value?.FirstOrDefault(p => p.ID == id)
+			?? new CometProjectManager.Models.Project();
+		Title = "Project";
+		_cometView = new ProjectDetailPage(project, wrapInNav: false);
+		if (Handler?.MauiContext != null)
+			ProjectManagerShell.EmbedCometView(_container, _cometView, Handler.MauiContext);
+	}
+
+	protected override void OnHandlerChanged()
+	{
+		base.OnHandlerChanged();
+		if (Handler?.MauiContext != null && _cometView != null)
+			ProjectManagerShell.EmbedCometView(_container, _cometView, Handler.MauiContext);
 	}
 }
 
@@ -184,7 +192,15 @@ public class ProjectDetailShellPage : MauiPage
 [QueryProperty(nameof(TaskId), "id")]
 public class TaskDetailShellPage : MauiPage
 {
-	string _taskId;
+	string _taskId = "";
+	Microsoft.Maui.Controls.ContentView _container = new();
+	Comet.View? _cometView;
+
+	public TaskDetailShellPage()
+	{
+		Content = _container;
+	}
+
 	public string TaskId
 	{
 		get => _taskId;
@@ -197,20 +213,20 @@ public class TaskDetailShellPage : MauiPage
 
 	void LoadTask()
 	{
-		if (int.TryParse(_taskId, out var id))
-		{
-			var task = DataStore.Instance.AllTasks.Value?.FirstOrDefault(t => t.ID == id);
-			var projectId = task?.ProjectID ?? 1;
-			Title = "Task";
-			var cometView = new TaskDetailPage(task, projectId, wrapInNav: false);
-			var container = new Microsoft.Maui.Controls.ContentView();
-			Content = container;
-			Loaded += (s, e) =>
-			{
-				if (Handler?.MauiContext == null) return;
-				ProjectManagerShell.EmbedCometView(container, cometView, Handler.MauiContext);
-			};
-		}
+		if (!int.TryParse(_taskId, out var id)) return;
+		var task = DataStore.Instance.AllTasks.Value?.FirstOrDefault(t => t.ID == id);
+		var projectId = task?.ProjectID ?? 1;
+		Title = "Task";
+		_cometView = new TaskDetailPage(task, projectId, wrapInNav: false);
+		if (Handler?.MauiContext != null)
+			ProjectManagerShell.EmbedCometView(_container, _cometView, Handler.MauiContext);
+	}
+
+	protected override void OnHandlerChanged()
+	{
+		base.OnHandlerChanged();
+		if (Handler?.MauiContext != null && _cometView != null)
+			ProjectManagerShell.EmbedCometView(_container, _cometView, Handler.MauiContext);
 	}
 }
 

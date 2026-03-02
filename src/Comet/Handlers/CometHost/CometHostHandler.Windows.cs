@@ -53,7 +53,7 @@ public partial class CometHostHandler : ViewHandler<CometHost, CometHostHandler.
 			
 			var platformView = viewToRender.ToPlatform(MauiContext);
 			if (platformView is FrameworkElement fe)
-				PlatformView.SetContent(fe);
+				PlatformView.SetContent(fe, viewToRender);
 		}
 		catch (Exception ex)
 		{
@@ -64,12 +64,14 @@ public partial class CometHostHandler : ViewHandler<CometHost, CometHostHandler.
 	public class CometHostContainerPanel : Canvas
 	{
 		FrameworkElement _contentElement;
+		IView _virtualView;
 
-		public void SetContent(FrameworkElement element)
+		public void SetContent(FrameworkElement element, IView virtualView)
 		{
 			if (_contentElement != null)
 				Children.Remove(_contentElement);
 			_contentElement = element;
+			_virtualView = virtualView;
 			if (_contentElement != null)
 				Children.Add(_contentElement);
 		}
@@ -79,19 +81,26 @@ public partial class CometHostHandler : ViewHandler<CometHost, CometHostHandler.
 			if (_contentElement != null)
 				Children.Remove(_contentElement);
 			_contentElement = null;
+			_virtualView = null;
 		}
 
 		protected override Windows.Foundation.Size ArrangeOverride(Windows.Foundation.Size finalSize)
 		{
 			if (_contentElement != null)
+			{
+				_virtualView?.Arrange(new Microsoft.Maui.Graphics.Rect(0, 0, finalSize.Width, finalSize.Height));
 				_contentElement.Arrange(new Windows.Foundation.Rect(0, 0, finalSize.Width, finalSize.Height));
+			}
 			return base.ArrangeOverride(finalSize);
 		}
 
 		protected override Windows.Foundation.Size MeasureOverride(Windows.Foundation.Size availableSize)
 		{
 			if (_contentElement != null)
+			{
+				_virtualView?.Measure(availableSize.Width, availableSize.Height);
 				_contentElement.Measure(availableSize);
+			}
 			return base.MeasureOverride(availableSize);
 		}
 	}

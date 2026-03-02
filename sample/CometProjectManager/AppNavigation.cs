@@ -16,7 +16,7 @@ public static class AppNavigation
 	{
 		if (IsShellMode && MauiShell.Current != null)
 		{
-			MauiShell.Current.GoToAsync($"project?id={project.ID}");
+			_ = MauiShell.Current.GoToAsync($"project?id={project.ID}");
 		}
 		else
 		{
@@ -28,10 +28,8 @@ public static class AppNavigation
 	{
 		if (IsShellMode && MauiShell.Current != null)
 		{
-			if (task != null)
-				MauiShell.Current.GoToAsync($"task?id={task.ID}");
-			else
-				MauiShell.Current.GoToAsync($"task?id=0");
+			var taskId = task?.ID ?? 0;
+			_ = MauiShell.Current.GoToAsync($"task?id={taskId}");
 		}
 		else
 		{
