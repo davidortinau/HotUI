@@ -30,10 +30,16 @@ namespace Comet.Handlers
 		protected override void DisconnectHandler(WGrid platformView)
 		{
 			if (VirtualView?.HostedView?.Handler is IElementHandler hostedHandler)
+			{
 				hostedHandler.DisconnectHandler();
+				if (hostedHandler is IDisposable disposableHandler)
+					disposableHandler.Dispose();
+			}
 			if (_hostedPlatformView != null)
 			{
 				platformView.Children.Remove(_hostedPlatformView);
+				if (_hostedPlatformView is IDisposable disposable)
+					disposable.Dispose();
 				_hostedPlatformView = null;
 			}
 			base.DisconnectHandler(platformView);
