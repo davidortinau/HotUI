@@ -161,6 +161,101 @@ namespace Comet.Tests
 			wv.Html = "<h1>Hello</h1>";
 			Assert.Equal("<h1>Hello</h1>", wv.Html?.CurrentValue);
 		}
+
+		[Fact]
+		public void MauiViewHost_WrapsIView()
+		{
+			var mockView = new TestIViewImpl();
+			var host = new MauiViewHost(mockView);
+
+			Assert.Same(mockView, host.HostedView);
+			Assert.Same(mockView, ((IReplaceableView)host).ReplacedView);
+		}
+
+		[Fact]
+		public void MauiViewHost_LazyFactory()
+		{
+			var created = false;
+			var host = new MauiViewHost(() =>
+			{
+				created = true;
+				return new TestIViewImpl();
+			});
+
+			Assert.False(created);
+			var view = host.HostedView;
+			Assert.True(created);
+			Assert.NotNull(view);
+			Assert.Same(view, host.HostedView);
+		}
+
+		[Fact]
+		public void MauiViewHost_MeasureDelegatesToHostedView()
+		{
+			var mockView = new TestIViewImpl { DesiredSizeValue = new Size(100, 50) };
+			var host = new MauiViewHost(mockView);
+			var measured = host.GetDesiredSize(new Size(200, 200));
+			Assert.Equal(100, measured.Width);
+			Assert.Equal(50, measured.Height);
+		}
+
+		[Fact]
+		public void ContainerView_AcceptsIViewDirectly()
+		{
+			var container = new VStack();
+			var mauiView = new TestIViewImpl();
+			((ContainerView)container).Add((IView)mauiView);
+
+			Assert.Equal(1, container.Count);
+			var child = container[0];
+			Assert.IsAssignableFrom<IReplaceableView>(child);
+		}
+
+		private class TestIViewImpl : IView
+		{
+			public Size DesiredSizeValue { get; set; } = new Size(50, 50);
+			public string AutomationId => "";
+			public FlowDirection FlowDirection => FlowDirection.LeftToRight;
+			Microsoft.Maui.Primitives.LayoutAlignment IView.HorizontalLayoutAlignment => Microsoft.Maui.Primitives.LayoutAlignment.Fill;
+			Microsoft.Maui.Primitives.LayoutAlignment IView.VerticalLayoutAlignment => Microsoft.Maui.Primitives.LayoutAlignment.Fill;
+			public Semantics Semantics => null;
+			public IShape Clip => null;
+			public IShadow Shadow => null;
+			public bool IsEnabled => true;
+			public bool IsFocused { get; set; }
+			public Visibility Visibility => Visibility.Visible;
+			public double Opacity => 1;
+			public Paint Background => null;
+			public Rect Frame { get; set; }
+			public double Width => -1;
+			public double MinimumWidth => -1;
+			public double MaximumWidth => -1;
+			public double Height => -1;
+			public double MinimumHeight => -1;
+			public double MaximumHeight => -1;
+			public Thickness Margin => Thickness.Zero;
+			public Size DesiredSize => DesiredSizeValue;
+			public int ZIndex => 0;
+			public bool InputTransparent => false;
+			public double TranslationX => 0;
+			public double TranslationY => 0;
+			public double Scale => 1;
+			public double ScaleX => 1;
+			public double ScaleY => 1;
+			public double Rotation => 0;
+			public double RotationX => 0;
+			public double RotationY => 0;
+			public double AnchorX => 0.5;
+			public double AnchorY => 0.5;
+			public IViewHandler Handler { get; set; }
+			IElementHandler IElement.Handler { get; set; }
+			public IElement Parent => null;
+			public Size Arrange(Rect bounds) { Frame = bounds; return DesiredSizeValue; }
+			public bool Focus() => false;
+			public void Unfocus() { }
+			public void InvalidateArrange() { }
+			public void InvalidateMeasure() { }
+			public Size Measure(double widthConstraint, double heightConstraint) => DesiredSizeValue;
+		}
 	}
 }
-
