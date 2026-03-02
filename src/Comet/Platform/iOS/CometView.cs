@@ -66,7 +66,7 @@ namespace Comet.iOS
 			base.LayoutSubviews();
 			if (currentPlatformView == null)
 				return;
-			_view?.Measure(Bounds.Width, Bounds.Height);// .LayoutSubviews(this.Bounds.ToRectangle());
+			_view?.Measure(Bounds.Width, Bounds.Height);
 			currentPlatformView.Frame = Bounds;
 		}
 

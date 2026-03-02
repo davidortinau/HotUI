@@ -53,7 +53,7 @@ namespace Comet
 				{ typeof(FlexLayout), typeof(LayoutHandler) },
 				{ typeof(ActivityIndicator), typeof(ActivityIndicatorHandler) },
 				{ typeof(Border), typeof(ContentViewHandler) },
-			{ typeof(MauiViewHost), typeof(ContentViewHandler) },
+			{ typeof(MauiViewHost), typeof(Handlers.MauiViewHostHandler) },
 				{ typeof(Button), typeof(ButtonHandler) },
 				{ typeof(CheckBox), typeof(CheckBoxHandler) },
 				{ typeof(CometWindow), typeof(WindowHandler) },
