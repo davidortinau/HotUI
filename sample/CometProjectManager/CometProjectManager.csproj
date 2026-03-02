@@ -20,7 +20,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<MauiFont Include="Resources\Fonts\*" />
+		<MauiFont Include="Resources\Fonts\*.ttf" />
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#F2F2F2" BaseSize="128,128" />
 	</ItemGroup>
 
 	<ItemGroup>

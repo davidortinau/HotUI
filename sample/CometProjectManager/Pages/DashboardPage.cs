@@ -1,6 +1,15 @@
 using CometProjectManager.Controls;
 using CometProjectManager.Models;
 
+using MauiGrid = Microsoft.Maui.Controls.Grid;
+using MauiLabel = Microsoft.Maui.Controls.Label;
+using MauiImage = Microsoft.Maui.Controls.Image;
+using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
+using MauiBorder = Microsoft.Maui.Controls.Border;
+using MauiImageButton = Microsoft.Maui.Controls.ImageButton;
+using FontImageSource = Microsoft.Maui.Controls.FontImageSource;
+using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
+
 namespace CometProjectManager.Pages;
 
 public class DashboardPage : View
@@ -13,79 +22,95 @@ static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
 static readonly Color Gray400 = Color.FromArgb("#919191");
 static readonly Color LightBg = Color.FromArgb("#F2F2F2");
 
-View TagPill(Tag tag)
+MauiBorder BuildProjectCard(Project p)
 {
-return new Border
-{
-Content = new Text(tag.Title)
-.FontSize(14)
-.Color(LightBg),
-}
-.Frame(height: 32)
-.Background(new SolidPaint(tag.DisplayColor))
-.ClipShape(new RoundedRectangle(16))
-.Padding(new Thickness(12, 0))
-.Margin(new Thickness(0, 0, 8, 4));
-}
+var stack = new Microsoft.Maui.Controls.VerticalStackLayout { Spacing = 15 };
 
-View ProjectCard(Project p)
+// Icon (FontImageSource)
+stack.Add(new MauiImage
 {
-var cardContent = new VStack(spacing: 15)
-{
-new MauiViewHost(new Microsoft.Maui.Controls.Image
-{
-Source = new Microsoft.Maui.Controls.FontImageSource
+Source = new FontImageSource
 {
 Glyph = p.Icon,
 FontFamily = Fonts.FluentUI.FontFamily,
 Color = DarkOnLightBg,
 Size = 20,
 },
-HeightRequest = 20,
-WidthRequest = 20,
 HorizontalOptions = Microsoft.Maui.Controls.LayoutOptions.Start,
-}).Frame(width: 20, height: 20),
+Aspect = Aspect.Center,
+});
 
-new Text(p.Name.ToUpperInvariant())
-.FontSize(14)
-.Color(Gray400),
-
-new Text(p.Description)
-.FontSize(16)
-.Color(DarkOnLightBg),
-
-new HStack(spacing: 0)
+// Name (uppercase, gray, 14px)
+stack.Add(new MauiLabel
 {
-p.Tags.Select(t => TagPill(t) as View).ToArray()
-},
-}
-.Padding(new Thickness(15));
+Text = p.Name.ToUpperInvariant(),
+TextColor = Gray400,
+FontSize = 14,
+});
 
-return new Border
+// Description (WordWrap, default body size 17px)
+stack.Add(new MauiLabel
 {
-Content = cardContent,
+Text = p.Description,
+TextColor = DarkOnLightBg,
+LineBreakMode = LineBreakMode.WordWrap,
+});
+
+// Tags (HorizontalStackLayout with colored pills)
+var tagLayout = new Microsoft.Maui.Controls.HorizontalStackLayout { Spacing = 15 };
+foreach (var tag in p.Tags)
+{
+tagLayout.Add(new MauiBorder
+{
+StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(16) },
+HeightRequest = 32,
+StrokeThickness = 0,
+Background = new SolidColorBrush(tag.DisplayColor),
+Padding = new Thickness(12, 0),
+Content = new MauiLabel
+{
+Text = tag.Title,
+TextColor = Colors.White,
+FontSize = 14,
+VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
+VerticalTextAlignment = Microsoft.Maui.TextAlignment.Center,
 }
-.Frame(width: 200)
-.Background(new SolidPaint(LightSecondaryBg))
-.ClipShape(new RoundedRectangle(20))
-.OnTap(_ => Navigation?.Navigate(new ProjectDetailPage(p)));
+});
+}
+stack.Add(tagLayout);
+
+var card = new MauiBorder
+{
+StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(20) },
+Background = new SolidColorBrush(LightSecondaryBg),
+StrokeThickness = 0,
+Padding = new Thickness(15),
+WidthRequest = 200,
+Content = stack,
+};
+
+var tap = new Microsoft.Maui.Controls.TapGestureRecognizer();
+tap.Tapped += (s, e) => Navigation?.Navigate(new ProjectDetailPage(p));
+card.GestureRecognizers.Add(tap);
+
+return card;
 }
 
-View TaskRow(ProjectTask task)
+TaskViewControl BuildTaskRow(ProjectTask task)
 {
-return new MauiViewHost(new TaskViewControl(
+return new TaskViewControl(
 task.Title,
 task.IsCompleted,
-isChecked => _store.ToggleTaskComplete(task.ID),
+_ => _store.ToggleTaskComplete(task.ID),
 () => Navigation?.Navigate(new TaskDetailPage(task, task.ProjectID))
-)).Frame(height: 60);
+);
 }
 
 [Body]
 View body()
 {
-var tasks = _store.AllTasks.Value ?? new List<ProjectTask>();
-var projects = _store.Projects.Value ?? new List<Project>();
+var tasks = _store.AllTasks.Value ?? new System.Collections.Generic.List<ProjectTask>();
+var projects = _store.Projects.Value ?? new System.Collections.Generic.List<Project>();
 
 var chartData = _store.GetCategoryChartData();
 var chartItems = chartData.Select(d => new ChartDataItem
@@ -95,64 +120,99 @@ Count = d.Count,
 ChartColor = d.Color,
 }).ToList();
 
-return new NavigationView
+// Match MAUI reference: LayoutSpacing=5 (phone), LayoutPadding=15 (phone)
+var contentStack = new Microsoft.Maui.Controls.VerticalStackLayout
 {
-new Grid
-{
-new ScrollView
-{
-new VStack(spacing: 15)
-{
-// Category chart (Syncfusion RadialBarSeries via MauiViewHost)
-new MauiViewHost(new CategoryChartControl(chartItems))
-.Frame(height: 200),
+Spacing = 5,
+Padding = new Thickness(15),
+};
 
-// Projects header
-new Text("Projects")
-.FontSize(22)
-.FontWeight(FontWeight.Semibold)
-.Color(DarkOnLightBg),
+// 1. Category chart (Margin="0, 12" matching XAML)
+var chart = new CategoryChartControl(chartItems);
+chart.Margin = new Thickness(0, 12);
+contentStack.Add(chart);
 
-// Horizontal scrolling project cards
-new ScrollView(Orientation.Horizontal)
+// 2. Projects header — Title2 style: 22px, semibold
+contentStack.Add(new MauiLabel
 {
-new HStack(spacing: 15)
-{
-projects.Select(p => ProjectCard(p) as View).ToArray()
-}
-.Padding(new Thickness(30, 0))
-}
-.Margin(new Thickness(-30, 0)),
+Text = "Projects",
+FontSize = 22,
+FontFamily = ".SFUI-SemiBold",
+TextColor = DarkOnLightBg,
+});
 
-// Tasks header with Clean button
-new HStack
+// 3. Horizontal scrolling project cards
+var projectsHStack = new Microsoft.Maui.Controls.HorizontalStackLayout
 {
-new Text("Tasks")
-.FontSize(22)
-.FontWeight(FontWeight.Semibold)
-.Color(DarkOnLightBg),
-new Spacer(),
-new Button("Clean", () => _store.CleanCompletedTasks())
-.Color(Primary)
-.FontSize(16),
+Spacing = 15,
+Padding = new Thickness(30, 0),
+};
+foreach (var p in projects)
+projectsHStack.Add(BuildProjectCard(p));
+
+contentStack.Add(new MauiScrollView
+{
+Orientation = ScrollOrientation.Horizontal,
+Content = projectsHStack,
+Margin = new Thickness(-30, 0),
+});
+
+// 4. Tasks header with clean button
+var tasksHeaderGrid = new MauiGrid { HeightRequest = 44 };
+tasksHeaderGrid.Add(new MauiLabel
+{
+Text = "Tasks",
+FontSize = 22,
+FontFamily = ".SFUI-SemiBold",
+TextColor = DarkOnLightBg,
+VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
+});
+
+bool hasCompleted = tasks.Any(t => t.IsCompleted);
+if (hasCompleted)
+{
+var cleanButton = new MauiImageButton
+{
+Source = new FontImageSource
+{
+Glyph = Fonts.FluentUI.broom_32_regular,
+FontFamily = Fonts.FluentUI.FontFamily,
+Color = DarkOnLightBg,
+Size = 24,
 },
-
-// Task rows
-new VStack(spacing: 8)
-{
-tasks.Select(t => TaskRow(t) as View).ToArray()
-},
+HorizontalOptions = Microsoft.Maui.Controls.LayoutOptions.End,
+VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center,
+HeightRequest = 44,
+WidthRequest = 44,
+BackgroundColor = Colors.Transparent,
+BorderWidth = 0,
+Aspect = Aspect.Center,
+};
+cleanButton.Clicked += (s, e) => _store.CleanCompletedTasks();
+tasksHeaderGrid.Add(cleanButton);
 }
-.Padding(new Thickness(30, 15))
-},
 
-// FAB (Add button)
-new MauiViewHost(new AddButtonControl(() =>
+contentStack.Add(tasksHeaderGrid);
+
+// 5. Task rows (spacing=15 matching XAML)
+var tasksStack = new Microsoft.Maui.Controls.VerticalStackLayout { Spacing = 15 };
+foreach (var task in tasks)
+tasksStack.Add(BuildTaskRow(task));
+contentStack.Add(tasksStack);
+
+// Root Grid overlay: ScrollView + FAB
+var rootGrid = new MauiGrid();
+rootGrid.Add(new MauiScrollView { Content = contentStack });
+
+var fab = new AddButtonControl(() =>
 {
 Navigation?.Navigate(new ProjectDetailPage(new Project()));
-}))
-.Frame(width: 60, height: 60),
-}
+});
+rootGrid.Add(fab);
+
+return new NavigationView
+{
+new MauiViewHost(rootGrid),
 }
 .Title(_store.Today);
 }

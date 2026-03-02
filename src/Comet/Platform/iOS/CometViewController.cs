@@ -76,19 +76,36 @@ namespace Comet.iOS
 
 		public void ApplyStyle()
 		{
-			var barColor = CurrentView?.GetNavigationBackgroundColor()?.ToPlatform() ?? CUINavigationController.DefaultBarTintColor;
+			if (NavigationController == null)
+				return;
 
-			if (NavigationController != null)
+			var barColor = CurrentView?.GetNavigationBackgroundColor()?.ToPlatform();
+			var textColor = CurrentView?.GetNavigationTextColor()?.ToPlatform();
+
+			// Also try background from parent view (NavigationView)
+			if (barColor == null)
 			{
-				this.NavigationController.NavigationBar.BarTintColor = barColor;
+				var bg = CurrentView?.GetBackground();
+				if (bg is Microsoft.Maui.Graphics.SolidPaint solid && solid.Color != null)
+					barColor = solid.Color.ToPlatform();
 			}
 
-			var textColor = CurrentView?.GetNavigationTextColor()?.ToPlatform() ?? CUINavigationController.DefaultTintColor;
-			if (NavigationController != null)
+			var appearance = new UINavigationBarAppearance();
+			appearance.ConfigureWithOpaqueBackground();
+
+			if (barColor != null)
+				appearance.BackgroundColor = barColor;
+
+			if (textColor != null)
 			{
-				this.NavigationController.NavigationBar.TintColor = textColor;
-				this.NavigationController.NavigationBar.TitleTextAttributes = new UIStringAttributes { ForegroundColor = textColor };
+				appearance.TitleTextAttributes = new UIStringAttributes { ForegroundColor = textColor };
+				NavigationController.NavigationBar.TintColor = textColor;
 			}
+
+			appearance.ShadowColor = UIColor.Clear;
+			NavigationController.NavigationBar.StandardAppearance = appearance;
+			NavigationController.NavigationBar.ScrollEdgeAppearance = appearance;
+			NavigationController.NavigationBar.CompactAppearance = appearance;
 		}
 		protected override void Dispose(bool disposing)
 		{

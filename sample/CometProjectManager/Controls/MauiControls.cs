@@ -34,6 +34,7 @@ namespace CometProjectManager.Controls
             StrokeThickness = 0;
             Padding = new Thickness(15);
             HeightRequest = 200;
+            Margin = new Thickness(0, 12);
 
             var chart = new SfCircularChart();
             var legend = new ChartLegend { Placement = LegendPlacement.Right };

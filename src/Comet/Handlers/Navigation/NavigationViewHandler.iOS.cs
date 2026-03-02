@@ -1,6 +1,7 @@
 ﻿using Comet.iOS;
 using Microsoft.Maui;
 using Microsoft.Maui.Handlers;
+using Microsoft.Maui.Platform;
 using UIKit;
 
 namespace Comet.Handlers
@@ -20,6 +21,7 @@ namespace Comet.Handlers
 			}
 			var navigationController = new CUINavigationController();
 			viewController = navigationController;
+
 			nav.SetPerformNavigate((toView) => {
 				if (toView is NavigationView newNav)
 				{
@@ -35,6 +37,31 @@ namespace Comet.Handlers
 			navigationController.PushViewController(vc, true);
 
 			return navigationController.View;
+		}
+
+		protected override void ConnectHandler(UIView platformView)
+		{
+			base.ConnectHandler(platformView);
+			ApplyNavigationBarBackground();
+		}
+
+		void ApplyNavigationBarBackground()
+		{
+			if (viewController is CUINavigationController navController)
+			{
+				var bgPaint = VirtualView?.GetBackground();
+				if (bgPaint is Microsoft.Maui.Graphics.SolidPaint solid && solid.Color != null)
+				{
+					var uiColor = solid.Color.ToPlatform();
+					var appearance = new UINavigationBarAppearance();
+					appearance.ConfigureWithOpaqueBackground();
+					appearance.BackgroundColor = uiColor;
+					appearance.ShadowColor = UIColor.Clear;
+					navController.NavigationBar.StandardAppearance = appearance;
+					navController.NavigationBar.ScrollEdgeAppearance = appearance;
+					navController.NavigationBar.CompactAppearance = appearance;
+				}
+			}
 		}
 	}
 }

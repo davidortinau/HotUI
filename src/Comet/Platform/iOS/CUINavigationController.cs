@@ -17,6 +17,9 @@ namespace Comet.iOS
 				DefaultTintColor = NavigationBar.TintColor;
 				DefaultTitleTextAttributes = NavigationBar.TitleTextAttributes;
 			}
+
+			// Ensure the nav controller's view has a background for safe area coverage
+			View.BackgroundColor = UIColor.White;
 		}
 		public override UIViewController[] PopToRootViewController(bool animated)
 		{

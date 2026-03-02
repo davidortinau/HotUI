@@ -108,8 +108,12 @@ namespace Comet
 			// Register standard MAUI Controls handlers for MauiViewHost embedding.
 			// These enable Microsoft.Maui.Controls types (Label, Entry, Border, etc.)
 			// to be rendered when hosted inside a Comet view tree via MauiViewHost.
+			// Interface-based registrations are critical for third-party controls (e.g. Syncfusion)
+			// that implement IContentView but don't extend ContentView directly.
 			builder.ConfigureMauiHandlers((handlersCollection) =>
 			{
+				// Interface-based handler registrations (matches MAUI's own registrations)
+				handlersCollection.TryAddHandler<IContentView, Microsoft.Maui.Handlers.ContentViewHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Label, Microsoft.Maui.Handlers.LabelHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Entry, Microsoft.Maui.Handlers.EntryHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Editor, Microsoft.Maui.Handlers.EditorHandler>();
@@ -130,6 +134,7 @@ namespace Comet
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Border, Microsoft.Maui.Handlers.BorderHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.BoxView, Microsoft.Maui.Handlers.ShapeViewHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.ContentView, Microsoft.Maui.Handlers.ContentViewHandler>();
+				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Layout, Microsoft.Maui.Handlers.LayoutHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Frame, Microsoft.Maui.Handlers.BorderHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.ScrollView, Microsoft.Maui.Handlers.ScrollViewHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.Grid, Microsoft.Maui.Handlers.LayoutHandler>();

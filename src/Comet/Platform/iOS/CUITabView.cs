@@ -11,7 +11,13 @@ namespace Comet.iOS
 		UITabBarController tabViewController = new UITabBarController();
 		public CUITabView()
 		{
+			tabViewController.View.BackgroundColor = UIColor.SystemBackground;
 			Add(tabViewController.View);
+
+			var appearance = new UITabBarAppearance();
+			appearance.ConfigureWithDefaultBackground();
+			tabViewController.TabBar.StandardAppearance = appearance;
+			tabViewController.TabBar.ScrollEdgeAppearance = appearance;
 		}
 		public void Setup(IList<View> views)
 		{

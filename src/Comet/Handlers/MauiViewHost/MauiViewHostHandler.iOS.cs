@@ -42,12 +42,37 @@ return;
 
 try
 {
-var hostedPlatformView = VirtualView.HostedView.ToPlatform(MauiContext);
+UIView hostedPlatformView = null;
+
+// Try primary MauiContext first
+try
+{
+hostedPlatformView = VirtualView.HostedView.ToPlatform(MauiContext);
+}
+catch (Exception)
+{
+// Handler not found in this MauiContext - try CometApp's context
+// which has all registered handlers including third-party (Syncfusion, etc.)
+var fallbackCtx = CometApp.MauiContext;
+if (fallbackCtx != null && fallbackCtx != MauiContext)
+{
+try
+{
+hostedPlatformView = VirtualView.HostedView.ToPlatform(fallbackCtx);
+}
+catch (Exception ex2)
+{
+Console.WriteLine($"[MauiViewHostHandler] All ToPlatform failed for {VirtualView.HostedView.GetType().Name}: {ex2.Message}");
+}
+}
+}
+
+if (hostedPlatformView != null)
 PlatformView.SetHostedView(hostedPlatformView, VirtualView.HostedView);
 }
 catch (Exception ex)
 {
-System.Diagnostics.Debug.WriteLine($"[MauiViewHostHandler] ToPlatform failed: {ex.Message}");
+Console.WriteLine($"[MauiViewHostHandler] UpdateHostedView failed: {ex.Message}");
 }
 }
 

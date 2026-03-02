@@ -10,10 +10,12 @@ namespace Comet.iOS
 	{
 		public CometView(IMauiContext mauiContext) {
 			MauiContext = mauiContext;
+			BackgroundColor = UIColor.White;
 		}
 		public CometView(CGRect rect, IMauiContext mauiContext) : base(rect)
 		{
 			MauiContext = mauiContext;
+			BackgroundColor = UIColor.White;
 		}
 		IView _view;
 		public IView CurrentView
