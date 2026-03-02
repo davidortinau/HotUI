@@ -8,6 +8,16 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
+		// Check for --page= launch argument
+		var args = System.Environment.GetCommandLineArgs();
+		foreach (var arg in args)
+		{
+			if (arg.StartsWith("--page=", StringComparison.OrdinalIgnoreCase))
+			{
+				AppShell.ForcePage = arg.Substring(7).ToLowerInvariant();
+			}
+		}
+
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()

@@ -25,8 +25,8 @@ static readonly Color LightBg = Color.FromArgb("#F2F2F2");
 MauiBorder BuildProjectCard(Project p)
 {
 var stack = new Microsoft.Maui.Controls.VerticalStackLayout { Spacing = 15,
-    // Match SfShimmer CustomView minimum height from MAUI reference
-    MinimumHeightRequest = 201 };
+    // Match SfShimmer CustomView minimum height from MAUI reference (227pt card - 30pt padding)
+    MinimumHeightRequest = 197 };
 
 // Icon (FontImageSource) — no HeightRequest, matching MAUI reference
 stack.Add(new MauiImage

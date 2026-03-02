@@ -5,11 +5,23 @@ namespace MauiReference;
 
 public partial class AppShell : Shell
 {
+	public static string? ForcePage { get; set; }
+
 	public AppShell()
 	{
 		InitializeComponent();
 		var currentTheme = Application.Current!.RequestedTheme;		
 		ThemeSegmentedControl.SelectedIndex = currentTheme == AppTheme.Light ? 0 : 1;
+
+		// Navigate to forced page after shell is loaded
+		if (ForcePage != null)
+		{
+			Dispatcher.DispatchAsync(async () =>
+			{
+				await Task.Delay(500);
+				await GoToAsync($"//{ForcePage}");
+			});
+		}
 	}
 	public static async Task DisplaySnackbarAsync(string message)
 	{

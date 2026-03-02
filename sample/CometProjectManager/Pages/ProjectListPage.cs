@@ -19,6 +19,7 @@ public class ProjectListPage : View
 
 static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
 static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
+static readonly Color LightBg = Color.FromArgb("#F2F2F2");
 
 [Body]
 View body()
@@ -26,7 +27,7 @@ View body()
 var projects = _store.Projects.Value ?? new List<Project>();
 
 // Build entire page with MAUI Controls for pixel-perfect match
-var rootGrid = new MauiGrid();
+var rootGrid = new MauiGrid { BackgroundColor = LightBg };
 
 // ScrollView > VerticalStackLayout of project cards
 var stack = new Microsoft.Maui.Controls.VerticalStackLayout
@@ -89,6 +90,7 @@ return new NavigationView
 {
 new MauiViewHost(rootGrid),
 }
-.Title("Projects");
+.Title("Projects")
+.Background(LightBg);
 }
 }

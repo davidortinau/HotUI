@@ -24,6 +24,7 @@ public class ManageMetaPage : View
 
 static readonly Color Primary = Color.FromArgb("#512BD4");
 static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
+static readonly Color LightBg = Color.FromArgb("#F2F2F2");
 
 MauiGrid BuildCategoryRow(Category cat)
 {
@@ -297,8 +298,9 @@ contentStack.Add(tagButtonGrid);
 
 return new NavigationView
 {
-new MauiViewHost(new MauiScrollView { Content = contentStack }),
+new MauiViewHost(new MauiScrollView { Content = contentStack, BackgroundColor = LightBg }),
 }
-.Title("Categories and Tags");
+.Title("Categories and Tags")
+.Background(LightBg);
 }
 }
