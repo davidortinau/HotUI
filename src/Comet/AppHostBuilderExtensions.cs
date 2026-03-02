@@ -83,8 +83,8 @@ namespace Comet
 				{ typeof(Toolbar), typeof(ToolbarHandler) },
 				{ typeof(CometApp), typeof(ApplicationHandler) },
 				{ typeof(ListView),typeof(ListViewHandler) },
-				{ typeof(CollectionView),typeof(ListViewHandler) },
-				{ typeof(CarouselView),typeof(ListViewHandler) },
+				{ typeof(CollectionView),typeof(Handlers.CollectionViewHandler) },
+				{ typeof(CarouselView),typeof(Handlers.CollectionViewHandler) },
 				{ typeof(BoxView), typeof(Handlers.ShapeViewHandler) },
 #if __MOBILE__
 				{typeof(ScrollView), typeof(Handlers.ScrollViewHandler) },

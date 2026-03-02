@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>CometStressTest</RootNamespace>
+		<UseMaui>true</UseMaui>
+		<SingleProject>true</SingleProject>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<ApplicationTitle>CometStressTest</ApplicationTitle>
+		<ApplicationId>com.comet.stresstest</ApplicationId>
+		<ApplicationVersion>1</ApplicationVersion>
+		<NoWarn>XC0103</NoWarn>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">16.0</SupportedOSPlatformVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="../../src/Comet/Comet.csproj" />
+	</ItemGroup>
+
+</Project>
