@@ -1,0 +1,102 @@
+using System;
+using Microsoft.Maui;
+using Microsoft.Maui.HotReload;
+using Microsoft.Maui.Graphics;
+using Microsoft.UI.Xaml.Controls;
+
+namespace Comet.Windows
+{
+	public class CometView : Grid, IReloadHandler
+	{
+		IView _view;
+		IViewHandler currentHandler;
+		UIElement currentPlatformView;
+
+		IMauiContext MauiContext;
+
+		public CometView(IMauiContext mauiContext)
+		{
+			MauiContext = mauiContext;
+			Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
+		}
+
+		public IView CurrentView
+		{
+			get => _view;
+			set => SetView(value);
+		}
+
+		void SetView(IView view, bool forceRefresh = false)
+		{
+			if (view == _view && !forceRefresh)
+				return;
+
+			// Reuse handlers if view type is compatible
+			if (view is View v && _view is View pv &&
+				v.GetContentTypeHashCode() == pv.GetContentTypeHashCode()
+				&& currentHandler != null)
+			{
+				_view = view;
+				v.ViewHandler = currentHandler;
+				if (_view is IHotReloadableView ihr1)
+				{
+					ihr1.ReloadHandler = this;
+					MauiHotReloadHelper.AddActiveView(ihr1);
+				}
+				return;
+			}
+
+			_view = view;
+
+			if (_view is IHotReloadableView ihr)
+			{
+				ihr.ReloadHandler = this;
+				MauiHotReloadHelper.AddActiveView(ihr);
+			}
+
+			var newPlatformView = _view?.ToPlatform(MauiContext);
+			currentHandler = _view?.Handler;
+
+			if (currentPlatformView == newPlatformView)
+				return;
+
+			if (currentPlatformView != null)
+				Children.Remove(currentPlatformView);
+
+			if (newPlatformView != this && newPlatformView != null)
+			{
+				currentPlatformView = newPlatformView;
+				Children.Add(currentPlatformView);
+			}
+		}
+
+		protected override Microsoft.UI.Xaml.Size MeasureOverride(Microsoft.UI.Xaml.Size availableSize)
+		{
+			if (_view == null)
+				return availableSize;
+
+			var width = availableSize.Width > 0 ? availableSize.Width : 1000;
+			var height = availableSize.Height > 0 ? availableSize.Height : 1000;
+
+			var size = _view.Measure(width, height);
+			return new Microsoft.UI.Xaml.Size(size.Width, size.Height);
+		}
+
+		protected override Microsoft.UI.Xaml.Size ArrangeOverride(Microsoft.UI.Xaml.Size finalSize)
+		{
+			if (_view == null)
+				return finalSize;
+
+			_view.Arrange(new Rect(0, 0, finalSize.Width, finalSize.Height));
+
+			if (currentPlatformView != null)
+			{
+				currentPlatformView.Arrange(new Microsoft.UI.Xaml.Rect(0, 0, finalSize.Width, finalSize.Height));
+			}
+
+			return finalSize;
+		}
+
+		public void Reload() => SetView(CurrentView, true);
+	}
+}
