@@ -52,9 +52,14 @@ public class BaristaShell : MauiShell
 {
 public BaristaShell()
 {
-BackgroundColor = Theme.Surface;
+// Transparent nav bar blends with page background (matches original design)
+BackgroundColor = Colors.Transparent;
+MauiShell.SetForegroundColor(this, Theme.TextPrimary);
+MauiShell.SetNavBarHasShadow(this, false);
+MauiShell.SetTitleColor(this, Theme.TextPrimary);
 MauiShell.SetTabBarBackgroundColor(this, Theme.Surface);
 MauiShell.SetTabBarForegroundColor(this, Theme.Primary);
+MauiShell.SetTabBarTitleColor(this, Theme.Primary);
 MauiShell.SetTabBarUnselectedColor(this, Theme.TextSecondary);
 
 var tabBar = new TabBar();
@@ -62,15 +67,15 @@ var tabBar = new TabBar();
 tabBar.Items.Add(new Microsoft.Maui.Controls.ShellContent
 {
 Title = "New Shot",
-Icon = new Microsoft.Maui.Controls.FontImageSource { FontFamily = Icons.FontFamily, Glyph = Icons.Coffee, Size = 24 },
+Icon = new Microsoft.Maui.Controls.FontImageSource { FontFamily = Icons.FontFamily, Glyph = Icons.Coffee, Size = 32, Color = Theme.TextPrimary },
 ContentTemplate = new DataTemplate(() => MakeCometPage(new ShotLoggingPage(), "New Shot")),
 Route = "newshot"
 });
 
 tabBar.Items.Add(new Microsoft.Maui.Controls.ShellContent
 {
-Title = "Shot History",
-Icon = new Microsoft.Maui.Controls.FontImageSource { FontFamily = Icons.FontFamily, Glyph = Icons.Feed, Size = 24 },
+Title = "Activity",
+Icon = new Microsoft.Maui.Controls.FontImageSource { FontFamily = Icons.FontFamily, Glyph = Icons.Feed, Size = 32, Color = Theme.TextPrimary },
 ContentTemplate = new DataTemplate(() => MakeCometPage(new ActivityFeedPage(), "Shot History")),
 Route = "activity"
 });
@@ -78,7 +83,7 @@ Route = "activity"
 tabBar.Items.Add(new Microsoft.Maui.Controls.ShellContent
 {
 Title = "Settings",
-Icon = new Microsoft.Maui.Controls.FontImageSource { FontFamily = Icons.FontFamily, Glyph = Icons.Settings, Size = 24 },
+Icon = new Microsoft.Maui.Controls.FontImageSource { FontFamily = Icons.FontFamily, Glyph = Icons.Settings, Size = 32, Color = Theme.TextPrimary },
 ContentTemplate = new DataTemplate(() => MakeCometPage(new SettingsPage(), "Settings")),
 Route = "settings"
 });
