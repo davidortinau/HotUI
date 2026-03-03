@@ -107,29 +107,29 @@ public class EquipmentDetailPage : Comet.View
 
 		return new ScrollView
 		{
-			new VStack(spacing: 12)
+			new VStack(spacing: Theme.SpacingS)
 			{
-				FormHelpers.SectionHeader(isEdit ? "Edit Equipment" : "New Equipment"),
+				FormHelpers.SectionHeader(isEdit ? "EDIT EQUIPMENT" : "NEW EQUIPMENT"),
 
 				FormHelpers.FormEntry("Name *", _name, "Equipment name"),
 
-				// Type picker
-				new VStack(spacing: 4)
-				{
-					new Text("Type").FontSize(12).Color(Colors.Gray),
-					new Picker(_selectedTypeIndex, TypeNames)
-				}.Padding(12).Background(Color.FromArgb("#F5F5F5")).ClipShape(new RoundedRectangle(8)),
+				FormHelpers.FormPicker("Type", _selectedTypeIndex, TypeNames),
 
 				FormHelpers.FormEntry("Notes", _notes, "Additional details"),
 
 				!string.IsNullOrEmpty(_error.Value)
-					? new Text(_error.Value).Color(Colors.Red).FontSize(13)
+					? new Text(_error.Value).Color(Theme.Error).FontSize(14)
 					: null,
 
-				new Button(isEdit ? "Save Changes" : "Add Equipment", Save),
+				FormHelpers.PrimaryButton(isEdit ? "Save Changes" : "Add Equipment", Save),
 
-				isEdit ? new Button("Archive", Archive) : null,
-			}.Padding(16)
-		};
+				isEdit ? new Comet.Button("Archive", Archive)
+					.Frame(height: Theme.ButtonHeight)
+					.Background(Theme.Error)
+					.Color(Colors.White)
+					.FontSize(16).FontWeight(FontWeight.Semibold)
+					.ClipShape(new RoundedRectangle(Theme.RadiusPill)) : null,
+			}.Padding(Theme.SpacingM)
+		}.Background(Theme.Background);
 	}
 }

@@ -10,24 +10,20 @@ public class SettingsPage : Comet.View
 {
 	[State] readonly State<ThemeMode> _themeMode = new(ThemeMode.Auto);
 
-	static readonly Color Primary = Color.FromArgb("#6F4E37");
-
 	[Body]
 	Comet.View body() =>
 		new Comet.ScrollView
 		{
-			new VStack(spacing: 16)
+			new VStack(spacing: Theme.SpacingS)
 			{
-				// Appearance
 				FormHelpers.SectionHeader("APPEARANCE"),
-				new HStack(spacing: 12)
+				new HStack(spacing: Theme.SpacingS)
 				{
 					ThemeButton("☀️", "Light", ThemeMode.Light),
 					ThemeButton("🌙", "Dark", ThemeMode.Dark),
 					ThemeButton("🔄", "Auto", ThemeMode.Auto),
 				},
 
-				// Manage
 				FormHelpers.SectionHeader("MANAGE"),
 				SettingsItem("Equipment", "Manage machines & grinders", () =>
 					Microsoft.Maui.Controls.Shell.Current.GoToAsync("equipment")),
@@ -36,20 +32,19 @@ public class SettingsPage : Comet.View
 				SettingsItem("Profiles", "Manage user profiles", () =>
 					Microsoft.Maui.Controls.Shell.Current.GoToAsync("profiles")),
 
-				// About
 				FormHelpers.SectionHeader("ABOUT"),
 				FormHelpers.Card(
 					new VStack(spacing: 4)
 					{
-						new Text("Barista Notes").FontSize(18).FontWeight(FontWeight.Bold),
-						new Text("v1.0 • Comet MVU Edition").FontSize(13).Color(Colors.Gray),
+						new Text("Barista Notes").FontSize(18).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary),
+						new Text("v1.0 • Comet MVU Edition").FontSize(14).Color(Theme.TextSecondary),
 						new Text("Track and perfect your espresso shots.")
-							.FontSize(13).Color(Colors.Gray)
-							.Padding(new Thickness(0, 8, 0, 0)),
+							.FontSize(14).Color(Theme.TextSecondary)
+							.Padding(new Thickness(0, Theme.SpacingS, 0, 0)),
 					}
 				),
-			}.Padding(16)
-		};
+			}.Padding(Theme.SpacingM)
+		}.Background(Theme.Background);
 
 	Comet.View ThemeButton(string icon, string label, ThemeMode mode)
 	{
@@ -57,11 +52,11 @@ public class SettingsPage : Comet.View
 		return new VStack(spacing: 4)
 		{
 			new Text(icon).FontSize(24),
-			new Text(label).FontSize(12).Color(isSelected ? Primary : Colors.Gray)
+			new Text(label).FontSize(12).Color(isSelected ? Theme.Primary : Theme.TextSecondary)
 		}
 		.Frame(width: 80, height: 64)
-		.Background(isSelected ? Primary.WithAlpha(0.15f) : Color.FromArgb("#F5F5F5"))
-		.ClipShape(new RoundedRectangle(12))
+		.Background(isSelected ? Theme.Primary.WithAlpha(0.15f) : Theme.SurfaceVariant)
+		.ClipShape(new RoundedRectangle(Theme.RadiusCard))
 		.OnTap(_ => _themeMode.Value = mode);
 	}
 
@@ -70,14 +65,14 @@ public class SettingsPage : Comet.View
 		{
 			new VStack(spacing: 2)
 			{
-				new Text(title).FontSize(16).FontWeight(FontWeight.Semibold),
-				new Text(description).FontSize(13).Color(Colors.Gray),
+				new Text(title).FontSize(16).FontWeight(FontWeight.Semibold).Color(Theme.TextPrimary),
+				new Text(description).FontSize(14).Color(Theme.TextSecondary),
 			},
 			new Spacer(),
-			new Text("›").FontSize(20).Color(Colors.Gray)
+			new Text("›").FontSize(20).Color(Theme.TextMuted)
 		}
-		.Padding(16)
-		.Background(Colors.White)
-		.ClipShape(new RoundedRectangle(12))
+		.Padding(Theme.SpacingM)
+		.Background(Theme.Surface)
+		.RoundedBorder(radius: Theme.RadiusCard, color: Theme.Outline, strokeSize: 1)
 		.OnTap(_ => onTap());
 }

@@ -103,9 +103,9 @@ public class BeanDetailPage : Comet.View
 
 		return new ScrollView
 		{
-			new VStack(spacing: 12)
+			new VStack(spacing: Theme.SpacingS)
 			{
-				FormHelpers.SectionHeader(isEdit ? "Edit Bean" : "New Bean"),
+				FormHelpers.SectionHeader(isEdit ? "EDIT BEAN" : "NEW BEAN"),
 
 				FormHelpers.FormEntry("Name *", _name, "Bean name"),
 				FormHelpers.FormEntry("Roaster", _roaster, "Roaster name"),
@@ -113,27 +113,25 @@ public class BeanDetailPage : Comet.View
 				FormHelpers.FormEntry("Notes", _notes, "Tasting notes, processing, etc."),
 
 				!string.IsNullOrEmpty(_error.Value)
-					? new Text(_error.Value).Color(Colors.Red).FontSize(13)
+					? new Text(_error.Value).Color(Theme.Error).FontSize(14)
 					: null,
 
-				new Button(isEdit ? "Save Changes" : "Create Bean", Save),
+				FormHelpers.PrimaryButton(isEdit ? "Save Changes" : "Create Bean", Save),
 
-				// Rating section (edit mode)
-				isEdit ? FormHelpers.SectionHeader("Ratings") : null,
+				isEdit ? FormHelpers.SectionHeader("RATINGS") : null,
 				isEdit ? new RatingDisplay(_rating.Value) : null,
 
-				// Bags section (edit mode)
-				isEdit ? FormHelpers.SectionHeader("Bags") : null,
+				isEdit ? FormHelpers.SectionHeader("BAGS") : null,
 				isEdit && _bags.Value.Count == 0
-					? new Text("No bags added yet").FontSize(13).Color(Colors.Gray)
+					? new Text("No bags added yet").FontSize(14).Color(Theme.TextSecondary)
 					: null,
-				isEdit ? new Button("+ Add Bag", () =>
+				isEdit ? FormHelpers.PrimaryButton("+ Add Bag", () =>
 				{
 					Microsoft.Maui.Controls.Shell.Current.GoToAsync($"bag-detail?id=0&beanId={_beanId}");
 				}) : null,
 				isEdit ? RenderBags() : null,
-			}.Padding(16)
-		};
+			}.Padding(Theme.SpacingM)
+		}.Background(Theme.Background);
 	}
 
 	Comet.View? RenderBags()
@@ -141,26 +139,26 @@ public class BeanDetailPage : Comet.View
 		var bags = _bags.Value;
 		if (bags.Count == 0) return null;
 
-		return new VStack(spacing: 8)
+		return new VStack(spacing: Theme.SpacingS)
 		{
 			bags.Select(bag =>
 				FormHelpers.Card(
 					new VStack(spacing: 4)
 					{
 						new Text($"Roasted {bag.RoastDate:MMM d, yyyy}")
-							.FontSize(14).FontWeight(FontWeight.Semibold),
+							.FontSize(14).FontWeight(FontWeight.Semibold).Color(Theme.TextPrimary),
 						bag.Notes != null
-							? new Text(bag.Notes).FontSize(12).Color(Colors.Gray)
+							? new Text(bag.Notes).FontSize(12).Color(Theme.TextSecondary)
 							: null,
 						new HStack(spacing: 16)
 						{
-							new Text($"{bag.ShotCount} shots").FontSize(12).Color(Colors.Gray),
+							new Text($"{bag.ShotCount} shots").FontSize(12).Color(Theme.TextMuted),
 							bag.AverageRating.HasValue
-								? new Text($"★ {bag.AverageRating.Value:F1}").FontSize(12).Color(Colors.Orange)
-								: new Text("No ratings").FontSize(12).Color(Colors.LightGray),
+								? new Text($"★ {bag.AverageRating.Value:F1}").FontSize(12).Color(Theme.Warning)
+								: new Text("No ratings").FontSize(12).Color(Theme.TextMuted),
 							bag.IsComplete
-								? new Text("Complete").FontSize(12).Color(Colors.Green)
-								: new Text("Active").FontSize(12).Color(Colors.Blue),
+								? new Text("Complete").FontSize(12).Color(Theme.Success)
+								: new Text("Active").FontSize(12).Color(Theme.Primary),
 						}
 					}
 				).OnTap(_ =>

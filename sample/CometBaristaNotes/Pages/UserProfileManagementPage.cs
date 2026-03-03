@@ -35,21 +35,21 @@ public class UserProfileManagementPage : Comet.View
 		var profiles = _profiles.Value;
 
 		if (profiles.Count == 0)
-			return new VStack(spacing: 16)
+			return new VStack(spacing: Theme.SpacingM)
 			{
 				FormHelpers.EmptyState("👤", "No Profiles Yet",
 					"Create profiles for different users or coffee preferences"),
-				new Button("+ Add Profile", () =>
+				FormHelpers.PrimaryButton("+ Add Profile", () =>
 				{
 					Microsoft.Maui.Controls.Shell.Current.GoToAsync("profile-form?id=0");
 				})
-			}.Padding(24);
+			}.Padding(Theme.SpacingL).Background(Theme.Background);
 
 		return new ScrollView
 		{
-			new VStack(spacing: 8)
+			new VStack(spacing: Theme.SpacingS)
 			{
-				new Button("+ Add Profile", () =>
+				FormHelpers.PrimaryButton("+ Add Profile", () =>
 				{
 					Microsoft.Maui.Controls.Shell.Current.GoToAsync("profile-form?id=0");
 				}),
@@ -57,16 +57,16 @@ public class UserProfileManagementPage : Comet.View
 					FormHelpers.Card(
 						new VStack(spacing: 4)
 						{
-							new Text(profile.Name).FontSize(16).FontWeight(FontWeight.Semibold),
+							new Text(profile.Name).FontSize(16).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary),
 							new Text($"Created: {profile.CreatedAt:MMM d, yyyy}")
-								.FontSize(12).Color(Colors.Gray),
+								.FontSize(12).Color(Theme.TextMuted),
 						}
 					).OnTap(_ =>
 					{
 						Microsoft.Maui.Controls.Shell.Current.GoToAsync($"profile-form?id={profile.Id}");
 					})
 				).ToArray()
-			}.Padding(16)
-		};
+			}.Padding(Theme.SpacingM)
+		}.Background(Theme.Background);
 	}
 }

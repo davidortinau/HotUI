@@ -25,7 +25,6 @@ public class ShotLoggingPage : Comet.View
 	[State] readonly State<int> _madeForIndex = new(0);
 	[State] readonly State<bool> _saved = new(false);
 
-	static readonly Color Primary = Color.FromArgb("#6F4E37");
 	static readonly string[] DrinkTypes = { "Espresso", "Ristretto", "Lungo", "Doppio", "Americano" };
 
 	[Body]
@@ -36,13 +35,11 @@ public class ShotLoggingPage : Comet.View
 			return new VStack(spacing: 16)
 			{
 				new Text("✅").FontSize(48),
-				new Text("Shot Logged!").FontSize(24).FontWeight(FontWeight.Bold),
-				new Text("Your espresso shot has been recorded.").FontSize(14).Color(Colors.Gray),
-				new Comet.Button("Log Another", ResetForm)
-					.Background(Primary).Color(Colors.White)
-					.ClipShape(new RoundedRectangle(8))
+				new Text("Shot Logged!").FontSize(24).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary),
+				new Text("Your espresso shot has been recorded.").FontSize(14).Color(Theme.TextSecondary),
+				FormHelpers.PrimaryButton("Log Another", ResetForm)
 					.Padding(new Thickness(0, 16, 0, 0))
-			}.Alignment(Alignment.Center).Padding(32);
+			}.Alignment(Alignment.Center).Padding(Theme.SpacingXL).Background(Theme.Background);
 		}
 
 		var store = InMemoryDataStore.Instance;
@@ -58,78 +55,58 @@ public class ShotLoggingPage : Comet.View
 
 		return new Comet.ScrollView
 		{
-			new VStack(spacing: 12)
+			new VStack(spacing: Theme.SpacingS)
 			{
-				// Coffee section
 				FormHelpers.SectionHeader("COFFEE"),
-				FormPicker("Bag", _selectedBagIndex, bagNames),
-				FormPicker("Drink Type", _drinkTypeIndex, DrinkTypes),
+				FormHelpers.FormPicker("Bag", _selectedBagIndex, bagNames),
+				FormHelpers.FormPicker("Drink Type", _drinkTypeIndex, DrinkTypes),
 
-				// Recipe
 				FormHelpers.SectionHeader("RECIPE"),
-				new HStack(spacing: 12)
+				new HStack(spacing: Theme.SpacingS)
 				{
 					FormHelpers.FormNumericEntry("Dose (g)", _doseIn),
 					FormHelpers.FormNumericEntry("Grind", _grindSetting),
 				},
-				new HStack(spacing: 12)
+				new HStack(spacing: Theme.SpacingS)
 				{
 					FormHelpers.FormNumericEntry("Target Time (s)", _expectedTime),
 					FormHelpers.FormNumericEntry("Target Output (g)", _expectedOutput),
 				},
 
-				// Equipment
 				FormHelpers.SectionHeader("EQUIPMENT"),
-				FormPicker("Machine", _machineIndex, machineNames),
-				FormPicker("Grinder", _grinderIndex, grinderNames),
+				FormHelpers.FormPicker("Machine", _machineIndex, machineNames),
+				FormHelpers.FormPicker("Grinder", _grinderIndex, grinderNames),
 
-				// Results
 				FormHelpers.SectionHeader("RESULTS"),
-				new HStack(spacing: 12)
+				new HStack(spacing: Theme.SpacingS)
 				{
 					FormHelpers.FormNumericEntry("Actual Time (s)", _actualTime),
 					FormHelpers.FormNumericEntry("Actual Output (g)", _actualOutput),
 				},
 
-				// Rating
 				FormHelpers.SectionHeader("RATING"),
 				FormHelpers.FormSlider("Rating", _rating, 1, 5),
 				new Text(() => RatingStars((int)Math.Round(_rating.Value)))
-					.FontSize(24),
+					.FontSize(24).Color(Theme.Warning),
 
-				// Tasting Notes
 				FormHelpers.SectionHeader("NOTES"),
 				new TextEditor(_tastingNotes)
 					.Frame(height: 100)
-					.Background(Color.FromArgb("#F5F5F5"))
-					.ClipShape(new RoundedRectangle(8)),
+					.Background(Theme.SurfaceVariant)
+					.ClipShape(new RoundedRectangle(Theme.RadiusEditor)),
 
-				// People
 				FormHelpers.SectionHeader("PEOPLE"),
-				new HStack(spacing: 12)
+				new HStack(spacing: Theme.SpacingS)
 				{
-					FormPicker("Made By", _madeByIndex, profileNames),
-					FormPicker("Made For", _madeForIndex, profileNames),
+					FormHelpers.FormPicker("Made By", _madeByIndex, profileNames),
+					FormHelpers.FormPicker("Made For", _madeForIndex, profileNames),
 				},
 
-				// Save
-				new Comet.Button("Log Shot", () => SaveShot(bags, machines, grinders, profiles))
-					.Frame(height: 50)
-					.Background(Primary)
-					.Color(Colors.White)
-					.FontSize(18).FontWeight(FontWeight.Semibold)
-					.ClipShape(new RoundedRectangle(12))
-					.Padding(new Thickness(0, 8, 0, 32)),
-			}.Padding(16)
-		};
+				FormHelpers.PrimaryButton("Log Shot", () => SaveShot(bags, machines, grinders, profiles))
+					.Padding(new Thickness(0, Theme.SpacingS, 0, Theme.SpacingXL)),
+			}.Padding(Theme.SpacingM)
+		}.Background(Theme.Background);
 	}
-
-	static Comet.View FormPicker(string label, Binding<int> selectedIndex, string[] items) =>
-		new VStack(spacing: 4)
-		{
-			new Text(label).FontSize(12).Color(Colors.Gray),
-			new Comet.Picker(selectedIndex, items)
-		}.Padding(12).Background(Color.FromArgb("#F5F5F5")).ClipShape(new RoundedRectangle(8));
 
 	void SaveShot(List<Bag> bags, List<Equipment> machines, List<Equipment> grinders, List<UserProfile> profiles)
 	{

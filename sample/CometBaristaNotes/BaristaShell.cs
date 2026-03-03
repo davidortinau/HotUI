@@ -1,4 +1,5 @@
 using CometBaristaNotes.Pages;
+using CometBaristaNotes.Components;
 using Microsoft.Maui.Controls;
 using MauiPage = Microsoft.Maui.Controls.ContentPage;
 using MauiShell = Microsoft.Maui.Controls.Shell;
@@ -9,6 +10,11 @@ public class BaristaShell : MauiShell
 {
 	public BaristaShell()
 	{
+		BackgroundColor = Theme.Surface;
+		MauiShell.SetTabBarBackgroundColor(this, Theme.Surface);
+		MauiShell.SetTabBarForegroundColor(this, Theme.Primary);
+		MauiShell.SetTabBarUnselectedColor(this, Theme.TextSecondary);
+
 		var tabBar = new TabBar();
 
 		tabBar.Items.Add(new Microsoft.Maui.Controls.ShellContent
@@ -49,12 +55,12 @@ public class BaristaShell : MauiShell
 		var page = new MauiPage
 		{
 			Title = title,
-			BackgroundColor = Color.FromArgb("#F5F5F5"),
+			BackgroundColor = Theme.Background,
 		};
 
 		var container = new Microsoft.Maui.Controls.ContentView
 		{
-			BackgroundColor = Color.FromArgb("#F5F5F5"),
+			BackgroundColor = Theme.Background,
 		};
 
 		page.Content = container;

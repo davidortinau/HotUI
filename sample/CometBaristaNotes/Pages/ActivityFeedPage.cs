@@ -25,24 +25,24 @@ public class ActivityFeedPage : Comet.View
 		if (shots.Count == 0 && !_isLoading.Value)
 		{
 			return FormHelpers.EmptyState("☕", "No Shots Yet",
-				"Log your first espresso shot to see it here.");
+				"Log your first espresso shot to see it here.")
+				.Background(Theme.Background);
 		}
 
 		return new Comet.ScrollView
 		{
-			new VStack(spacing: 12)
+			new VStack(spacing: Theme.SpacingS)
 			{
 				new Text($"{shots.Count} shots")
-					.FontSize(13).Color(Colors.Gray)
-					.Padding(new Thickness(16, 8, 16, 0)),
+					.FontSize(14).FontWeight(FontWeight.Semibold).Color(Theme.TextSecondary)
+					.Padding(new Thickness(0, Theme.SpacingS, 0, 0)),
 				shots.Select(shot =>
 					new ShotRecordCard(shot, () =>
 					{
-						// Tap navigates; future: shot detail
 					}) as Comet.View
 				).ToArray()
-			}.Padding(16)
-		};
+			}.Padding(Theme.SpacingM)
+		}.Background(Theme.Background);
 	}
 
 	void LoadShots()

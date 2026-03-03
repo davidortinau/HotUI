@@ -75,26 +75,21 @@ public class BagFormPage : Comet.View
 
 		return new ScrollView
 		{
-			new VStack(spacing: 12)
+			new VStack(spacing: Theme.SpacingS)
 			{
-				FormHelpers.SectionHeader($"Add Bag for {_beanName.Value}"),
+				FormHelpers.SectionHeader($"ADD BAG FOR {_beanName.Value.ToUpperInvariant()}"),
 
-				// Bean (read-only)
-				new VStack(spacing: 4)
-				{
-					new Text("Bean").FontSize(12).Color(Colors.Gray),
-					new Text(_beanName.Value).FontSize(16).FontWeight(FontWeight.Semibold),
-				}.Padding(12).Background(Color.FromArgb("#F5F5F5")).ClipShape(new RoundedRectangle(8)),
+				FormHelpers.ReadOnlyField("Bean", _beanName.Value),
 
 				FormHelpers.FormEntry("Roast Date", _roastDate, "yyyy-MM-dd"),
 				FormHelpers.FormEntry("Notes (optional)", _notes, "e.g., From Trader Joe's, Gift from friend"),
 
 				!string.IsNullOrEmpty(_error.Value)
-					? new Text(_error.Value).Color(Colors.Red).FontSize(13)
+					? new Text(_error.Value).Color(Theme.Error).FontSize(14)
 					: null,
 
-				new Button("Add Bag", Save),
-			}.Padding(16)
-		};
+				FormHelpers.PrimaryButton("Add Bag", Save),
+			}.Padding(Theme.SpacingM)
+		}.Background(Theme.Background);
 	}
 }

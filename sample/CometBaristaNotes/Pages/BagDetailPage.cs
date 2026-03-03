@@ -88,7 +88,6 @@ public class BagDetailPage : Comet.View
 		}
 		else
 		{
-			// Reactivate by updating with IsComplete=false
 			svc.UpdateBag(new Bag
 			{
 				Id = _bagId,
@@ -109,56 +108,45 @@ public class BagDetailPage : Comet.View
 			LoadBag();
 
 		if (_bagId <= 0)
-			return new VStack { new Text("Bag not found").Color(Colors.Gray) }.Padding(16);
+			return new VStack { new Text("Bag not found").Color(Theme.TextSecondary) }
+				.Padding(Theme.SpacingM).Background(Theme.Background);
 
 		return new ScrollView
 		{
-			new VStack(spacing: 12)
+			new VStack(spacing: Theme.SpacingS)
 			{
-				FormHelpers.SectionHeader("Bag Details"),
+				FormHelpers.SectionHeader("BAG DETAILS"),
 
-				// Bean name (read-only)
-				new VStack(spacing: 4)
-				{
-					new Text("Bean").FontSize(12).Color(Colors.Gray),
-					new Text(_beanName.Value).FontSize(16).FontWeight(FontWeight.Semibold),
-				}.Padding(12).Background(Color.FromArgb("#F5F5F5")).ClipShape(new RoundedRectangle(8)),
-
-				// Roast date (read-only display)
-				new VStack(spacing: 4)
-				{
-					new Text("Roast Date").FontSize(12).Color(Colors.Gray),
-					new Text(_roastDate.Value).FontSize(16),
-				}.Padding(12).Background(Color.FromArgb("#F5F5F5")).ClipShape(new RoundedRectangle(8)),
+				FormHelpers.ReadOnlyField("Bean", _beanName.Value),
+				FormHelpers.ReadOnlyField("Roast Date", _roastDate.Value),
 
 				FormHelpers.FormEntry("Notes", _notes, "Bag notes"),
 
 				// Shot count
 				new VStack(spacing: 4)
 				{
-					new Text("Shots Logged").FontSize(12).Color(Colors.Gray),
-					new Text($"{_shotCount.Value}").FontSize(20).FontWeight(FontWeight.Bold),
-				}.Padding(12).Background(Color.FromArgb("#F5F5F5")).ClipShape(new RoundedRectangle(8)),
+					new Text("Shots Logged").FontSize(14).Color(Theme.TextSecondary),
+					new Text($"{_shotCount.Value}").FontSize(20).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary),
+				}.Padding(Theme.SpacingM).Background(Theme.SurfaceVariant).ClipShape(new RoundedRectangle(Theme.RadiusPill)),
 
 				// Status toggle
-				new HStack(spacing: 12)
+				new HStack(spacing: Theme.SpacingS)
 				{
 					new Text(_isComplete.Value ? "Status: Complete" : "Status: Active")
-						.FontSize(14).FontWeight(FontWeight.Semibold),
+						.FontSize(14).FontWeight(FontWeight.Semibold).Color(Theme.TextPrimary),
 					new Spacer(),
 					new Toggle(_isComplete),
-				}.Padding(12).Background(Color.FromArgb("#F5F5F5")).ClipShape(new RoundedRectangle(8)),
+				}.Padding(Theme.SpacingM).Background(Theme.SurfaceVariant).ClipShape(new RoundedRectangle(Theme.RadiusPill)),
 
 				!string.IsNullOrEmpty(_error.Value)
-					? new Text(_error.Value).Color(Colors.Red).FontSize(13)
+					? new Text(_error.Value).Color(Theme.Error).FontSize(14)
 					: null,
 
-				new Button("Save Changes", Save),
+				FormHelpers.PrimaryButton("Save Changes", Save),
 
-				// Rating section
-				FormHelpers.SectionHeader("Ratings"),
+				FormHelpers.SectionHeader("RATINGS"),
 				new RatingDisplay(_rating.Value),
-			}.Padding(16)
-		};
+			}.Padding(Theme.SpacingM)
+		}.Background(Theme.Background);
 	}
 }

@@ -34,21 +34,21 @@ public class EquipmentManagementPage : Comet.View
 
 		var items = _equipment.Value;
 		if (items.Count == 0)
-			return new VStack(spacing: 16)
+			return new VStack(spacing: Theme.SpacingM)
 			{
 				FormHelpers.EmptyState("⚙️", "No Equipment Yet",
 					"Add your coffee machines, grinders, and accessories"),
-				new Button("+ Add Equipment", () =>
+				FormHelpers.PrimaryButton("+ Add Equipment", () =>
 				{
 					Microsoft.Maui.Controls.Shell.Current.GoToAsync("equipment-detail?id=0");
 				})
-			}.Padding(24);
+			}.Padding(Theme.SpacingL).Background(Theme.Background);
 
 		return new ScrollView
 		{
-			new VStack(spacing: 8)
+			new VStack(spacing: Theme.SpacingS)
 			{
-				new Button("+ Add Equipment", () =>
+				FormHelpers.PrimaryButton("+ Add Equipment", () =>
 				{
 					Microsoft.Maui.Controls.Shell.Current.GoToAsync("equipment-detail?id=0");
 				}),
@@ -56,15 +56,15 @@ public class EquipmentManagementPage : Comet.View
 					FormHelpers.Card(
 						new VStack(spacing: 4)
 						{
-							new Text(eq.Name).FontSize(16).FontWeight(FontWeight.Semibold),
-							new Text(eq.Type.ToString()).FontSize(13).Color(Colors.Gray),
+							new Text(eq.Name).FontSize(16).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary),
+							new Text(eq.Type.ToString()).FontSize(14).Color(Theme.TextSecondary),
 						}
 					).OnTap(_ =>
 					{
 						Microsoft.Maui.Controls.Shell.Current.GoToAsync($"equipment-detail?id={eq.Id}");
 					})
 				).ToArray()
-			}.Padding(16)
-		};
+			}.Padding(Theme.SpacingM)
+		}.Background(Theme.Background);
 	}
 }

@@ -25,9 +25,9 @@ public class ShotRecordCard : Comet.View
 				new VStack(spacing: 2)
 				{
 					new Text(_shot.BagDisplayName ?? "Unknown Bean")
-						.FontSize(16).FontWeight(FontWeight.Semibold),
+						.FontSize(16).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary),
 					new Text(_shot.DrinkType)
-						.FontSize(12).Color(Colors.Gray),
+						.FontSize(14).Color(Theme.TextSecondary),
 				},
 				new Spacer(),
 				new VStack
@@ -35,8 +35,8 @@ public class ShotRecordCard : Comet.View
 					_shot.Rating.HasValue
 						? new Text($"★ {_shot.Rating.Value}")
 							.FontSize(16).FontWeight(FontWeight.Bold)
-							.Color(_shot.Rating.Value >= 4 ? Colors.Orange : Colors.Gray)
-						: new Text("—").FontSize(16).Color(Colors.LightGray)
+							.Color(_shot.Rating.Value >= 4 ? Theme.Warning : Theme.TextMuted)
+						: new Text("—").FontSize(16).Color(Theme.TextMuted)
 				}
 			},
 			new HStack(spacing: 16)
@@ -47,24 +47,25 @@ public class ShotRecordCard : Comet.View
 				InfoPill("Grind", _shot.GrindSetting),
 			},
 			_shot.TastingNotes != null
-				? new Text(_shot.TastingNotes).FontSize(12).Color(Colors.DimGray)
+				? new Text(_shot.TastingNotes).FontSize(12).Color(Theme.TextSecondary)
 				: null,
 			new HStack(spacing: 8)
 			{
 				new Text(_shot.Timestamp.ToString("MMM d, h:mm tt"))
-					.FontSize(11).Color(Colors.Gray),
+					.FontSize(12).Color(Theme.TextMuted),
 				new Spacer(),
-				_shot.MachineName != null ? new Text(_shot.MachineName).FontSize(11).Color(Colors.Gray) : null
+				_shot.MachineName != null ? new Text(_shot.MachineName).FontSize(12).Color(Theme.TextMuted) : null
 			}
 		}
-		.Padding(16)
-		.Background(Colors.White)
-		.ClipShape(new RoundedRectangle(12));
+		.Padding(12)
+		.Margin(new Thickness(0, Theme.SpacingXS))
+		.Background(Theme.Surface)
+		.RoundedBorder(radius: Theme.RadiusCard, color: Theme.Outline, strokeSize: 1);
 
 	static Comet.View InfoPill(string label, string value) =>
 		new VStack(spacing: 2)
 		{
-			new Text(label).FontSize(10).Color(Colors.Gray),
-			new Text(value).FontSize(13).FontWeight(FontWeight.Semibold)
+			new Text(label).FontSize(12).Color(Theme.TextMuted),
+			new Text(value).FontSize(14).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary)
 		};
 }

@@ -78,18 +78,18 @@ public class ProfileFormPage : Comet.View
 
 		return new ScrollView
 		{
-			new VStack(spacing: 12)
+			new VStack(spacing: Theme.SpacingS)
 			{
-				FormHelpers.SectionHeader(isEdit ? "Edit Profile" : "New Profile"),
+				FormHelpers.SectionHeader(isEdit ? "EDIT PROFILE" : "NEW PROFILE"),
 
 				FormHelpers.FormEntry("Name *", _name, "Profile name"),
 
 				!string.IsNullOrEmpty(_error.Value)
-					? new Text(_error.Value).Color(Colors.Red).FontSize(13)
+					? new Text(_error.Value).Color(Theme.Error).FontSize(14)
 					: null,
 
-				new Button(isEdit ? "Save Changes" : "Create Profile", Save),
-			}.Padding(16)
-		};
+				FormHelpers.PrimaryButton(isEdit ? "Save Changes" : "Create Profile", Save),
+			}.Padding(Theme.SpacingM)
+		}.Background(Theme.Background);
 	}
 }
