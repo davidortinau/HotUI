@@ -85,13 +85,13 @@ namespace Comet.Converters
 		/// Format int as currency
 		/// </summary>
 		public static string FormatCurrency(int value, string currencySymbol = "$")
-			=> $"{currencySymbol}{value:N0}";
+			=> $"{currencySymbol}{value.ToString("N0", CultureInfo.InvariantCulture)}";
 
 		/// <summary>
 		/// Format decimal as currency
 		/// </summary>
 		public static string FormatCurrency(decimal value, string currencySymbol = "$")
-			=> $"{currencySymbol}{value:N2}";
+			=> $"{currencySymbol}{value.ToString("N2", CultureInfo.InvariantCulture)}";
 
 		/// <summary>
 		/// Format double as percentage
