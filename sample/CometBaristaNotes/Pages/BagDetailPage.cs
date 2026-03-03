@@ -1,12 +1,16 @@
 using Comet;
-using Microsoft.Maui;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
-using Microsoft.Extensions.DependencyInjection;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
-using Button = Comet.Button;
-using ScrollView = Comet.ScrollView;
+
+using MauiLabel = Microsoft.Maui.Controls.Label;
+using MauiBorder = Microsoft.Maui.Controls.Border;
+using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
+using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
+using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
 
 namespace CometBaristaNotes.Pages;
 
@@ -26,20 +30,14 @@ public class BagDetailPage : Comet.View
 
 	public BagDetailPage(int bagId = 0) { _bagId = bagId; }
 
-	IBagService? GetBagService() =>
-		ViewHandler?.MauiContext?.Services.GetService<IBagService>();
-	IRatingService? GetRatingService() =>
-		ViewHandler?.MauiContext?.Services.GetService<IRatingService>();
-
 	void LoadBag()
 	{
 		if (_bagId <= 0) { _isLoaded.Value = true; return; }
 
-		var svc = GetBagService();
-		var ratingSvc = GetRatingService();
-		if (svc == null) return;
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
 
-		var bag = svc.GetBag(_bagId);
+		var bag = store.GetBag(_bagId);
 		if (bag == null) { _error.Value = "Bag not found"; _isLoaded.Value = true; return; }
 
 		_beanName.Value = bag.BeanName ?? "";
@@ -48,8 +46,7 @@ public class BagDetailPage : Comet.View
 		_notes.Value = bag.Notes ?? "";
 		_isComplete.Value = bag.IsComplete;
 		_shotCount.Value = bag.ShotCount;
-
-		if (ratingSvc != null) _rating.Value = ratingSvc.GetBagRating(_bagId);
+		_rating.Value = store.GetBagRating(_bagId);
 
 		_isLoaded.Value = true;
 	}
@@ -57,12 +54,12 @@ public class BagDetailPage : Comet.View
 	void Save()
 	{
 		_error.Value = "";
-		var svc = GetBagService();
-		if (svc == null) return;
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
 
 		if (_bagId > 0)
 		{
-			svc.UpdateBag(new Bag
+			store.UpdateBag(new Bag
 			{
 				Id = _bagId,
 				BeanId = _beanId.Value,
@@ -75,32 +72,6 @@ public class BagDetailPage : Comet.View
 		Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
 	}
 
-	void ToggleComplete()
-	{
-		if (_bagId <= 0) return;
-		var svc = GetBagService();
-		if (svc == null) return;
-
-		if (!_isComplete.Value)
-		{
-			svc.MarkComplete(_bagId);
-			_isComplete.Value = true;
-		}
-		else
-		{
-			svc.UpdateBag(new Bag
-			{
-				Id = _bagId,
-				BeanId = _beanId.Value,
-				RoastDate = DateTime.TryParse(_roastDate.Value, out var d) ? d : DateTime.Now,
-				Notes = string.IsNullOrWhiteSpace(_notes.Value) ? null : _notes.Value,
-				IsComplete = false,
-				IsActive = true
-			});
-			_isComplete.Value = false;
-		}
-	}
-
 	[Body]
 	Comet.View body()
 	{
@@ -108,45 +79,52 @@ public class BagDetailPage : Comet.View
 			LoadBag();
 
 		if (_bagId <= 0)
-			return new VStack { new Text("Bag not found").Color(Theme.TextSecondary) }
-				.Padding(Theme.SpacingM).Background(Theme.Background);
-
-		return new ScrollView
 		{
-			new VStack(spacing: Theme.SpacingS)
+			var errorStack = new VerticalStackLayout
 			{
-				FormHelpers.SectionHeader("BAG DETAILS"),
+				Padding = new Thickness(Theme.SpacingM),
+				BackgroundColor = Theme.Background,
+			};
+			errorStack.Add(new MauiLabel { Text = "Bag not found", TextColor = Theme.TextSecondary });
+			return new MauiViewHost(errorStack);
+		}
 
-				FormHelpers.ReadOnlyField("Bean", _beanName.Value),
-				FormHelpers.ReadOnlyField("Roast Date", _roastDate.Value),
+		var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, Padding = new Thickness(Theme.SpacingM) };
 
-				FormHelpers.FormEntry("Notes", _notes, "Bag notes"),
+		stack.Add(FormHelpers.MakeSectionHeader("BAG DETAILS"));
+		stack.Add(FormHelpers.MakeReadOnlyField("Bean", _beanName.Value));
+		stack.Add(FormHelpers.MakeReadOnlyField("Roast Date", _roastDate.Value));
+		stack.Add(FormHelpers.MakeFormEntry("Notes", _notes.Value, "Bag notes", v => _notes.Value = v));
 
-				// Shot count
-				new VStack(spacing: 4)
-				{
-					new Text("Shots Logged").FontSize(14).Color(Theme.TextSecondary),
-					new Text($"{_shotCount.Value}").FontSize(20).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary),
-				}.Padding(Theme.SpacingM).Background(Theme.SurfaceVariant).ClipShape(new RoundedRectangle(Theme.RadiusPill)),
+		// Shot count card
+		var shotCountStack = new HorizontalStackLayout();
+		var shotInfoStack = new VerticalStackLayout { Spacing = 2 };
+		shotInfoStack.Add(new MauiLabel { Text = "Shots Logged", FontSize = 14, TextColor = Theme.TextSecondary });
+		shotInfoStack.Add(new MauiLabel { Text = $"{_shotCount.Value}", FontSize = 24, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		shotCountStack.Add(shotInfoStack);
+		stack.Add(FormHelpers.MakeCard(shotCountStack));
 
-				// Status toggle
-				new HStack(spacing: Theme.SpacingS)
-				{
-					new Text(_isComplete.Value ? "Status: Complete" : "Status: Active")
-						.FontSize(14).FontWeight(FontWeight.Semibold).Color(Theme.TextPrimary),
-					new Spacer(),
-					new Toggle(_isComplete),
-				}.Padding(Theme.SpacingM).Background(Theme.SurfaceVariant).ClipShape(new RoundedRectangle(Theme.RadiusPill)),
+		// Status toggle card
+		stack.Add(FormHelpers.MakeToggleRow(
+			_isComplete.Value ? "Status: Complete" : "Status: Active",
+			_isComplete.Value,
+			v => _isComplete.Value = v
+		));
 
-				!string.IsNullOrEmpty(_error.Value)
-					? new Text(_error.Value).Color(Theme.Error).FontSize(14)
-					: null,
+		if (!string.IsNullOrEmpty(_error.Value))
+			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontSize = 14 });
 
-				FormHelpers.PrimaryButton("Save Changes", Save),
+		stack.Add(FormHelpers.MakePrimaryButton("Save Changes", Save));
 
-				FormHelpers.SectionHeader("RATINGS"),
-				new RatingDisplay(_rating.Value),
-			}.Padding(Theme.SpacingM)
-		}.Background(Theme.Background);
+		stack.Add(FormHelpers.MakeSectionHeader("RATINGS"));
+		stack.Add(RatingDisplayFactory.Create(_rating.Value));
+
+		var scrollView = new MauiScrollView
+		{
+			Content = stack,
+			BackgroundColor = Theme.Background,
+		};
+
+		return new MauiViewHost(scrollView);
 	}
 }

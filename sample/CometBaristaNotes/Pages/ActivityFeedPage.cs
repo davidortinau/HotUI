@@ -1,9 +1,14 @@
 using Comet;
-using Microsoft.Maui;
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
+
+using MauiLabel = Microsoft.Maui.Controls.Label;
+using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
+using MauiBoxView = Microsoft.Maui.Controls.BoxView;
+using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
 
 namespace CometBaristaNotes.Pages;
 
@@ -24,25 +29,47 @@ public class ActivityFeedPage : Comet.View
 
 		if (shots.Count == 0 && !_isLoading.Value)
 		{
-			return FormHelpers.EmptyState("☕", "No Shots Yet",
-				"Log your first espresso shot to see it here.")
-				.Background(Theme.Background);
+			var emptyStack = new VerticalStackLayout
+			{
+				BackgroundColor = Theme.Background,
+				VerticalOptions = LayoutOptions.Fill,
+				HorizontalOptions = LayoutOptions.Fill,
+			};
+			emptyStack.Add(FormHelpers.MakeEmptyState("☕", "No Shots Yet", "Log your first espresso shot to see it here."));
+			return new MauiViewHost(emptyStack);
 		}
 
-		return new Comet.ScrollView
+		var contentStack = new VerticalStackLayout { Spacing = 0 };
+
+		// Spacer
+		contentStack.Add(new MauiBoxView { HeightRequest = 20, BackgroundColor = Colors.Transparent });
+
+		// Shot count header
+		contentStack.Add(new MauiLabel
 		{
-			new VStack(spacing: Theme.SpacingS)
+			Text = $"{shots.Count} shots logged",
+			FontSize = 14,
+			FontAttributes = MauiFontAttributes.Bold,
+			TextColor = Theme.TextSecondary,
+			Margin = new Thickness(Theme.SpacingM, Theme.SpacingS),
+		});
+
+		// Shot cards
+		foreach (var shot in shots)
+		{
+			contentStack.Add(ShotRecordCardFactory.Create(shot, () =>
 			{
-				new Text($"{shots.Count} shots")
-					.FontSize(14).FontWeight(FontWeight.Semibold).Color(Theme.TextSecondary)
-					.Padding(new Thickness(0, Theme.SpacingS, 0, 0)),
-				shots.Select(shot =>
-					new ShotRecordCard(shot, () =>
-					{
-					}) as Comet.View
-				).ToArray()
-			}.Padding(Theme.SpacingM)
-		}.Background(Theme.Background);
+				// Could navigate to shot detail
+			}));
+		}
+
+		var scrollView = new MauiScrollView
+		{
+			Content = contentStack,
+			BackgroundColor = Theme.Background,
+		};
+
+		return new MauiViewHost(scrollView);
 	}
 
 	void LoadShots()

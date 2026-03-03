@@ -1,35 +1,45 @@
-using Comet;
-using Microsoft.Maui;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using CometBaristaNotes.Models;
 
+using MauiLabel = Microsoft.Maui.Controls.Label;
+using MauiBorder = Microsoft.Maui.Controls.Border;
+using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
+using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
+
 namespace CometBaristaNotes.Components;
 
-public class RatingDisplay : Comet.View
+/// <summary>
+/// Factory for creating rating display using native MAUI controls.
+/// </summary>
+public static class RatingDisplayFactory
 {
-	readonly RatingAggregate _rating;
-
-	public RatingDisplay(RatingAggregate rating)
+	public static Microsoft.Maui.Controls.View Create(RatingAggregate rating)
 	{
-		_rating = rating;
+		var stack = new HorizontalStackLayout { Spacing = 12 };
+
+		stack.Add(MakeStatBlock("Avg", rating.RatedShots > 0 ? $"{rating.AverageRating:F1}" : "—"));
+		stack.Add(MakeStatBlock("Shots", $"{rating.TotalShots}"));
+		stack.Add(MakeStatBlock("Best", rating.BestRating?.ToString() ?? "—"));
+		stack.Add(MakeStatBlock("Worst", rating.WorstRating?.ToString() ?? "—"));
+
+		return new MauiBorder
+		{
+			Content = stack,
+			BackgroundColor = Theme.CardBackground,
+			Stroke = new SolidColorBrush(Theme.CardStroke),
+			StrokeThickness = 1,
+			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
+			Padding = new Thickness(Theme.SpacingM),
+		};
 	}
 
-	[Body]
-	Comet.View body() =>
-		new HStack(spacing: 16)
-		{
-			StatBlock("Avg", _rating.RatedShots > 0 ? $"{_rating.AverageRating:F1}" : "—"),
-			StatBlock("Shots", $"{_rating.TotalShots}"),
-			StatBlock("Best", _rating.BestRating?.ToString() ?? "—"),
-			StatBlock("Worst", _rating.WorstRating?.ToString() ?? "—"),
-		}.Padding(12)
-		 .Background(Theme.Surface)
-		 .RoundedBorder(radius: Theme.RadiusCard, color: Theme.Outline, strokeSize: 1);
-
-	static Comet.View StatBlock(string label, string value) =>
-		new VStack(spacing: 2)
-		{
-			new Text(value).FontSize(20).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary),
-			new Text(label).FontSize(12).Color(Theme.TextMuted)
-		};
+	static Microsoft.Maui.Controls.View MakeStatBlock(string label, string value)
+	{
+		var stack = new VerticalStackLayout { Spacing = 2 };
+		stack.Add(new MauiLabel { Text = value, FontSize = 20, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		stack.Add(new MauiLabel { Text = label, FontSize = 12, TextColor = Theme.TextMuted });
+		return stack;
+	}
 }

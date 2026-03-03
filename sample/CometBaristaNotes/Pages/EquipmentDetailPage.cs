@@ -1,13 +1,12 @@
 using Comet;
-using Microsoft.Maui;
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
-using Microsoft.Extensions.DependencyInjection;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
-using Button = Comet.Button;
-using ScrollView = Comet.ScrollView;
-using Picker = Comet.Picker;
+
+using MauiLabel = Microsoft.Maui.Controls.Label;
+using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
 
 namespace CometBaristaNotes.Pages;
 
@@ -27,17 +26,14 @@ public class EquipmentDetailPage : Comet.View
 
 	public EquipmentDetailPage(int equipmentId = 0) { _equipmentId = equipmentId; }
 
-	IEquipmentService? GetEquipmentService() =>
-		ViewHandler?.MauiContext?.Services.GetService<IEquipmentService>();
-
 	void LoadEquipment()
 	{
 		if (_equipmentId <= 0) { _isLoaded.Value = true; return; }
 
-		var svc = GetEquipmentService();
-		if (svc == null) return;
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
 
-		var eq = svc.GetEquipment(_equipmentId);
+		var eq = store.GetEquipment(_equipmentId);
 		if (eq == null) { _error.Value = "Equipment not found"; _isLoaded.Value = true; return; }
 
 		_name.Value = eq.Name;
@@ -57,15 +53,15 @@ public class EquipmentDetailPage : Comet.View
 		}
 		_error.Value = "";
 
-		var svc = GetEquipmentService();
-		if (svc == null) return;
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
 
 		var typeIdx = _selectedTypeIndex.Value;
 		var eqType = (typeIdx >= 0 && typeIdx < TypeValues.Length) ? TypeValues[typeIdx] : EquipmentType.Machine;
 
 		if (_equipmentId > 0)
 		{
-			svc.UpdateEquipment(new Equipment
+			store.UpdateEquipment(new Equipment
 			{
 				Id = _equipmentId,
 				Name = _name.Value,
@@ -76,7 +72,7 @@ public class EquipmentDetailPage : Comet.View
 		}
 		else
 		{
-			svc.CreateEquipment(new Equipment
+			store.CreateEquipment(new Equipment
 			{
 				Name = _name.Value,
 				Type = eqType,
@@ -90,10 +86,10 @@ public class EquipmentDetailPage : Comet.View
 	void Archive()
 	{
 		if (_equipmentId <= 0) return;
-		var svc = GetEquipmentService();
-		if (svc == null) return;
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
 
-		svc.ArchiveEquipment(_equipmentId);
+		store.ArchiveEquipment(_equipmentId);
 		Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
 	}
 
@@ -105,31 +101,27 @@ public class EquipmentDetailPage : Comet.View
 
 		var isEdit = _equipmentId > 0;
 
-		return new ScrollView
+		var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, Padding = new Thickness(Theme.SpacingM) };
+
+		stack.Add(FormHelpers.MakeSectionHeader(isEdit ? "EDIT EQUIPMENT" : "NEW EQUIPMENT"));
+		stack.Add(FormHelpers.MakeFormEntry("Name *", _name.Value, "Equipment name", v => _name.Value = v));
+		stack.Add(FormHelpers.MakeFormPicker("Type", _selectedTypeIndex.Value, TypeNames, v => _selectedTypeIndex.Value = v));
+		stack.Add(FormHelpers.MakeFormEntry("Notes", _notes.Value, "Additional details", v => _notes.Value = v));
+
+		if (!string.IsNullOrEmpty(_error.Value))
+			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontSize = 14 });
+
+		stack.Add(FormHelpers.MakePrimaryButton(isEdit ? "Save Changes" : "Add Equipment", Save));
+
+		if (isEdit)
+			stack.Add(FormHelpers.MakeDangerButton("Archive Equipment", Archive));
+
+		var scrollView = new MauiScrollView
 		{
-			new VStack(spacing: Theme.SpacingS)
-			{
-				FormHelpers.SectionHeader(isEdit ? "EDIT EQUIPMENT" : "NEW EQUIPMENT"),
+			Content = stack,
+			BackgroundColor = Theme.Background,
+		};
 
-				FormHelpers.FormEntry("Name *", _name, "Equipment name"),
-
-				FormHelpers.FormPicker("Type", _selectedTypeIndex, TypeNames),
-
-				FormHelpers.FormEntry("Notes", _notes, "Additional details"),
-
-				!string.IsNullOrEmpty(_error.Value)
-					? new Text(_error.Value).Color(Theme.Error).FontSize(14)
-					: null,
-
-				FormHelpers.PrimaryButton(isEdit ? "Save Changes" : "Add Equipment", Save),
-
-				isEdit ? new Comet.Button("Archive", Archive)
-					.Frame(height: Theme.ButtonHeight)
-					.Background(Theme.Error)
-					.Color(Colors.White)
-					.FontSize(16).FontWeight(FontWeight.Semibold)
-					.ClipShape(new RoundedRectangle(Theme.RadiusPill)) : null,
-			}.Padding(Theme.SpacingM)
-		}.Background(Theme.Background);
+		return new MauiViewHost(scrollView);
 	}
 }

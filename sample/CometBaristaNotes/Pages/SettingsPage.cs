@@ -1,8 +1,16 @@
 using Comet;
-using Microsoft.Maui;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Components;
+
+using MauiLabel = Microsoft.Maui.Controls.Label;
+using MauiBorder = Microsoft.Maui.Controls.Border;
+using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
+using MauiGrid = Microsoft.Maui.Controls.Grid;
+using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
+using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
 
 namespace CometBaristaNotes.Pages;
 
@@ -11,68 +19,127 @@ public class SettingsPage : Comet.View
 	[State] readonly State<ThemeMode> _themeMode = new(ThemeMode.Auto);
 
 	[Body]
-	Comet.View body() =>
-		new Comet.ScrollView
-		{
-			new VStack(spacing: Theme.SpacingS)
-			{
-				FormHelpers.SectionHeader("APPEARANCE"),
-				new HStack(spacing: Theme.SpacingS)
-				{
-					ThemeButton("☀️", "Light", ThemeMode.Light),
-					ThemeButton("🌙", "Dark", ThemeMode.Dark),
-					ThemeButton("🔄", "Auto", ThemeMode.Auto),
-				},
-
-				FormHelpers.SectionHeader("MANAGE"),
-				SettingsItem("Equipment", "Manage machines & grinders", () =>
-					Microsoft.Maui.Controls.Shell.Current.GoToAsync("equipment")),
-				SettingsItem("Beans", "Manage coffee beans", () =>
-					Microsoft.Maui.Controls.Shell.Current.GoToAsync("beans")),
-				SettingsItem("Profiles", "Manage user profiles", () =>
-					Microsoft.Maui.Controls.Shell.Current.GoToAsync("profiles")),
-
-				FormHelpers.SectionHeader("ABOUT"),
-				FormHelpers.Card(
-					new VStack(spacing: 4)
-					{
-						new Text("Barista Notes").FontSize(18).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary),
-						new Text("v1.0 • Comet MVU Edition").FontSize(14).Color(Theme.TextSecondary),
-						new Text("Track and perfect your espresso shots.")
-							.FontSize(14).Color(Theme.TextSecondary)
-							.Padding(new Thickness(0, Theme.SpacingS, 0, 0)),
-					}
-				),
-			}.Padding(Theme.SpacingM)
-		}.Background(Theme.Background);
-
-	Comet.View ThemeButton(string icon, string label, ThemeMode mode)
+	Comet.View body()
 	{
-		var isSelected = _themeMode.Value == mode;
-		return new VStack(spacing: 4)
+		var stack = new VerticalStackLayout { Spacing = Theme.SpacingM, Padding = new Thickness(Theme.SpacingM) };
+
+		// Appearance section
+		stack.Add(FormHelpers.MakeSectionHeader("APPEARANCE"));
+		stack.Add(BuildAppearanceButtons());
+
+		// Manage section
+		stack.Add(FormHelpers.MakeSectionHeader("MANAGE"));
+		stack.Add(BuildManageItem("Equipment", "Manage machines, grinders", () =>
+			Microsoft.Maui.Controls.Shell.Current.GoToAsync("equipment")));
+		stack.Add(BuildManageItem("Beans", "Manage coffee beans", () =>
+			Microsoft.Maui.Controls.Shell.Current.GoToAsync("beans")));
+		stack.Add(BuildManageItem("User Profiles", "Manage household members", () =>
+			Microsoft.Maui.Controls.Shell.Current.GoToAsync("profiles")));
+
+		// About section
+		stack.Add(FormHelpers.MakeSectionHeader("ABOUT"));
+		stack.Add(BuildAboutCard());
+
+		var scrollView = new MauiScrollView
 		{
-			new Text(icon).FontSize(24),
-			new Text(label).FontSize(12).Color(isSelected ? Theme.Primary : Theme.TextSecondary)
-		}
-		.Frame(width: 80, height: 64)
-		.Background(isSelected ? Theme.Primary.WithAlpha(0.15f) : Theme.SurfaceVariant)
-		.ClipShape(new RoundedRectangle(Theme.RadiusCard))
-		.OnTap(_ => _themeMode.Value = mode);
+			Content = stack,
+			BackgroundColor = Theme.Background,
+		};
+
+		return new MauiViewHost(scrollView);
 	}
 
-	Comet.View SettingsItem(string title, string description, Action onTap) =>
-		new HStack
+	Microsoft.Maui.Controls.View BuildAppearanceButtons()
+	{
+		var hStack = new HorizontalStackLayout { Spacing = Theme.SpacingS };
+		hStack.Add(BuildThemeButton("☀️", "Light", ThemeMode.Light));
+		hStack.Add(BuildThemeButton("🌙", "Dark", ThemeMode.Dark));
+		hStack.Add(BuildThemeButton("⚙️", "Auto", ThemeMode.Auto));
+		return hStack;
+	}
+
+	Microsoft.Maui.Controls.View BuildThemeButton(string icon, string label, ThemeMode mode)
+	{
+		var isSelected = _themeMode.Value == mode;
+
+		var contentStack = new VerticalStackLayout
 		{
-			new VStack(spacing: 2)
+			Spacing = 4,
+			HorizontalOptions = LayoutOptions.Center,
+			VerticalOptions = LayoutOptions.Center,
+		};
+		contentStack.Add(new MauiLabel { Text = icon, FontSize = 24, HorizontalTextAlignment = TextAlignment.Center });
+		contentStack.Add(new MauiLabel { Text = label, FontSize = 12, TextColor = isSelected ? Theme.Primary : Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
+
+		var border = new MauiBorder
+		{
+			Content = contentStack,
+			BackgroundColor = isSelected ? Theme.Primary.WithAlpha(0.15f) : Theme.CardBackground,
+			Stroke = new SolidColorBrush(isSelected ? Theme.Primary : Theme.CardStroke),
+			StrokeThickness = 1,
+			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
+			HeightRequest = 64,
+			WidthRequest = 100,
+			Padding = new Thickness(8),
+		};
+
+		var tap = new TapGestureRecognizer();
+		tap.Tapped += (s, e) => _themeMode.Value = mode;
+		border.GestureRecognizers.Add(tap);
+
+		return border;
+	}
+
+	Microsoft.Maui.Controls.View BuildManageItem(string title, string description, Action onTap)
+	{
+		var grid = new MauiGrid
+		{
+			ColumnDefinitions =
 			{
-				new Text(title).FontSize(16).FontWeight(FontWeight.Semibold).Color(Theme.TextPrimary),
-				new Text(description).FontSize(14).Color(Theme.TextSecondary),
+				new ColumnDefinition(GridLength.Star),
+				new ColumnDefinition(GridLength.Auto),
 			},
-			new Spacer(),
-			new Text("›").FontSize(20).Color(Theme.TextMuted)
-		}
-		.Padding(Theme.SpacingM)
-		.Background(Theme.Surface)
-		.RoundedBorder(radius: Theme.RadiusCard, color: Theme.Outline, strokeSize: 1)
-		.OnTap(_ => onTap());
+		};
+
+		var infoStack = new VerticalStackLayout { Spacing = 2 };
+		infoStack.Add(new MauiLabel { Text = title, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		infoStack.Add(new MauiLabel { Text = description, FontSize = 14, TextColor = Theme.TextSecondary });
+		grid.Add(infoStack, 0, 0);
+
+		grid.Add(new MauiLabel { Text = "›", FontSize = 22, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center, Padding = new Thickness(Theme.SpacingS, 0) }, 1, 0);
+
+		var border = new MauiBorder
+		{
+			Content = grid,
+			BackgroundColor = Theme.CardBackground,
+			Stroke = new SolidColorBrush(Theme.CardStroke),
+			StrokeThickness = 1,
+			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
+			Padding = new Thickness(Theme.SpacingM),
+		};
+
+		var tap = new TapGestureRecognizer();
+		tap.Tapped += (s, e) => onTap();
+		border.GestureRecognizers.Add(tap);
+
+		return border;
+	}
+
+	Microsoft.Maui.Controls.View BuildAboutCard()
+	{
+		var stack = new VerticalStackLayout { Spacing = Theme.SpacingXS };
+		stack.Add(new MauiLabel { Text = "BaristaNotes", FontSize = 18, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		stack.Add(new MauiLabel { Text = "Version 1.0", FontSize = 14, TextColor = Theme.TextSecondary });
+		stack.Add(new MauiLabel { Text = "Track your espresso journey", FontSize = 14, TextColor = Theme.TextSecondary, Margin = new Thickness(0, Theme.SpacingXS, 0, 0) });
+
+		return new MauiBorder
+		{
+			Content = stack,
+			BackgroundColor = Theme.CardBackground,
+			Stroke = new SolidColorBrush(Theme.CardStroke),
+			StrokeThickness = 1,
+			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
+			Padding = new Thickness(Theme.SpacingM),
+		};
+	}
 }

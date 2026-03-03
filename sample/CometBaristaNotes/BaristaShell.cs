@@ -1,6 +1,8 @@
 using CometBaristaNotes.Pages;
 using CometBaristaNotes.Components;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.PlatformConfiguration;
+using Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;
 using MauiPage = Microsoft.Maui.Controls.ContentPage;
 using MauiShell = Microsoft.Maui.Controls.Shell;
 
@@ -26,8 +28,8 @@ public class BaristaShell : MauiShell
 
 		tabBar.Items.Add(new Microsoft.Maui.Controls.ShellContent
 		{
-			Title = "Activity",
-			ContentTemplate = new DataTemplate(() => MakeCometPage(new ActivityFeedPage(), "Activity")),
+			Title = "Shot History",
+			ContentTemplate = new DataTemplate(() => MakeCometPage(new ActivityFeedPage(), "Shot History")),
 			Route = "activity"
 		});
 
@@ -57,6 +59,9 @@ public class BaristaShell : MauiShell
 			Title = title,
 			BackgroundColor = Theme.Background,
 		};
+
+		// Configure iOS-specific large title display
+		page.On<iOS>().SetLargeTitleDisplay(LargeTitleDisplayMode.Always);
 
 		var container = new Microsoft.Maui.Controls.ContentView
 		{
@@ -113,7 +118,11 @@ public class BeanDetailShellPage : MauiPage
 	Comet.View? _cometView;
 	bool _embedded;
 
-	public BeanDetailShellPage() { Content = _container; }
+	public BeanDetailShellPage()
+	{
+		Content = _container;
+		BackgroundColor = Theme.Background;
+	}
 
 	public string BeanId
 	{
@@ -124,7 +133,7 @@ public class BeanDetailShellPage : MauiPage
 	void LoadPage()
 	{
 		if (!int.TryParse(_beanId, out var id)) return;
-		Title = "Bean Detail";
+		Title = id > 0 ? "Edit Bean" : "New Bean";
 		_cometView?.Dispose();
 		_cometView = new BeanDetailPage(id);
 		_embedded = false;
@@ -149,7 +158,11 @@ public class BagDetailShellPage : MauiPage
 	Comet.View? _cometView;
 	bool _embedded;
 
-	public BagDetailShellPage() { Content = _container; }
+	public BagDetailShellPage()
+	{
+		Content = _container;
+		BackgroundColor = Theme.Background;
+	}
 
 	public string BagId
 	{
@@ -160,7 +173,7 @@ public class BagDetailShellPage : MauiPage
 	void LoadPage()
 	{
 		if (!int.TryParse(_bagId, out var id)) return;
-		Title = "Bag Detail";
+		Title = id > 0 ? "Bag Details" : "New Bag";
 		_cometView?.Dispose();
 		_cometView = new BagDetailPage(id);
 		_embedded = false;
@@ -185,7 +198,11 @@ public class EquipmentDetailShellPage : MauiPage
 	Comet.View? _cometView;
 	bool _embedded;
 
-	public EquipmentDetailShellPage() { Content = _container; }
+	public EquipmentDetailShellPage()
+	{
+		Content = _container;
+		BackgroundColor = Theme.Background;
+	}
 
 	public string EquipmentId
 	{
@@ -196,7 +213,7 @@ public class EquipmentDetailShellPage : MauiPage
 	void LoadPage()
 	{
 		if (!int.TryParse(_equipmentId, out var id)) return;
-		Title = "Equipment Detail";
+		Title = id > 0 ? "Edit Equipment" : "New Equipment";
 		_cometView?.Dispose();
 		_cometView = new EquipmentDetailPage(id);
 		_embedded = false;
@@ -219,7 +236,12 @@ public class BeanManagementShellPage : MauiPage
 	Comet.View _cometView = new BeanManagementPage();
 	bool _embedded;
 
-	public BeanManagementShellPage() { Title = "Beans"; Content = _container; }
+	public BeanManagementShellPage()
+	{
+		Title = "Beans";
+		Content = _container;
+		BackgroundColor = Theme.Background;
+	}
 
 	void TryEmbed()
 	{
@@ -237,7 +259,12 @@ public class EquipmentManagementShellPage : MauiPage
 	Comet.View _cometView = new EquipmentManagementPage();
 	bool _embedded;
 
-	public EquipmentManagementShellPage() { Title = "Equipment"; Content = _container; }
+	public EquipmentManagementShellPage()
+	{
+		Title = "Equipment";
+		Content = _container;
+		BackgroundColor = Theme.Background;
+	}
 
 	void TryEmbed()
 	{
@@ -255,7 +282,12 @@ public class UserProfileManagementShellPage : MauiPage
 	Comet.View _cometView = new UserProfileManagementPage();
 	bool _embedded;
 
-	public UserProfileManagementShellPage() { Title = "Profiles"; Content = _container; }
+	public UserProfileManagementShellPage()
+	{
+		Title = "User Profiles";
+		Content = _container;
+		BackgroundColor = Theme.Background;
+	}
 
 	void TryEmbed()
 	{
@@ -275,7 +307,11 @@ public class ProfileFormShellPage : MauiPage
 	Comet.View? _cometView;
 	bool _embedded;
 
-	public ProfileFormShellPage() { Content = _container; }
+	public ProfileFormShellPage()
+	{
+		Content = _container;
+		BackgroundColor = Theme.Background;
+	}
 
 	public string ProfileId
 	{

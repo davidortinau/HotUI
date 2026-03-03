@@ -1,12 +1,12 @@
 using Comet;
-using Microsoft.Maui;
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
-using Microsoft.Extensions.DependencyInjection;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
-using Button = Comet.Button;
-using ScrollView = Comet.ScrollView;
+
+using MauiLabel = Microsoft.Maui.Controls.Label;
+using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
 
 namespace CometBaristaNotes.Pages;
 
@@ -22,17 +22,12 @@ public class BagFormPage : Comet.View
 
 	public BagFormPage(int beanId = 0) { _beanId = beanId; }
 
-	IBagService? GetBagService() =>
-		ViewHandler?.MauiContext?.Services.GetService<IBagService>();
-	IBeanService? GetBeanService() =>
-		ViewHandler?.MauiContext?.Services.GetService<IBeanService>();
-
 	void LoadBeanName()
 	{
-		var svc = GetBeanService();
-		if (svc != null)
+		var store = InMemoryDataStore.Instance;
+		if (store != null)
 		{
-			var bean = svc.GetBean(_beanId);
+			var bean = store.GetBean(_beanId);
 			_beanName.Value = bean?.Name ?? "Unknown Bean";
 		}
 		_isLoaded.Value = true;
@@ -54,10 +49,10 @@ public class BagFormPage : Comet.View
 
 		_error.Value = "";
 
-		var svc = GetBagService();
-		if (svc == null) return;
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
 
-		svc.CreateBag(new Bag
+		store.CreateBag(new Bag
 		{
 			BeanId = _beanId,
 			RoastDate = roastDate,
@@ -73,23 +68,24 @@ public class BagFormPage : Comet.View
 		if (!_isLoaded.Value)
 			LoadBeanName();
 
-		return new ScrollView
+		var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, Padding = new Thickness(Theme.SpacingM) };
+
+		stack.Add(FormHelpers.MakeSectionHeader("ADD BAG"));
+		stack.Add(FormHelpers.MakeReadOnlyField("Bean", _beanName.Value));
+		stack.Add(FormHelpers.MakeFormEntry("Roast Date", _roastDate.Value, "yyyy-MM-dd", v => _roastDate.Value = v));
+		stack.Add(FormHelpers.MakeFormEntry("Notes (optional)", _notes.Value, "e.g., From Trader Joe's, Gift from friend", v => _notes.Value = v));
+
+		if (!string.IsNullOrEmpty(_error.Value))
+			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontSize = 14 });
+
+		stack.Add(FormHelpers.MakePrimaryButton("Add Bag", Save));
+
+		var scrollView = new MauiScrollView
 		{
-			new VStack(spacing: Theme.SpacingS)
-			{
-				FormHelpers.SectionHeader($"ADD BAG FOR {_beanName.Value.ToUpperInvariant()}"),
+			Content = stack,
+			BackgroundColor = Theme.Background,
+		};
 
-				FormHelpers.ReadOnlyField("Bean", _beanName.Value),
-
-				FormHelpers.FormEntry("Roast Date", _roastDate, "yyyy-MM-dd"),
-				FormHelpers.FormEntry("Notes (optional)", _notes, "e.g., From Trader Joe's, Gift from friend"),
-
-				!string.IsNullOrEmpty(_error.Value)
-					? new Text(_error.Value).Color(Theme.Error).FontSize(14)
-					: null,
-
-				FormHelpers.PrimaryButton("Add Bag", Save),
-			}.Padding(Theme.SpacingM)
-		}.Background(Theme.Background);
+		return new MauiViewHost(scrollView);
 	}
 }

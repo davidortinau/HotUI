@@ -1,12 +1,12 @@
 using Comet;
-using Microsoft.Maui;
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
-using Microsoft.Extensions.DependencyInjection;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
-using Button = Comet.Button;
-using ScrollView = Comet.ScrollView;
+
+using MauiLabel = Microsoft.Maui.Controls.Label;
+using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
 
 namespace CometBaristaNotes.Pages;
 
@@ -20,17 +20,14 @@ public class ProfileFormPage : Comet.View
 
 	public ProfileFormPage(int profileId = 0) { _profileId = profileId; }
 
-	IUserProfileService? GetProfileService() =>
-		ViewHandler?.MauiContext?.Services.GetService<IUserProfileService>();
-
 	void LoadProfile()
 	{
 		if (_profileId <= 0) { _isLoaded.Value = true; return; }
 
-		var svc = GetProfileService();
-		if (svc == null) return;
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
 
-		var profile = svc.GetProfile(_profileId);
+		var profile = store.GetProfile(_profileId);
 		if (profile != null)
 			_name.Value = profile.Name;
 
@@ -46,12 +43,12 @@ public class ProfileFormPage : Comet.View
 		}
 		_error.Value = "";
 
-		var svc = GetProfileService();
-		if (svc == null) return;
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
 
 		if (_profileId > 0)
 		{
-			svc.UpdateProfile(new UserProfile
+			store.UpdateProfile(new UserProfile
 			{
 				Id = _profileId,
 				Name = _name.Value,
@@ -59,12 +56,22 @@ public class ProfileFormPage : Comet.View
 		}
 		else
 		{
-			svc.CreateProfile(new UserProfile
+			store.CreateProfile(new UserProfile
 			{
 				Name = _name.Value,
 			});
 		}
 
+		Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+	}
+
+	void Delete()
+	{
+		if (_profileId <= 0) return;
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
+
+		store.DeleteProfile(_profileId);
 		Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
 	}
 
@@ -76,20 +83,25 @@ public class ProfileFormPage : Comet.View
 
 		var isEdit = _profileId > 0;
 
-		return new ScrollView
+		var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, Padding = new Thickness(Theme.SpacingM) };
+
+		stack.Add(FormHelpers.MakeSectionHeader(isEdit ? "EDIT PROFILE" : "NEW PROFILE"));
+		stack.Add(FormHelpers.MakeFormEntry("Name *", _name.Value, "Profile name", v => _name.Value = v));
+
+		if (!string.IsNullOrEmpty(_error.Value))
+			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontSize = 14 });
+
+		stack.Add(FormHelpers.MakePrimaryButton(isEdit ? "Save Changes" : "Create Profile", Save));
+
+		if (isEdit)
+			stack.Add(FormHelpers.MakeDangerButton("Delete Profile", Delete));
+
+		var scrollView = new MauiScrollView
 		{
-			new VStack(spacing: Theme.SpacingS)
-			{
-				FormHelpers.SectionHeader(isEdit ? "EDIT PROFILE" : "NEW PROFILE"),
+			Content = stack,
+			BackgroundColor = Theme.Background,
+		};
 
-				FormHelpers.FormEntry("Name *", _name, "Profile name"),
-
-				!string.IsNullOrEmpty(_error.Value)
-					? new Text(_error.Value).Color(Theme.Error).FontSize(14)
-					: null,
-
-				FormHelpers.PrimaryButton(isEdit ? "Save Changes" : "Create Profile", Save),
-			}.Padding(Theme.SpacingM)
-		}.Background(Theme.Background);
+		return new MauiViewHost(scrollView);
 	}
 }

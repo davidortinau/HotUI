@@ -1,12 +1,12 @@
 using Comet;
-using Microsoft.Maui;
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
-using Microsoft.Extensions.DependencyInjection;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
-using Button = Comet.Button;
-using ScrollView = Comet.ScrollView;
+
+using MauiLabel = Microsoft.Maui.Controls.Label;
+using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
 
 namespace CometBaristaNotes.Pages;
 
@@ -15,14 +15,11 @@ public class BeanManagementPage : Comet.View
 	[State] readonly State<List<Bean>> _beans = new(new());
 	[State] readonly State<bool> _isLoaded = new(false);
 
-	IBeanService? GetBeanService() =>
-		ViewHandler?.MauiContext?.Services.GetService<IBeanService>();
-
 	void LoadBeans()
 	{
-		var svc = GetBeanService();
-		if (svc == null) return;
-		_beans.Value = svc.GetAllBeans();
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
+		_beans.Value = store.GetAllBeans();
 		_isLoaded.Value = true;
 	}
 
@@ -33,43 +30,47 @@ public class BeanManagementPage : Comet.View
 			LoadBeans();
 
 		var beans = _beans.Value;
-		if (beans.Count == 0)
-			return new VStack(spacing: Theme.SpacingM)
-			{
-				FormHelpers.EmptyState("☕", "No Beans Yet",
-					"Add your favorite coffee beans to track freshness and tasting notes"),
-				FormHelpers.PrimaryButton("+ Add Bean", () =>
-				{
-					Microsoft.Maui.Controls.Shell.Current.GoToAsync("bean-detail?id=0");
-				})
-			}.Padding(Theme.SpacingL).Background(Theme.Background);
 
-		return new ScrollView
+		if (beans.Count == 0)
 		{
-			new VStack(spacing: Theme.SpacingS)
+			var emptyStack = new VerticalStackLayout
 			{
-				FormHelpers.PrimaryButton("+ Add Bean", () =>
-				{
-					Microsoft.Maui.Controls.Shell.Current.GoToAsync("bean-detail?id=0");
-				}),
-				beans.Select(bean =>
-					FormHelpers.Card(
-						new VStack(spacing: 4)
-						{
-							new Text(bean.Name).FontSize(16).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary),
-							bean.Roaster != null
-								? new Text(bean.Roaster).FontSize(14).Color(Theme.TextSecondary)
-								: null,
-							bean.Origin != null
-								? new Text(bean.Origin).FontSize(12).Color(Theme.TextMuted)
-								: null,
-						}
-					).OnTap(_ =>
-					{
-						Microsoft.Maui.Controls.Shell.Current.GoToAsync($"bean-detail?id={bean.Id}");
-					})
-				).ToArray()
-			}.Padding(Theme.SpacingM)
-		}.Background(Theme.Background);
+				Spacing = Theme.SpacingM,
+				Padding = new Thickness(Theme.SpacingL),
+				BackgroundColor = Theme.Background,
+				VerticalOptions = LayoutOptions.Fill,
+			};
+			emptyStack.Add(FormHelpers.MakeEmptyState("☕", "No Beans Yet", "Add your favorite coffee beans to track freshness and tasting notes"));
+			emptyStack.Add(FormHelpers.MakePrimaryButton("+ Add Bean", () =>
+			{
+				Microsoft.Maui.Controls.Shell.Current.GoToAsync("bean-detail?id=0");
+			}));
+			return new MauiViewHost(emptyStack);
+		}
+
+		var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, Padding = new Thickness(Theme.SpacingM) };
+
+		stack.Add(FormHelpers.MakePrimaryButton("+ Add Bean", () =>
+		{
+			Microsoft.Maui.Controls.Shell.Current.GoToAsync("bean-detail?id=0");
+		}));
+
+		foreach (var bean in beans)
+		{
+			stack.Add(FormHelpers.MakeListCard(
+				bean.Name,
+				bean.Roaster,
+				bean.Origin,
+				() => Microsoft.Maui.Controls.Shell.Current.GoToAsync($"bean-detail?id={bean.Id}")
+			));
+		}
+
+		var scrollView = new MauiScrollView
+		{
+			Content = stack,
+			BackgroundColor = Theme.Background,
+		};
+
+		return new MauiViewHost(scrollView);
 	}
 }
