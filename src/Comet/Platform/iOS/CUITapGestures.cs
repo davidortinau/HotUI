@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Linq;
+using Foundation;
+using Microsoft.Maui.Graphics;
 using UIKit;
 namespace Comet.iOS
 {
@@ -83,6 +86,126 @@ namespace Comet.iOS
 				SwipeDirection.Down => UISwipeGestureRecognizerDirection.Down,
 				_ => UISwipeGestureRecognizerDirection.Left
 			};
+		}
+	}
+
+	public class CUIHoverGesture : UIHoverGestureRecognizer
+	{
+		readonly PointerGesture _gesture;
+		readonly WeakReference<View> _viewRef;
+
+		public CUIHoverGesture(PointerGesture gesture, View view) : base(() => { })
+		{
+			_gesture = gesture;
+			_viewRef = new WeakReference<View>(view);
+			gesture.PlatformGesture = this;
+			AddTarget(() =>
+			{
+				if (!_viewRef.TryGetTarget(out var cometView))
+					return;
+				var location = LocationInView(View);
+				var point = new Point(location.X, location.Y);
+				switch (State)
+				{
+					case UIGestureRecognizerState.Began:
+						_gesture.PointerEntered?.Invoke(cometView, point);
+						_gesture.PointerEnteredCommand?.Execute(point);
+						break;
+					case UIGestureRecognizerState.Changed:
+						_gesture.PointerMoved?.Invoke(cometView, point);
+						_gesture.PointerMovedCommand?.Execute(point);
+						break;
+					case UIGestureRecognizerState.Ended:
+					case UIGestureRecognizerState.Cancelled:
+						_gesture.PointerExited?.Invoke(cometView, point);
+						_gesture.PointerExitedCommand?.Execute(point);
+						break;
+				}
+			});
+		}
+	}
+
+	class CUIDragInteractionDelegate : UIDragInteractionDelegate
+	{
+		readonly DragGesture _gesture;
+		readonly WeakReference<View> _viewRef;
+
+		public CUIDragInteractionDelegate(DragGesture gesture, View view)
+		{
+			_gesture = gesture;
+			_viewRef = new WeakReference<View>(view);
+		}
+
+		public override UIDragItem[] GetItemsForBeginningSession(UIDragInteraction interaction, IUIDragSession session)
+		{
+			if (!_gesture.CanDrag)
+				return Array.Empty<UIDragItem>();
+
+			_viewRef.TryGetTarget(out var view);
+			var data = _gesture.DragStarting?.Invoke(view);
+			_gesture.DragStartingCommand?.Execute(_gesture.DragStartingCommandParameter);
+
+			var itemProvider = new NSItemProvider(new NSString(data?.ToString() ?? string.Empty));
+			return new[] { new UIDragItem(itemProvider) };
+		}
+
+		public override void SessionDidEnd(UIDragInteraction interaction, IUIDragSession session, UIDropOperation operation)
+		{
+			_viewRef.TryGetTarget(out var view);
+			_gesture.DropCompleted?.Invoke(view);
+			_gesture.DropCompletedCommand?.Execute(_gesture.DropCompletedCommandParameter);
+		}
+	}
+
+	class CUIDropInteractionDelegate : UIDropInteractionDelegate
+	{
+		readonly DropGesture _gesture;
+		readonly WeakReference<View> _viewRef;
+
+		public CUIDropInteractionDelegate(DropGesture gesture, View view)
+		{
+			_gesture = gesture;
+			_viewRef = new WeakReference<View>(view);
+		}
+
+		public override bool CanHandleSession(UIDropInteraction interaction, IUIDropSession session) => _gesture.AllowDrop;
+
+		public override UIDropProposal SessionDidUpdate(UIDropInteraction interaction, IUIDropSession session)
+		{
+			_viewRef.TryGetTarget(out var view);
+			var accepted = _gesture.DragOver?.Invoke(view, null) ?? true;
+			_gesture.DragOverCommand?.Execute(null);
+			return new UIDropProposal(accepted ? UIDropOperation.Copy : UIDropOperation.Cancel);
+		}
+
+		public override void PerformDrop(UIDropInteraction interaction, IUIDropSession session)
+		{
+			_viewRef.TryGetTarget(out var view);
+			_gesture.Drop?.Invoke(view, null);
+			_gesture.DropCommand?.Execute(_gesture.DropCommandParameter);
+
+			// Attempt to load string data asynchronously from the first drag item
+			var items = session.Items;
+			if (items != null && items.Length > 0)
+			{
+				items[0].ItemProvider.LoadObject(new ObjCRuntime.Class(typeof(NSString)), (data, error) =>
+				{
+					if (data is NSString str)
+					{
+						CoreFoundation.DispatchQueue.MainQueue.DispatchAsync(() =>
+						{
+							_gesture.Drop?.Invoke(view, str.ToString());
+						});
+					}
+				});
+			}
+		}
+
+		public override void SessionDidExit(UIDropInteraction interaction, IUIDropSession session)
+		{
+			_viewRef.TryGetTarget(out var view);
+			_gesture.DragLeave?.Invoke(view);
+			_gesture.DragLeaveCommand?.Execute(null);
 		}
 	}
 }

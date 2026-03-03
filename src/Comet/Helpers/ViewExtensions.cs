@@ -355,5 +355,42 @@ namespace Comet
 			return view;
 		}
 
+		// Lifecycle convenience methods
+		public static T OnLoaded<T>(this T view, Action action) where T : View
+		{
+			view.Loaded += (s, e) => action?.Invoke();
+			return view;
+		}
+
+		public static T OnUnloaded<T>(this T view, Action action) where T : View
+		{
+			view.Unloaded += (s, e) => action?.Invoke();
+			return view;
+		}
+
+		public static T OnAppearing<T>(this T view, Action action) where T : View
+		{
+			view.Appearing += (s, e) => action?.Invoke();
+			return view;
+		}
+
+		public static T OnDisappearing<T>(this T view, Action action) where T : View
+		{
+			view.Disappearing += (s, e) => action?.Invoke();
+			return view;
+		}
+
+		public static T OnHandlerChanged<T>(this T view, Action action) where T : View
+		{
+			view.HandlerChanged += (s, e) => action?.Invoke();
+			return view;
+		}
+
+		public static T OnHandlerChanging<T>(this T view, Action<HandlerChangingEventArgs> action) where T : View
+		{
+			view.HandlerChanging += (s, e) => action?.Invoke(e);
+			return view;
+		}
+
 	}
 }

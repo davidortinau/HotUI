@@ -139,5 +139,114 @@ namespace Comet
 		{
 			return view.Animate(easing ?? Easing.Default, v => v.Background(targetColor), duration: duration);
 		}
+
+		// --- Fluent AnimationBuilder ---
+
+		/// <summary>
+		/// Compose complex animations using a fluent builder with sequences, parallel groups, and delays.
+		/// Duration and delay values in the builder are specified in milliseconds.
+		/// </summary>
+		public static T Animate<T>(this T view, Action<AnimationBuilder<T>> configure) where T : View
+		{
+			var builder = new AnimationBuilder<T>(view);
+			configure(builder);
+			builder.Build();
+			return view;
+		}
+
+		// --- Spring Animations ---
+
+		/// <summary>
+		/// Animate properties using spring physics with a preset configuration.
+		/// </summary>
+		public static T Spring<T>(this T view, Action<T> action, SpringPreset preset, string id = null, Lerp lerp = null) where T : View
+		{
+			return view.Spring(action, new SpringAnimation(preset), id, lerp);
+		}
+
+		/// <summary>
+		/// Animate properties using spring physics with custom mass, stiffness, and damping.
+		/// </summary>
+		public static T Spring<T>(this T view, Action<T> action, double mass = 1, double stiffness = 100, double damping = 10, string id = null, Lerp lerp = null) where T : View
+		{
+			return view.Spring(action, new SpringAnimation(mass, stiffness, damping), id, lerp);
+		}
+
+		private static T Spring<T>(this T view, Action<T> action, SpringAnimation template, string id, Lerp lerp) where T : View
+		{
+			ContextualObject.MonitorChanges();
+			action(view);
+			var changedProperties = ContextualObject.StopMonitoringChanges();
+
+			if (changedProperties.Count == 0)
+				return view;
+
+			List<Animation> animations = null;
+			if (changedProperties.Count > 1)
+				animations = new List<Animation>();
+
+			foreach (var change in changedProperties)
+			{
+				var prop = change.Key;
+				var values = change.Value;
+
+				if (values.newValue is Binding nb) values.newValue = nb.Value;
+				if (values.oldValue is Binding ob) values.oldValue = ob.Value;
+				if (Equals(values.newValue, values.oldValue))
+					continue;
+
+				var spring = new SpringAnimation
+				{
+					Mass = template.Mass,
+					Stiffness = template.Stiffness,
+					DampingCoefficient = template.DampingCoefficient,
+					InitialVelocity = template.InitialVelocity,
+					StartValue = values.oldValue,
+					EndValue = values.newValue,
+					ContextualObject = prop.view,
+					PropertyName = prop.property,
+					PropertyCascades = prop.cascades,
+					Id = id,
+					Lerp = lerp,
+				};
+
+				if (animations == null)
+				{
+					view.AddAnimation(spring);
+					return view;
+				}
+				animations.Add(spring);
+			}
+
+			if (animations != null && animations.Count > 0)
+			{
+				var group = new ContextualAnimation(animations)
+				{
+					Id = id,
+					Duration = template.EstimateDuration(),
+				};
+				view.AddAnimation(group);
+			}
+			return view;
+		}
+
+		// --- Keyframe Animations ---
+
+		/// <summary>
+		/// Animate through keyframes defined at specific progress points (0.0 to 1.0).
+		/// Duration is in milliseconds.
+		/// </summary>
+		public static T Keyframes<T>(this T view, Action<KeyframeBuilder<T>> configure, double duration = 600, Easing easing = null) where T : View
+		{
+			var builder = new KeyframeBuilder<T>();
+			configure(builder);
+
+			if (builder.Keyframes.Count < 2)
+				return view;
+
+			var animation = new KeyframeAnimation<T>(view, builder.Keyframes, duration / 1000.0, easing);
+			view.AddAnimation(animation);
+			return view;
+		}
 	}
 }

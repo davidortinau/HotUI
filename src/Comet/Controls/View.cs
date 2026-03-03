@@ -20,6 +20,18 @@ using Microsoft.Maui.Primitives;
 namespace Comet
 {
 
+	public class HandlerChangingEventArgs : EventArgs
+	{
+		public HandlerChangingEventArgs(IElementHandler oldHandler, IElementHandler newHandler)
+		{
+			OldHandler = oldHandler;
+			NewHandler = newHandler;
+		}
+
+		public IElementHandler OldHandler { get; }
+		public IElementHandler NewHandler { get; }
+	}
+
 	public class View : ContextualObject, IDisposable, IView, IHotReloadableView, ISafeAreaView, IContentTypeHash, IAnimator, ITitledElement, IGestureView, IVisualTreeElement, IPadding
 	{
 		static internal readonly WeakList<IView> ActiveViews = new WeakList<IView>();
@@ -148,6 +160,15 @@ namespace Comet
 			set => __viewThatWasReplaced = new WeakReference(value);
 		}
 		public string AccessibilityId { get; set; }
+
+		// Lifecycle events
+		public event EventHandler Loaded;
+		public event EventHandler Unloaded;
+		public event EventHandler<HandlerChangingEventArgs> HandlerChanging;
+		public event EventHandler HandlerChanged;
+		public event EventHandler Appearing;
+		public event EventHandler Disappearing;
+
 		IElementHandler viewHandler;
 		public IElementHandler ViewHandler
 		{
@@ -164,6 +185,7 @@ namespace Comet
 				return false;
 			InvalidateMeasurement();
 			var oldViewHandler = viewHandler;
+			OnHandlerChanging(oldViewHandler, handler);
 			//viewHandler?.Remove(this);
 			viewHandler = handler;
 			if (viewHandler?.VirtualView != this)
@@ -172,13 +194,34 @@ namespace Comet
 				replacedView.ViewHandler = handler;
 			AddAllAnimationsToManager();
 			OnHandlerChange();
+
+			if (oldViewHandler == null && viewHandler != null)
+				OnLoaded();
+			else if (oldViewHandler != null && viewHandler == null)
+				OnUnloaded();
+
 			return true;
 
 		}
 
+		protected virtual void OnHandlerChanging(IElementHandler oldHandler, IElementHandler newHandler)
+		{
+			HandlerChanging?.Invoke(this, new HandlerChangingEventArgs(oldHandler, newHandler));
+		}
+
 		protected virtual void OnHandlerChange()
 		{
+			HandlerChanged?.Invoke(this, EventArgs.Empty);
+		}
 
+		protected virtual void OnLoaded()
+		{
+			Loaded?.Invoke(this, EventArgs.Empty);
+		}
+
+		protected virtual void OnUnloaded()
+		{
+			Unloaded?.Invoke(this, EventArgs.Empty);
 		}
 
 		internal void UpdateFromOldView(View view)
@@ -679,10 +722,12 @@ namespace Comet
 		public virtual void ViewDidAppear()
 		{
 			notificationView?.ViewDidAppear();
+			Appearing?.Invoke(this, EventArgs.Empty);
 			ResumeAnimations();
 		}
 		public virtual void ViewDidDisappear()
 		{
+			Disappearing?.Invoke(this, EventArgs.Empty);
 			notificationView?.ViewDidDisappear();
 			PauseAnimations();
 		}

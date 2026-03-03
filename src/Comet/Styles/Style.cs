@@ -1,11 +1,80 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Text;
 using Microsoft.Maui;
 using Microsoft.Maui.Primitives;
 
 namespace Comet.Styles
 {
+	/// <summary>
+	/// Typed, functional style that applies an action to a view.
+	/// Usage:
+	///   var headerStyle = new Style&lt;Text&gt;(t =&gt; t
+	///       .FontSize(24)
+	///       .FontWeight(FontWeight.Bold)
+	///       .Color(Colors.White)
+	///   );
+	///   new Text("Hello").StyleApply(headerStyle);
+	/// </summary>
+	public class Style<T> where T : View
+	{
+		static readonly ConcurrentDictionary<Type, List<Style<View>>> _implicitStyles = new();
+
+		readonly Action<T> _apply;
+
+		public Style(Action<T> apply)
+		{
+			_apply = apply ?? throw new ArgumentNullException(nameof(apply));
+		}
+
+		public T Apply(T view)
+		{
+			_apply(view);
+			return view;
+		}
+
+		/// <summary>
+		/// Registers this style to be applied implicitly to all views of type T.
+		/// </summary>
+		public void RegisterImplicit()
+		{
+			var wrappedStyle = new Style<View>(v =>
+			{
+				if (v is T typed)
+					_apply(typed);
+			});
+			var list = _implicitStyles.GetOrAdd(typeof(T), _ => new List<Style<View>>());
+			lock (list)
+			{
+				list.Add(wrappedStyle);
+			}
+		}
+
+		/// <summary>
+		/// Applies all registered implicit styles for the given view type.
+		/// </summary>
+		public static void ApplyImplicit(T view)
+		{
+			if (_implicitStyles.TryGetValue(typeof(T), out var list))
+			{
+				lock (list)
+				{
+					foreach (var style in list)
+						style.Apply(view);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Clears all registered implicit styles for type T.
+		/// </summary>
+		public static void ClearImplicit()
+		{
+			_implicitStyles.TryRemove(typeof(T), out _);
+		}
+	}
+
 	public class Style
 	{
 		public ButtonStyle Button { get; set; } = new ButtonStyle();

@@ -4,6 +4,30 @@ using Microsoft.Maui.Devices;
 
 namespace Comet
 {
+	/// <summary>
+	/// Functional helper for platform-specific values.
+	/// Usage: var padding = OnPlatform.Value(iOS: 20.0, android: 16.0, windows: 24.0);
+	/// </summary>
+	public static class OnPlatform
+	{
+		public static T Value<T>(
+			T defaultValue = default,
+			T iOS = default,
+			T android = default,
+			T windows = default,
+			T macCatalyst = default)
+		{
+			return new OnPlatform<T>
+			{
+				Default = defaultValue,
+				iOS = iOS,
+				Android = android,
+				WinUI = windows,
+				MacCatalyst = macCatalyst,
+			};
+		}
+	}
+
 	public class OnPlatform<T>
 	{
 		public T Default { get; set; }
@@ -35,6 +59,28 @@ namespace Comet
 				return MacCatalyst;
 #endif
 			return Default;
+		}
+	}
+
+	/// <summary>
+	/// Functional helper for device idiom-specific values.
+	/// Usage: var fontSize = OnIdiom.Value(phone: 14.0, tablet: 18.0, desktop: 16.0);
+	/// </summary>
+	public static class OnIdiom
+	{
+		public static T Value<T>(
+			T defaultValue = default,
+			T phone = default,
+			T tablet = default,
+			T desktop = default)
+		{
+			return new OnIdiom<T>
+			{
+				Default = defaultValue,
+				Phone = phone,
+				Tablet = tablet,
+				Desktop = desktop,
+			};
 		}
 	}
 

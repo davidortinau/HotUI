@@ -104,6 +104,11 @@ namespace Comet
 				{typeof(NavigationView), typeof (Microsoft.Maui.Handlers.NavigationViewHandler)},
 #endif
 				{typeof(WebView), typeof(Microsoft.Maui.Handlers.WebViewHandler)},
+				{typeof(MenuBar), typeof(Microsoft.Maui.Handlers.MenuBarHandler)},
+				{typeof(MenuBarItem), typeof(Microsoft.Maui.Handlers.MenuBarItemHandler)},
+				{typeof(MenuFlyoutItem), typeof(Microsoft.Maui.Handlers.MenuFlyoutItemHandler)},
+				{typeof(MenuFlyoutSubItem), typeof(Microsoft.Maui.Handlers.MenuFlyoutSubItemHandler)},
+				{typeof(MenuFlyoutSeparator), typeof(Microsoft.Maui.Handlers.MenuFlyoutSeparatorHandler)},
 			}));
 
 			// Register standard MAUI Controls handlers for MauiViewHost embedding.

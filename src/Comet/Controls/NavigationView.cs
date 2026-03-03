@@ -60,6 +60,7 @@ namespace Comet
 				_views.Add(Content);
 
 			((IStackNavigationView)this).RequestNavigation(new NavigationRequest(_views, false));
+			base.OnHandlerChange();
 		}
 
 		public void Pop()

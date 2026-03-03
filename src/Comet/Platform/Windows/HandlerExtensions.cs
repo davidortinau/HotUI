@@ -68,6 +68,91 @@ public static partial class HandlerExtensions
 			};
 			gesture.PlatformGesture = nativeView;
 		}
+		else if (gesture is DragGesture dragGesture)
+		{
+			var view = handler.VirtualView as View;
+			nativeView.CanDrag = dragGesture.CanDrag;
+			nativeView.DragStarting += (s, e) =>
+			{
+				var data = dragGesture.DragStarting?.Invoke(view);
+				dragGesture.DragStartingCommand?.Execute(dragGesture.DragStartingCommandParameter);
+				if (data != null)
+					e.Data.SetText(data.ToString());
+			};
+			nativeView.DropCompleted += (s, e) =>
+			{
+				dragGesture.DropCompleted?.Invoke(view);
+				dragGesture.DropCompletedCommand?.Execute(dragGesture.DropCompletedCommandParameter);
+			};
+			gesture.PlatformGesture = nativeView;
+		}
+		else if (gesture is DropGesture dropGesture)
+		{
+			var view = handler.VirtualView as View;
+			nativeView.AllowDrop = dropGesture.AllowDrop;
+			nativeView.DragOver += (s, e) =>
+			{
+				var accepted = dropGesture.DragOver?.Invoke(view, null) ?? true;
+				dropGesture.DragOverCommand?.Execute(null);
+				e.AcceptedOperation = accepted
+					? Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy
+					: Windows.ApplicationModel.DataTransfer.DataPackageOperation.None;
+			};
+			nativeView.DragLeave += (s, e) =>
+			{
+				dropGesture.DragLeave?.Invoke(view);
+				dropGesture.DragLeaveCommand?.Execute(null);
+			};
+			nativeView.Drop += async (s, e) =>
+			{
+				object data = null;
+				if (e.DataView.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.Text))
+					data = await e.DataView.GetTextAsync();
+				dropGesture.Drop?.Invoke(view, data);
+				dropGesture.DropCommand?.Execute(dropGesture.DropCommandParameter ?? data);
+			};
+			gesture.PlatformGesture = nativeView;
+		}
+		else if (gesture is PointerGesture pointerGesture)
+		{
+			var view = handler.VirtualView as View;
+			nativeView.PointerEntered += (s, e) =>
+			{
+				var pos = e.GetCurrentPoint(nativeView).Position;
+				var point = new Microsoft.Maui.Graphics.Point(pos.X, pos.Y);
+				pointerGesture.PointerEntered?.Invoke(view, point);
+				pointerGesture.PointerEnteredCommand?.Execute(point);
+			};
+			nativeView.PointerMoved += (s, e) =>
+			{
+				var pos = e.GetCurrentPoint(nativeView).Position;
+				var point = new Microsoft.Maui.Graphics.Point(pos.X, pos.Y);
+				pointerGesture.PointerMoved?.Invoke(view, point);
+				pointerGesture.PointerMovedCommand?.Execute(point);
+			};
+			nativeView.PointerExited += (s, e) =>
+			{
+				var pos = e.GetCurrentPoint(nativeView).Position;
+				var point = new Microsoft.Maui.Graphics.Point(pos.X, pos.Y);
+				pointerGesture.PointerExited?.Invoke(view, point);
+				pointerGesture.PointerExitedCommand?.Execute(point);
+			};
+			nativeView.PointerPressed += (s, e) =>
+			{
+				var pos = e.GetCurrentPoint(nativeView).Position;
+				var point = new Microsoft.Maui.Graphics.Point(pos.X, pos.Y);
+				pointerGesture.PointerPressed?.Invoke(view, point);
+				pointerGesture.PointerPressedCommand?.Execute(point);
+			};
+			nativeView.PointerReleased += (s, e) =>
+			{
+				var pos = e.GetCurrentPoint(nativeView).Position;
+				var point = new Microsoft.Maui.Graphics.Point(pos.X, pos.Y);
+				pointerGesture.PointerReleased?.Invoke(view, point);
+				pointerGesture.PointerReleasedCommand?.Execute(point);
+			};
+			gesture.PlatformGesture = nativeView;
+		}
 	}
 
 	public static void RemoveGesture(this IViewHandler handler, Gesture gesture)
