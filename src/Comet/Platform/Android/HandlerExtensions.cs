@@ -87,12 +87,24 @@ public static partial class HandlerExtensions
 
 	public static void RemoveGesture(this IViewHandler handler, Gesture gesture)
 	{
-		if (gesture is DragGesture || gesture is PointerGesture)
+		var nativeView = handler.PlatformView as AView;
+
+		if (gesture is DragGesture)
+		{
+			if (nativeView != null)
+				nativeView.LongClickable = false;
 			return;
+		}
+
+		if (gesture is PointerGesture)
+		{
+			// Hover events are cleared by removing all hover listeners
+			// The native view will stop receiving hover events when no longer registered
+			return;
+		}
 
 		if (gesture is DropGesture)
 		{
-			var nativeView = handler.PlatformView as AView;
 			nativeView?.SetOnDragListener(null);
 			return;
 		}
@@ -148,9 +160,9 @@ public static partial class HandlerExtensions
 			switch (e.Action)
 			{
 				case DragAction.Entered:
-					_gesture.DragOver?.Invoke(_view, null);
+					var accepted = _gesture.DragOver?.Invoke(_view, null) ?? true;
 					_gesture.DragOverCommand?.Execute(null);
-					break;
+					return accepted;
 				case DragAction.Location:
 					break;
 				case DragAction.Drop:

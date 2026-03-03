@@ -39,7 +39,12 @@ namespace Comet
 	/// </example>
 	public abstract class DataTemplateSelector<T> : DataTemplateSelector
 	{
-		protected sealed override View OnSelectTemplate(object item) => OnSelectTemplate((T)item);
+		protected sealed override View OnSelectTemplate(object item)
+		{
+			if (item is T typed)
+				return OnSelectTemplate(typed);
+			throw new ArgumentException($"DataTemplateSelector<{typeof(T).Name}> received item of type {item?.GetType().Name ?? "null"}");
+		}
 
 		/// <summary>
 		/// Override to provide custom template selection logic for items of type <typeparamref name="T"/>.

@@ -38,14 +38,14 @@ namespace Comet.Handlers
 				return;
 
 			var background = view.Background;
-			if (background is SolidPaint solid)
+			if (background is SolidPaint solid && solid.Color != null)
 			{
 				handler.PlatformView.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(
 					Microsoft.UI.Xaml.Media.ColorHelper.FromArgb(
-						solid.Color.Alpha,
-						solid.Color.Red,
-						solid.Color.Green,
-						solid.Color.Blue));
+						(byte)(solid.Color.Alpha * 255),
+						(byte)(solid.Color.Red * 255),
+						(byte)(solid.Color.Green * 255),
+						(byte)(solid.Color.Blue * 255)));
 			}
 			else if (background == null)
 			{

@@ -154,13 +154,14 @@ namespace Comet.Animations
 	public static class AnimationHelpers
 	{
 		/// <summary>Create a fade-in animation.</summary>
-		public static void AnimateFadeIn(this View view, Action onComplete = null)
+		public static async void AnimateFadeIn(this View view, Action onComplete = null)
 		{
 			using (new StateBuilder(view))
 			{
 				view.Opacity(0);
 			}
-			_ = System.Threading.Tasks.Task.Delay(50).ContinueWith(_ =>
+			await System.Threading.Tasks.Task.Delay(50);
+			Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(() =>
 			{
 				using (new StateBuilder(view))
 				{
@@ -171,13 +172,14 @@ namespace Comet.Animations
 		}
 
 		/// <summary>Create a fade-out animation.</summary>
-		public static void AnimateFadeOut(this View view, Action onComplete = null)
+		public static async void AnimateFadeOut(this View view, Action onComplete = null)
 		{
 			using (new StateBuilder(view))
 			{
 				view.Opacity(1);
 			}
-			_ = System.Threading.Tasks.Task.Delay(50).ContinueWith(_ =>
+			await System.Threading.Tasks.Task.Delay(50);
+			Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(() =>
 			{
 				using (new StateBuilder(view))
 				{

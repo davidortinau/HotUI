@@ -181,23 +181,26 @@ namespace Comet.iOS
 		public override void PerformDrop(UIDropInteraction interaction, IUIDropSession session)
 		{
 			_viewRef.TryGetTarget(out var view);
-			_gesture.Drop?.Invoke(view, null);
-			_gesture.DropCommand?.Execute(_gesture.DropCommandParameter);
 
-			// Attempt to load string data asynchronously from the first drag item
+			// Try to load string data from the first drag item before invoking callbacks
 			var items = session.Items;
 			if (items != null && items.Length > 0)
 			{
 				items[0].ItemProvider.LoadObject(new ObjCRuntime.Class(typeof(NSString)), (data, error) =>
 				{
-					if (data is NSString str)
+					CoreFoundation.DispatchQueue.MainQueue.DispatchAsync(() =>
 					{
-						CoreFoundation.DispatchQueue.MainQueue.DispatchAsync(() =>
-						{
-							_gesture.Drop?.Invoke(view, str.ToString());
-						});
-					}
+						var dropData = data is NSString str ? str.ToString() : null;
+						_gesture.Drop?.Invoke(view, dropData);
+						_gesture.DropCommand?.Execute(_gesture.DropCommandParameter);
+					});
 				});
+			}
+			else
+			{
+				// No items to load — invoke immediately with null data
+				_gesture.Drop?.Invoke(view, null);
+				_gesture.DropCommand?.Execute(_gesture.DropCommandParameter);
 			}
 		}
 
