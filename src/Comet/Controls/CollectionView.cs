@@ -92,6 +92,13 @@ namespace Comet
 		{
 			ScrollToRequested?.Invoke(index, animate);
 		}
+
+		// Infinite scroll support
+		public int RemainingItemsThreshold { get; set; } = 0;
+
+		public Action RemainingItemsThresholdReached { get; set; }
+
+		public Action<int> RemainingItemsThresholdReachedCommand { get; set; }
 	}
 
 	public enum SelectionMode
@@ -113,5 +120,12 @@ namespace Comet
 		public SelectionMode SelectionMode { get; set; } = SelectionMode.Single;
 
 		public ItemSizingStrategy ItemSizingStrategy { get; set; } = ItemSizingStrategy.MeasureAllItems;
+
+		// Infinite scroll support
+		public int RemainingItemsThreshold { get; set; } = 0;
+
+		public Action RemainingItemsThresholdReached { get; set; }
+
+		public Action<int> RemainingItemsThresholdReachedCommand { get; set; }
 	}
 }

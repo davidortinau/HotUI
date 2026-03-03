@@ -44,6 +44,7 @@ namespace Comet.Handlers
 			MapCometSelectionMode(cv, listView);
 			MapCometEmptyView(cv, listView);
 			MapCometHeaderFooter(cv, listView);
+			MapCometInfiniteScroll(cv, listView);
 
 			// Store reference to current listView that can be updated when VirtualView changes
 			var listViewRef = new WeakReference<IListView>(listView);
@@ -160,6 +161,25 @@ namespace Comet.Handlers
 					return typed;
 			}
 			return default;
+		}
+
+		static void MapCometInfiniteScroll(Microsoft.Maui.Controls.CollectionView cv, IListView listView)
+		{
+			var threshold = GetPropertyValue<int>(listView, nameof(Comet.CollectionView.RemainingItemsThreshold));
+			if (threshold <= 0)
+				return;
+
+			cv.RemainingItemsThreshold = threshold;
+
+			var action = GetPropertyValue<Action>(listView, nameof(Comet.CollectionView.RemainingItemsThresholdReached));
+			var command = GetPropertyValue<Action<int>>(listView, nameof(Comet.CollectionView.RemainingItemsThresholdReachedCommand));
+
+			cv.RemainingItemsThresholdReachedCommand = new Microsoft.Maui.Controls.Command((param) =>
+			{
+				action?.Invoke();
+				if (param is int index)
+					command?.Invoke(index);
+			});
 		}
 	}
 
