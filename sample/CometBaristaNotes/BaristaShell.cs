@@ -52,8 +52,8 @@ public class BaristaShell : MauiShell
 {
 public BaristaShell()
 {
-// Transparent nav bar blends with page background (matches original design)
-BackgroundColor = Colors.Transparent;
+// Nav bar matches page background for seamless look (no visible bar boundary)
+BackgroundColor = Theme.Background;
 MauiShell.SetForegroundColor(this, Theme.TextPrimary);
 MauiShell.SetNavBarHasShadow(this, false);
 MauiShell.SetTitleColor(this, Theme.TextPrimary);

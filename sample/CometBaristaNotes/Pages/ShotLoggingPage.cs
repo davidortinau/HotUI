@@ -48,8 +48,8 @@ bool _showAdditional = false;
 // References to mutable controls
 MauiLabel? _doseInValueLabel, _doseInUnitLabel;
 MauiLabel? _doseOutValueLabel, _doseOutUnitLabel;
-RadialRange? _doseInRange, _doseOutRange;
-NeedlePointer? _doseInPointer, _doseOutPointer;
+RangePointer? _doseInRange, _doseOutRange;
+ShapePointer? _doseInPointer, _doseOutPointer;
 MauiLabel? _ratioLabel;
 MauiLabel? _timeValueLabel;
 MauiLabel? _machineNameLabel;
@@ -107,13 +107,13 @@ new ColumnDefinition(GridLength.Star),
 
 grid.Add(BuildGauge("Dose In", _doseIn, "g", 0, 25,
 ref _doseInValueLabel, ref _doseInUnitLabel, ref _doseInRange, ref _doseInPointer,
-delta => { _doseIn = Math.Clamp(_doseIn + delta, 10, 25); UpdateDoseIn(); }), 0, 0);
+delta => { _doseIn = Math.Round(Math.Clamp(_doseIn + delta, 10, 25), 1); UpdateDoseIn(); }), 0, 0);
 
 grid.Add(BuildEquipmentButton(), 1, 0);
 
 grid.Add(BuildGauge("Dose Out", _doseOut, "g", 0, 60,
 ref _doseOutValueLabel, ref _doseOutUnitLabel, ref _doseOutRange, ref _doseOutPointer,
-delta => { _doseOut = Math.Clamp(_doseOut + delta, 20, 60); UpdateDoseOut(); }), 2, 0);
+delta => { _doseOut = Math.Round(Math.Clamp(_doseOut + delta, 20, 60), 1); UpdateDoseOut(); }), 2, 0);
 
 return grid;
 }
@@ -121,52 +121,79 @@ return grid;
 Microsoft.Maui.Controls.View BuildGauge(string label, double value, string unit,
 double min, double max,
 ref MauiLabel? valueLabel, ref MauiLabel? unitLabel,
-ref RadialRange? range, ref NeedlePointer? pointer,
+ref RangePointer? range, ref ShapePointer? pointer,
 Action<double> onStep)
 {
-var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, HorizontalOptions = LayoutOptions.Center };
-stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontSemibold, FontSize = 12, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
+var gaugeGrid = new MauiGrid { WidthRequest = 160, HeightRequest = 160, HorizontalOptions = LayoutOptions.Center };
 
-var gauge = new SfRadialGauge { WidthRequest = 140, HeightRequest = 140 };
+var gauge = new SfRadialGauge { WidthRequest = 160, HeightRequest = 160, BackgroundColor = Colors.Transparent };
 var axis = new RadialAxis
 {
 Minimum = min, Maximum = max,
-ShowLabels = false, ShowTicks = false,
-AxisLineStyle = new RadialLineStyle { Thickness = 8, Fill = new SolidColorBrush(Theme.SurfaceVariant) }
+Interval = (max - min) / 5,
+MinorTicksPerInterval = 1,
+ShowLabels = true, ShowTicks = false,
+RadiusFactor = 0.8,
+LabelFormat = "0",
+AxisLabelStyle = new GaugeLabelStyle { TextColor = Theme.TextSecondary, FontSize = 10 },
+AxisLineStyle = new RadialLineStyle
+{
+Fill = new SolidColorBrush(Theme.SurfaceVariant),
+Thickness = 20,
+CornerStyle = CornerStyle.BothCurve
+}
 };
 
-var r = new RadialRange { StartValue = 0, EndValue = value, Fill = new SolidColorBrush(Theme.Primary), StartWidth = 8, EndWidth = 8 };
-range = r;
-axis.Ranges.Add(r);
-
-var p = new NeedlePointer
+var r = new RangePointer
 {
-Value = value, NeedleFill = new SolidColorBrush(Theme.Primary),
-NeedleLength = 0.6, NeedleStartWidth = 2, NeedleEndWidth = 2,
-KnobRadius = 6, KnobFill = new SolidColorBrush(Theme.Primary)
+Value = value,
+CornerStyle = CornerStyle.BothCurve,
+PointerWidth = 20,
+Fill = new SolidColorBrush(Theme.Primary)
+};
+range = r;
+axis.Pointers.Add(r);
+
+var p = new ShapePointer
+{
+Value = value,
+IsInteractive = true,
+StepFrequency = 0.1,
+ShapeType = ShapeType.Circle,
+ShapeHeight = 28, ShapeWidth = 28,
+Fill = new SolidColorBrush(Theme.Primary),
+HasShadow = true, Offset = 0,
+};
+p.ValueChanged += (s, e) =>
+{
+var rounded = Math.Round(e.Value, 1);
+onStep(rounded - value);
+value = rounded;
 };
 pointer = p;
 axis.Pointers.Add(p);
 
-var vl = new MauiLabel { Text = $"{value:F1}", FontFamily = Theme.FontSemibold, FontSize = 22, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalTextAlignment = TextAlignment.Center };
-var ul = new MauiLabel { Text = unit, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center };
+gauge.Axes.Add(axis);
+gaugeGrid.Add(gauge);
+
+// Center value overlay
+var vl = new MauiLabel { Text = $"{value:F1}", FontFamily = Theme.FontSemibold, FontSize = 20, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center };
+var ul = new MauiLabel { Text = unit, FontFamily = Theme.FontRegular, FontSize = 9, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center };
 valueLabel = vl;
 unitLabel = ul;
+var centerStack = new VerticalStackLayout { Spacing = 0, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center, TranslationY = 10 };
+centerStack.Add(vl);
+centerStack.Add(ul);
+gaugeGrid.Add(centerStack);
 
-var ann = new GaugeAnnotation { DirectionUnit = AnnotationDirection.Angle, DirectionValue = 90, PositionFactor = 0 };
-var annContent = new VerticalStackLayout { Spacing = 0, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
-annContent.Add(vl);
-annContent.Add(ul);
-ann.Content = annContent;
-axis.Annotations.Add(ann);
-
-gauge.Axes.Add(axis);
-stack.Add(gauge);
+var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, HorizontalOptions = LayoutOptions.Center };
+stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontSemibold, FontSize = 12, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
+stack.Add(gaugeGrid);
 
 // Stepper buttons
 var stepRow = new HorizontalStackLayout { Spacing = Theme.SpacingS, HorizontalOptions = LayoutOptions.Center };
-stepRow.Add(MakeStepButton(Icons.Remove, () => onStep(-0.5)));
-stepRow.Add(MakeStepButton(Icons.Add, () => onStep(0.5)));
+stepRow.Add(MakeStepButton(Icons.Remove, () => onStep(-0.1)));
+stepRow.Add(MakeStepButton(Icons.Add, () => onStep(0.1)));
 stack.Add(stepRow);
 
 return stack;
@@ -189,7 +216,7 @@ return btn;
 void UpdateDoseIn()
 {
 _doseInValueLabel!.Text = $"{_doseIn:F1}";
-_doseInRange!.EndValue = _doseIn;
+_doseInRange!.Value = _doseIn;
 _doseInPointer!.Value = _doseIn;
 _ratioLabel!.Text = $"1:{Ratio:F1}";
 }
@@ -197,7 +224,7 @@ _ratioLabel!.Text = $"1:{Ratio:F1}";
 void UpdateDoseOut()
 {
 _doseOutValueLabel!.Text = $"{_doseOut:F1}";
-_doseOutRange!.EndValue = _doseOut;
+_doseOutRange!.Value = _doseOut;
 _doseOutPointer!.Value = _doseOut;
 _ratioLabel!.Text = $"1:{Ratio:F1}";
 }
