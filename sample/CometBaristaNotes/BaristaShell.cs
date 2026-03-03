@@ -116,12 +116,17 @@ BackgroundColor = Theme.Background,
 
 page.Content = container;
 
-page.Loaded += (s, e) =>
+// Use both Loaded and HandlerChanged to cover iOS 18 and iOS 26+
+// iOS 26 does not fire Loaded, but HandlerChanged works on both
+void TryEmbed()
 {
-if (page.Handler?.MauiContext == null) return;
+if (container.Content != null || page.Handler?.MauiContext == null) return;
 EmbedCometView(container, cometView);
 cometView.ReloadHandler = new CometPageReloadHandler(container, cometView);
-};
+}
+
+page.Loaded += (s, e) => TryEmbed();
+page.HandlerChanged += (s, e) => TryEmbed();
 
 MauiShell.SetNavBarIsVisible(page, true);
 return page;
