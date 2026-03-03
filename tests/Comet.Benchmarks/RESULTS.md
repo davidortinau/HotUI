@@ -1,137 +1,134 @@
 # XAML vs MVU (Comet) Benchmark Results
 
-**Environment:** Apple M1, macOS 26.3, .NET 10.0.2, Arm64 RyuJIT AdvSIMD  
-**Framework:** BenchmarkDotNet v0.14.0
+**Environment:** Apple M1 · macOS 26.3 · .NET 10.0.2 · BenchmarkDotNet 0.14.0
 
-## Executive Summary
+## Summary
 
-| Category | XAML Advantage | MVU Advantage |
-|----------|---------------|---------------|
-| View Construction | — | **63-4760x faster**, 50-2000x less memory |
-| State Updates (targeted) | **2-25x faster** for rapid property sets | — |
-| State Updates (rebuild 1-of-100) | — | **30-38x faster**, 11x less memory |
-| Startup (50-control page) | — | **148x faster**, 143x less memory |
-| Real-World (Todo/Forms/Dashboard) | — | **40-2000x faster** construction |
-| Rapid Animation (5000 iterations) | **2.7x faster**, 13x less alloc | — |
-| Diff (1000-node tree) | N/A (no diff needed) | 2.6ms per full diff |
+| Category | MVU Advantage | XAML Advantage |
+|----------|--------------|----------------|
+| View Construction | ✅ **60-4000x faster**, 50-2000x less memory | — |
+| State Updates (targeted) | — | ✅ **2-170x faster** for single property |
+| State Updates (multi) | ✅ **4-25x faster** for N independent changes | — |
+| Selective Update (1 of 100) | ✅ **30-38x faster** | — |
+| Rapid Counter (5000 iters) | — | ✅ **~2.7x faster** |
+| Multi-prop Animation | — | ✅ **~5x faster** |
+| String-heavy Updates | — | ✅ **~2x faster** |
+| Startup (50-control page) | ✅ **148x faster**, 138x less memory | — |
+| Todo App (100 items) | ✅ **120x faster**, 30x less memory | — |
+| Dashboard (100 items) | ✅ **1948x faster**, 1224x less memory | — |
+| Wide Tree (200 children) | ✅ **3993x faster**, 2273x less memory | — |
+| Collection Churn | ✅ **7.7x faster** at 200 items | — |
 
-**Key Insight:** MVU dominates view construction and startup. XAML dominates rapid property updates (direct setter vs body() rebuild+diff). For most real-world apps, MVU's construction advantage far outweighs the update cost.
+## 1. View Construction (Building the UI Tree)
 
----
+MVU is dramatically faster because `Body()` only creates lightweight Comet view objects — no handler/platform overhead until render time.
 
-## 1. View Construction (Build view hierarchy from scratch)
-
-| Scenario | N | XAML (µs) | MVU (µs) | Speedup | XAML Alloc | MVU Alloc |
+| Scenario | N | XAML (μs) | MVU (μs) | Speedup | XAML Alloc | MVU Alloc |
 |----------|---|-----------|----------|---------|------------|-----------|
-| Flat StackLayout + Labels | 10 | 73.0 | 1.15 | **63x** | 84 KB | 1.7 KB |
-| Flat StackLayout + Labels | 100 | 759 | 1.20 | **632x** | 810 KB | 1.7 KB |
-| Flat StackLayout + Labels | 500 | 5,760 | 1.21 | **4,760x** | 4,033 KB | 1.7 KB |
-| Deep nested layouts | 10 | 356 | 1.26 | **283x** | 252 KB | 1.7 KB |
-| Deep nested layouts | 50 | 11,194 | 1.54 | **7,268x** | 3,569 KB | 1.7 KB |
-| Mixed form controls | 10 | 42.3 | 1.51 | **28x** | 50 KB | 1.7 KB |
-| Mixed form controls | 100 | 390 | 1.29 | **302x** | 471 KB | 1.7 KB |
-| Mixed form controls | 500 | 2,464 | 1.27 | **1,941x** | 2,336 KB | 1.7 KB |
-
-**MVU wins massively** — Comet views are lightweight wrappers; MAUI controls have heavy initialization (property system, binding infrastructure, visual state managers).
-
----
+| Flat Stack + Labels | 10 | 73.0 | 1.15 | **63x** | 84 KB | 1.7 KB |
+| Flat Stack + Labels | 100 | 759.0 | 1.20 | **632x** | 810 KB | 1.7 KB |
+| Flat Stack + Labels | 500 | 5,760 | 1.21 | **4,760x** | 4,033 KB | 1.7 KB |
+| Deep Nested | 10 | 356.2 | 1.26 | **283x** | 252 KB | 1.7 KB |
+| Deep Nested | 50 | 11,194 | 1.54 | **7,269x** | 3,569 KB | 1.7 KB |
+| Mixed Form | 100 | 389.8 | 1.29 | **302x** | 471 KB | 1.7 KB |
+| Mixed Form | 500 | 2,464 | 1.27 | **1,941x** | 2,336 KB | 1.7 KB |
 
 ## 2. State Change Propagation
 
-| Scenario | Count | XAML (µs) | MVU (µs) | Winner | XAML Alloc | MVU Alloc |
-|----------|-------|-----------|----------|--------|------------|-----------|
-| Single property update | 1 | 2.06 | 673 | **XAML 327x** | 3.3 KB | 3.2 KB |
-| Single property update | 50 | 5.44 | 492 | **XAML 90x** | 3.3 KB | 23.9 KB |
-| N independent changes | 1 | 5.73 | 1.44 | **MVU 4x** | 8.1 KB | 2.2 KB |
-| N independent changes | 10 | 39.0 | 2.43 | **MVU 16x** | 51 KB | 6.3 KB |
-| N independent changes | 50 | 187 | 7.61 | **MVU 25x** | 244 KB | 25 KB |
-| No-op (same value) | 50 | 2.96 | 492 | **XAML 166x** | 3.3 KB | 3.9 KB |
-| Change 1 of 100 | 1 | 354 | 9.34 | **MVU 38x** | 479 KB | 38 KB |
-| Change 1 of 100 | 50 | 348 | 11.4 | **MVU 31x** | 481 KB | 43 KB |
+XAML direct property set is faster for single-property targeted updates (no tree rebuild needed).
+MVU wins when updating N independent properties or doing selective updates in large trees.
 
-**Note:** MVU "single property update" includes initial handler setup overhead. The "Change 1 of 100" benchmarks show MVU's real advantage — XAML must construct 100 controls upfront while MVU diff is efficient.
+| Scenario | Count | XAML (μs) | MVU (μs) | Winner |
+|----------|-------|-----------|----------|--------|
+| Single property change | 1 | 2.1 | 673 | XAML **320x** |
+| Single property change | 50 | 5.4 | 492 | XAML **91x** |
+| N independent changes | 1 | 5.7 | 1.4 | **MVU 4x** |
+| N independent changes | 10 | 39.0 | 2.4 | **MVU 16x** |
+| N independent changes | 50 | 186.5 | 7.6 | **MVU 25x** |
+| No-op (same value) | 50 | 3.0 | 492 | XAML **164x** |
+| Change 1 of 100 | 1 | 353.7 | 9.3 | **MVU 38x** |
+| Change 1 of 100 | 50 | 347.9 | 11.4 | **MVU 31x** |
 
----
+**Key insight:** The MVU "single state update" includes initial `Body()` evaluation + handler setup on first change. After warmup, incremental updates are fast. XAML's advantage is in pure property-set cost.
 
 ## 3. Diff Algorithm (MVU-only)
 
-| Scenario | Tree Size | Time (µs) | Allocated |
+Shows the cost of Comet's tree reconciliation after a state change.
+
+| Scenario | Tree Size | Time (μs) | Allocated |
 |----------|-----------|-----------|-----------|
-| Identical trees (no change) | 10 | 123 | 42 KB |
-| Identical trees (no change) | 200 | 493 | 399 KB |
-| Identical trees (no change) | 1000 | 2,682 | 1,894 KB |
+| Identical (no change) | 10 | 123 | 42 KB |
+| Identical (no change) | 200 | 493 | 399 KB |
+| Identical (no change) | 1000 | 2,682 | 1,894 KB |
 | Single node changed | 1000 | 2,569 | 1,896 KB |
 | All nodes changed | 1000 | 3,852 | 1,911 KB |
-| Append node | 10-1000 | **~2.0** | 2.2 KB |
-| Remove node | 10-1000 | **~1.9** | 2.2 KB |
-| Toggle subtree | 10-1000 | ~1,100 | 4.4 KB |
+| Append node | 1000 | **2.1** | 2 KB |
+| Remove node | 1000 | **2.0** | 2 KB |
+| Toggle subtree | 1000 | 1,161 | 4 KB |
 
-**Key finding:** Append/remove operations are **O(1) constant time** (~2µs regardless of tree size). Full tree diffs scale linearly. "All changed" is only ~1.5x slower than "identical" for 1000 nodes.
+**Key insight:** Full tree diffs scale linearly with tree size (~2.7μs/node). But incremental operations (append/remove) are O(1) at ~2μs regardless of tree size. Toggle subtree is cheap because it changes the root type.
 
----
+## 4. Rapid Updates (Animation-like)
 
-## 4. Rapid Updates (Animation-like workloads)
+XAML wins here because it directly sets properties without tree rebuilds.
 
-| Scenario | Iterations | XAML (µs) | MVU (µs) | Winner | XAML Alloc | MVU Alloc |
-|----------|------------|-----------|----------|--------|------------|-----------|
-| Counter updates | 100 | 9.1 | 156 | **XAML 17x** | 3.3 KB | 44 KB |
-| Counter updates | 5000 | 393 | 1,053 | **XAML 2.7x** | 150 KB | 2,036 KB |
-| Multi-property (4 props) | 100 | 21.4 | 556 | **XAML 26x** | 15 KB | 168 KB |
-| Multi-property (4 props) | 5000 | 836 | 4,481 | **XAML 5.4x** | 590 KB | 8,099 KB |
-| String-heavy | 5000 | 692 | 1,390 | **XAML 2.0x** | 1,128 KB | 2,967 KB |
+| Scenario | Iterations | XAML (μs) | MVU (μs) | Ratio | XAML Alloc | MVU Alloc |
+|----------|-----------|-----------|----------|-------|------------|-----------|
+| Counter | 100 | 9.1 | 156 | 17x | 3 KB | 44 KB |
+| Counter | 5000 | 393 | 1,053 | 2.7x | 150 KB | 2,036 KB |
+| Multi-prop (4) | 5000 | 836 | 4,481 | 5.4x | 590 KB | 8,099 KB |
+| String-heavy | 5000 | 692 | 1,390 | 2.0x | 1,128 KB | 2,967 KB |
 
-**XAML wins for rapid updates** — direct property setters skip body() rebuild + diff. Gap narrows at scale.
+## 5. Memory / Startup
 
----
+MVU is vastly more efficient for initial construction and startup.
 
-## 5. Memory & Startup
-
-| Scenario | Iterations | XAML (µs) | MVU (µs) | Speedup | XAML Alloc | MVU Alloc |
-|----------|------------|-----------|----------|---------|------------|-----------|
-| Startup (50-control page) | 10 | 1,709 | 11.5 | **MVU 149x** | 2,409 KB | 17 KB |
-| Startup (50-control page) | 100 | 17,518 | 118 | **MVU 148x** | 24,090 KB | 168 KB |
-| Startup (50-control page) | 1000 | 171,425 | 1,159 | **MVU 148x** | 240,898 KB | 1,743 KB |
-| Cascading (3 derived) | 1000 | 297 | 535 | **XAML 1.8x** | 296 KB | 817 KB |
-
----
+| Scenario | Iterations | XAML (μs) | MVU (μs) | Speedup | XAML Alloc | MVU Alloc |
+|----------|-----------|-----------|----------|---------|------------|-----------|
+| Startup (50 controls) | 10 | 1,709 | 11.5 | **149x** | 2,409 KB | 17 KB |
+| Startup (50 controls) | 100 | 17,518 | 118 | **148x** | 24,090 KB | 168 KB |
+| Alloc per change | 1000 | 90.3 | 274 | 0.3x | 42 KB | 402 KB |
+| Cascading derived | 1000 | 296.5 | 535 | 0.6x | 296 KB | 817 KB |
 
 ## 6. Real-World Scenarios
 
-| Scenario | Items | XAML (µs) | MVU (µs) | Speedup | XAML Alloc | MVU Alloc |
+| Scenario | Items | XAML (μs) | MVU (μs) | Speedup | XAML Alloc | MVU Alloc |
 |----------|-------|-----------|----------|---------|------------|-----------|
-| Todo list build + mutations | 10 | 127 | 2.32 | **MVU 55x** | 150 KB | 6.4 KB |
-| Todo list build + mutations | 100 | 1,456 | 12.1 | **MVU 120x** | 1,468 KB | 48 KB |
-| Form build + validation | 10 | 78.1 | 3.01 | **MVU 26x** | 103 KB | 9.0 KB |
-| Form build + validation | 100 | 844 | 19.2 | **MVU 44x** | 999 KB | 74 KB |
-| Dashboard build | 10 | 235 | 1.15 | **MVU 204x** | 259 KB | 1.7 KB |
-| Dashboard build | 100 | 2,257 | 1.16 | **MVU 1,946x** | 2,056 KB | 1.7 KB |
-
----
+| Todo list | 10 | 127 | 2.3 | **55x** | 150 KB | 6 KB |
+| Todo list | 100 | 1,456 | 12.1 | **120x** | 1,468 KB | 48 KB |
+| Form + validation | 100 | 844 | 19.2 | **44x** | 999 KB | 74 KB |
+| Dashboard | 10 | 235 | 1.15 | **204x** | 259 KB | 2 KB |
+| Dashboard | 100 | 2,257 | 1.16 | **1,946x** | 2,056 KB | 2 KB |
 
 ## 7. Edge Cases
 
-| Scenario | Size | XAML (µs) | MVU (µs) | Winner |
-|----------|------|-----------|----------|--------|
-| Wide tree (N children) | 10 | 169 | 1.14 | **MVU 148x** |
-| Wide tree (N children) | 200 | 4,440 | 1.16 | **MVU 3,828x** |
-| Collection churn | 200 | 1,720 | 227 | **MVU 7.6x** |
-| N independent states | 200 | N/A | 28.7 | 95 KB alloc |
-| View type changes | 200 | N/A | 109 | 86 KB alloc |
-
----
+| Scenario | Size | Time (μs) | Allocated |
+|----------|------|-----------|-----------|
+| Wide tree (XAML) | 200 | 4,503 | 3,822 KB |
+| Wide tree (MVU) | 200 | **1.13** | 2 KB |
+| N independent states | 200 | 28.3 | 95 KB |
+| Collection churn (XAML) | 200 | 1,685 | 2,044 KB |
+| Collection churn (MVU) | 200 | **219** | 106 KB |
+| Deep conditional toggle | 200 | 496 | 8 KB |
+| View type changes | 200 | 96 | 86 KB |
+| Hidden subtree update | 200 | 324 | 89 KB |
 
 ## Conclusions
 
-### When to Choose MVU (Comet)
-- **Page-heavy apps** with many screens (startup is 148x faster)
-- **Form-heavy apps** with complex layouts (construction dominates)
-- **Apps with conditional rendering** (show/hide patterns are natural in C#)
-- **Apps where state changes affect many related views** (1-of-100: MVU 30x faster)
+### Where MVU (Comet) Excels
+- **View construction**: 60-7000x faster with 50-2000x less memory. Body() creates lightweight objects with zero platform overhead.
+- **Startup time**: ~150x faster to build initial pages.
+- **Selective updates in large trees**: MVU rebuilds are cheaper than XAML's setup cost for 100+ controls.
+- **Collection operations**: 7-8x faster for add/remove churn.
+- **Memory efficiency at construction**: Orders of magnitude less GC pressure.
 
-### When to Choose XAML
-- **Animation-heavy apps** with high-frequency property updates (2-5x faster)
-- **Apps with many cascading computed properties**
-- **Apps where individual properties change independently at high rates**
+### Where XAML (Direct Property Set) Excels
+- **Targeted single property updates**: 2-170x faster since no tree rebuild is needed.
+- **Animation-like rapid updates**: 2-5x faster for high-frequency property changes.
+- **No-op updates**: XAML short-circuits same-value sets; MVU incurs rebuild overhead.
+- **Cascading computed properties**: XAML property system is ~2x faster.
 
-### Architecture Recommendation
-For most real-world .NET MAUI applications, MVU's view construction advantage (50-5000x) vastly outweighs XAML's update advantage (2-5x for animations). The typical app spends more time building and navigating pages than animating individual properties at 60fps.
+### Architectural Takeaway
+MVU trades **construction efficiency** for **update overhead**. Build a 500-element page in 1.2μs (vs 5.8ms for XAML), but each state change costs a full Body() rebuild + diff. For most real apps, construction dominates — pages are built once but updated selectively. The MVU diff algorithm is efficient (~2.7μs/node) and incremental operations (append/remove) are O(1).
+
+**Recommendation:** MVU is an excellent choice for most MAUI applications. For animation-heavy views with >60fps update requirements, consider using native MAUI animation APIs rather than state-driven updates.
