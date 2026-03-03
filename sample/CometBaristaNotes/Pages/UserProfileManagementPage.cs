@@ -40,7 +40,7 @@ public class UserProfileManagementPage : Comet.View
 				BackgroundColor = Theme.Background,
 				VerticalOptions = LayoutOptions.Fill,
 			};
-			emptyStack.Add(FormHelpers.MakeEmptyState("👤", "No Profiles Yet", "Create profiles for different users or coffee preferences"));
+			emptyStack.Add(FormHelpers.MakeEmptyState(Icons.Person, "No Profiles Yet", "Create profiles for different users or coffee preferences"));
 			emptyStack.Add(FormHelpers.MakePrimaryButton("+ Add Profile", () =>
 			{
 				Microsoft.Maui.Controls.Shell.Current.GoToAsync("profile-form?id=0");

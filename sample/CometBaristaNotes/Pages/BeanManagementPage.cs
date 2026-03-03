@@ -40,7 +40,7 @@ public class BeanManagementPage : Comet.View
 				BackgroundColor = Theme.Background,
 				VerticalOptions = LayoutOptions.Fill,
 			};
-			emptyStack.Add(FormHelpers.MakeEmptyState("☕", "No Beans Yet", "Add your favorite coffee beans to track freshness and tasting notes"));
+			emptyStack.Add(FormHelpers.MakeEmptyState(Icons.Coffee, "No Beans Yet", "Add your favorite coffee beans to track freshness and tasting notes"));
 			emptyStack.Add(FormHelpers.MakePrimaryButton("+ Add Bean", () =>
 			{
 				Microsoft.Maui.Controls.Shell.Current.GoToAsync("bean-detail?id=0");

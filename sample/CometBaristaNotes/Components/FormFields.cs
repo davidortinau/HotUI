@@ -21,6 +21,19 @@ namespace CometBaristaNotes.Components;
 /// </summary>
 public static class FormHelpers
 {
+	public static MauiLabel MakeIcon(string glyph, double size, Color color)
+	{
+		return new MauiLabel
+		{
+			Text = glyph,
+			FontFamily = Icons.FontFamily,
+			FontSize = size,
+			TextColor = color,
+			HorizontalTextAlignment = TextAlignment.Center,
+			VerticalTextAlignment = TextAlignment.Center,
+		};
+	}
+
 	public static Microsoft.Maui.Controls.View MakeCard(Microsoft.Maui.Controls.View content)
 	{
 		return new MauiBorder
@@ -39,6 +52,7 @@ public static class FormHelpers
 		return new MauiLabel
 		{
 			Text = title.ToUpperInvariant(),
+			FontFamily = Theme.FontSemibold,
 			FontSize = 13,
 			FontAttributes = MauiFontAttributes.Bold,
 			TextColor = Theme.TextSecondary,
@@ -49,7 +63,7 @@ public static class FormHelpers
 	public static Microsoft.Maui.Controls.View MakeFormEntry(string label, string value, string placeholder, Action<string> onChanged)
 	{
 		var stack = new VerticalStackLayout { Spacing = 4 };
-		stack.Add(new MauiLabel { Text = label, FontSize = 14, TextColor = Theme.TextSecondary });
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 
 		var entry = new MauiEntry
 		{
@@ -77,11 +91,12 @@ public static class FormHelpers
 	public static Microsoft.Maui.Controls.View MakeReadOnlyField(string label, string value)
 	{
 		var stack = new VerticalStackLayout { Spacing = 4 };
-		stack.Add(new MauiLabel { Text = label, FontSize = 14, TextColor = Theme.TextSecondary });
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 
 		var valueLabel = new MauiLabel
 		{
 			Text = value,
+			FontFamily = Theme.FontSemibold,
 			FontSize = 16,
 			FontAttributes = MauiFontAttributes.Bold,
 			TextColor = Theme.TextPrimary,
@@ -107,6 +122,7 @@ public static class FormHelpers
 		var btn = new MauiButton
 		{
 			Text = title,
+			FontFamily = Theme.FontSemibold,
 			BackgroundColor = Theme.Primary,
 			TextColor = Colors.White,
 			FontSize = 16,
@@ -123,6 +139,7 @@ public static class FormHelpers
 		var btn = new MauiButton
 		{
 			Text = title,
+			FontFamily = Theme.FontSemibold,
 			BackgroundColor = Theme.SurfaceVariant,
 			TextColor = Theme.Primary,
 			FontSize = 16,
@@ -139,6 +156,7 @@ public static class FormHelpers
 		var btn = new MauiButton
 		{
 			Text = title,
+			FontFamily = Theme.FontSemibold,
 			BackgroundColor = Theme.Error,
 			TextColor = Colors.White,
 			FontSize = 16,
@@ -159,9 +177,9 @@ public static class FormHelpers
 			VerticalOptions = LayoutOptions.Center,
 			Padding = new Thickness(Theme.SpacingXL),
 		};
-		stack.Add(new MauiLabel { Text = icon, FontSize = 48, HorizontalTextAlignment = TextAlignment.Center });
-		stack.Add(new MauiLabel { Text = title, FontSize = 18, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalTextAlignment = TextAlignment.Center });
-		stack.Add(new MauiLabel { Text = description, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
+		stack.Add(new MauiLabel { Text = icon, FontFamily = Icons.FontFamily, FontSize = 48, HorizontalTextAlignment = TextAlignment.Center });
+		stack.Add(new MauiLabel { Text = title, FontFamily = Theme.FontSemibold, FontSize = 18, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalTextAlignment = TextAlignment.Center });
+		stack.Add(new MauiLabel { Text = description, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
 		return stack;
 	}
 
@@ -177,14 +195,14 @@ public static class FormHelpers
 		};
 
 		var infoStack = new VerticalStackLayout { Spacing = 2 };
-		infoStack.Add(new MauiLabel { Text = title, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		infoStack.Add(new MauiLabel { Text = title, FontFamily = Theme.FontSemibold, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
 		if (subtitle != null)
-			infoStack.Add(new MauiLabel { Text = subtitle, FontSize = 14, TextColor = Theme.TextSecondary });
+			infoStack.Add(new MauiLabel { Text = subtitle, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 		if (detail != null)
-			infoStack.Add(new MauiLabel { Text = detail, FontSize = 12, TextColor = Theme.TextMuted });
+			infoStack.Add(new MauiLabel { Text = detail, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
 
 		grid.Add(infoStack, 0, 0);
-		grid.Add(new MauiLabel { Text = "›", FontSize = 20, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center, Padding = new Thickness(Theme.SpacingS, 0) }, 1, 0);
+		grid.Add(new MauiLabel { Text = Icons.ChevronRight, FontFamily = Icons.FontFamily, FontSize = 20, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center, Padding = new Thickness(Theme.SpacingS, 0) }, 1, 0);
 
 		var border = new MauiBorder
 		{
@@ -209,7 +227,7 @@ public static class FormHelpers
 	public static Microsoft.Maui.Controls.View MakeFormPicker(string label, int selectedIndex, string[] items, Action<int> onChanged)
 	{
 		var stack = new VerticalStackLayout { Spacing = 4 };
-		stack.Add(new MauiLabel { Text = label, FontSize = 14, TextColor = Theme.TextSecondary });
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 
 		var picker = new MauiPicker
 		{
@@ -236,8 +254,8 @@ public static class FormHelpers
 	public static Microsoft.Maui.Controls.View MakeFormSlider(string label, double value, double min, double max, Action<double> onChanged)
 	{
 		var headerStack = new HorizontalStackLayout();
-		headerStack.Add(new MauiLabel { Text = label, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalOptions = LayoutOptions.Start });
-		var valueLabel = new MauiLabel { Text = $"{value:F1}", FontSize = 14, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalOptions = LayoutOptions.End };
+		headerStack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalOptions = LayoutOptions.Start });
+		var valueLabel = new MauiLabel { Text = $"{value:F1}", FontFamily = Theme.FontSemibold, FontSize = 14, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalOptions = LayoutOptions.End };
 		headerStack.Add(valueLabel);
 
 		var slider = new MauiSlider { Minimum = min, Maximum = max, Value = value, MinimumTrackColor = Theme.Primary, MaximumTrackColor = Theme.SurfaceVariant };
@@ -250,7 +268,7 @@ public static class FormHelpers
 		var contentStack = new VerticalStackLayout { Spacing = 4 };
 
 		var headerGrid = new MauiGrid();
-		headerGrid.Add(new MauiLabel { Text = label, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalOptions = LayoutOptions.Start });
+		headerGrid.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalOptions = LayoutOptions.Start });
 		headerGrid.Add(valueLabel);
 		valueLabel.HorizontalOptions = LayoutOptions.End;
 
@@ -263,7 +281,7 @@ public static class FormHelpers
 	public static Microsoft.Maui.Controls.View MakeFormEditor(string label, string value, Action<string> onChanged)
 	{
 		var stack = new VerticalStackLayout { Spacing = 4 };
-		stack.Add(new MauiLabel { Text = label, FontSize = 14, TextColor = Theme.TextSecondary });
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 
 		var editor = new MauiEditor
 		{
@@ -298,7 +316,7 @@ public static class FormHelpers
 			},
 		};
 
-		grid.Add(new MauiLabel { Text = label, FontSize = 14, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, VerticalTextAlignment = TextAlignment.Center }, 0, 0);
+		grid.Add(new MauiLabel { Text = label, FontFamily = Theme.FontSemibold, FontSize = 14, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, VerticalTextAlignment = TextAlignment.Center }, 0, 0);
 
 		var toggle = new Microsoft.Maui.Controls.Switch { IsToggled = isOn, OnColor = Theme.Primary };
 		toggle.Toggled += (s, e) => onChanged(e.Value);

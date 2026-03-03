@@ -4,6 +4,10 @@ namespace CometBaristaNotes.Components;
 
 public static class Theme
 {
+	// Font families
+	public const string FontRegular = "Manrope";
+	public const string FontSemibold = "ManropeSemibold";
+
 	// Card themed colors (original BaristaNotes uses ThemeKey(ThemeKeys.CardBorder))
 	public static readonly Color CardBackground = Color.FromArgb("#FCEFE1");
 	public static readonly Color CardStroke = Color.FromArgb("#D7C5B2");

@@ -52,9 +52,9 @@ public class SettingsPage : Comet.View
 	Microsoft.Maui.Controls.View BuildAppearanceButtons()
 	{
 		var hStack = new HorizontalStackLayout { Spacing = Theme.SpacingS };
-		hStack.Add(BuildThemeButton("☀️", "Light", ThemeMode.Light));
-		hStack.Add(BuildThemeButton("🌙", "Dark", ThemeMode.Dark));
-		hStack.Add(BuildThemeButton("⚙️", "Auto", ThemeMode.Auto));
+		hStack.Add(BuildThemeButton(Icons.LightMode, "Light", ThemeMode.Light));
+		hStack.Add(BuildThemeButton(Icons.DarkMode, "Dark", ThemeMode.Dark));
+		hStack.Add(BuildThemeButton(Icons.BrightnessAuto, "Auto", ThemeMode.Auto));
 		return hStack;
 	}
 
@@ -68,8 +68,8 @@ public class SettingsPage : Comet.View
 			HorizontalOptions = LayoutOptions.Center,
 			VerticalOptions = LayoutOptions.Center,
 		};
-		contentStack.Add(new MauiLabel { Text = icon, FontSize = 24, HorizontalTextAlignment = TextAlignment.Center });
-		contentStack.Add(new MauiLabel { Text = label, FontSize = 12, TextColor = isSelected ? Theme.Primary : Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
+		contentStack.Add(new MauiLabel { Text = icon, FontFamily = Icons.FontFamily, FontSize = 24, HorizontalTextAlignment = TextAlignment.Center });
+		contentStack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = isSelected ? Theme.Primary : Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
 
 		var border = new MauiBorder
 		{
@@ -102,11 +102,11 @@ public class SettingsPage : Comet.View
 		};
 
 		var infoStack = new VerticalStackLayout { Spacing = 2 };
-		infoStack.Add(new MauiLabel { Text = title, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
-		infoStack.Add(new MauiLabel { Text = description, FontSize = 14, TextColor = Theme.TextSecondary });
+		infoStack.Add(new MauiLabel { Text = title, FontFamily = Theme.FontSemibold, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		infoStack.Add(new MauiLabel { Text = description, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 		grid.Add(infoStack, 0, 0);
 
-		grid.Add(new MauiLabel { Text = "›", FontSize = 22, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center, Padding = new Thickness(Theme.SpacingS, 0) }, 1, 0);
+		grid.Add(new MauiLabel { Text = Icons.ChevronRight, FontFamily = Icons.FontFamily, FontSize = 22, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center, Padding = new Thickness(Theme.SpacingS, 0) }, 1, 0);
 
 		var border = new MauiBorder
 		{
@@ -128,9 +128,9 @@ public class SettingsPage : Comet.View
 	Microsoft.Maui.Controls.View BuildAboutCard()
 	{
 		var stack = new VerticalStackLayout { Spacing = Theme.SpacingXS };
-		stack.Add(new MauiLabel { Text = "BaristaNotes", FontSize = 18, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
-		stack.Add(new MauiLabel { Text = "Version 1.0", FontSize = 14, TextColor = Theme.TextSecondary });
-		stack.Add(new MauiLabel { Text = "Track your espresso journey", FontSize = 14, TextColor = Theme.TextSecondary, Margin = new Thickness(0, Theme.SpacingXS, 0, 0) });
+		stack.Add(new MauiLabel { Text = "BaristaNotes", FontFamily = Theme.FontSemibold, FontSize = 18, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		stack.Add(new MauiLabel { Text = "Version 1.0", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+		stack.Add(new MauiLabel { Text = "Track your espresso journey", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, Margin = new Thickness(0, Theme.SpacingXS, 0, 0) });
 
 		return new MauiBorder
 		{

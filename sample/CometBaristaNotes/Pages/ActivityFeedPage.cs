@@ -35,7 +35,7 @@ public class ActivityFeedPage : Comet.View
 				VerticalOptions = LayoutOptions.Fill,
 				HorizontalOptions = LayoutOptions.Fill,
 			};
-			emptyStack.Add(FormHelpers.MakeEmptyState("☕", "No Shots Yet", "Log your first espresso shot to see it here."));
+			emptyStack.Add(FormHelpers.MakeEmptyState(Icons.Coffee, "No Shots Yet", "Log your first espresso shot to see it here."));
 			return new MauiViewHost(emptyStack);
 		}
 
@@ -48,6 +48,7 @@ public class ActivityFeedPage : Comet.View
 		contentStack.Add(new MauiLabel
 		{
 			Text = $"{shots.Count} shots logged",
+			FontFamily = Theme.FontSemibold,
 			FontSize = 14,
 			FontAttributes = MauiFontAttributes.Bold,
 			TextColor = Theme.TextSecondary,

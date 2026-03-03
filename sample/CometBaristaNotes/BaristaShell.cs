@@ -22,6 +22,7 @@ public class BaristaShell : MauiShell
 		tabBar.Items.Add(new Microsoft.Maui.Controls.ShellContent
 		{
 			Title = "New Shot",
+			Icon = new Microsoft.Maui.Controls.FontImageSource { FontFamily = Icons.FontFamily, Glyph = Icons.Coffee, Size = 24, Color = Theme.TextSecondary },
 			ContentTemplate = new DataTemplate(() => MakeCometPage(new ShotLoggingPage(), "New Shot")),
 			Route = "newshot"
 		});
@@ -29,6 +30,7 @@ public class BaristaShell : MauiShell
 		tabBar.Items.Add(new Microsoft.Maui.Controls.ShellContent
 		{
 			Title = "Shot History",
+			Icon = new Microsoft.Maui.Controls.FontImageSource { FontFamily = Icons.FontFamily, Glyph = Icons.Feed, Size = 24, Color = Theme.TextSecondary },
 			ContentTemplate = new DataTemplate(() => MakeCometPage(new ActivityFeedPage(), "Shot History")),
 			Route = "activity"
 		});
@@ -36,6 +38,7 @@ public class BaristaShell : MauiShell
 		tabBar.Items.Add(new Microsoft.Maui.Controls.ShellContent
 		{
 			Title = "Settings",
+			Icon = new Microsoft.Maui.Controls.FontImageSource { FontFamily = Icons.FontFamily, Glyph = Icons.Settings, Size = 24, Color = Theme.TextSecondary },
 			ContentTemplate = new DataTemplate(() => MakeCometPage(new SettingsPage(), "Settings")),
 			Route = "settings"
 		});

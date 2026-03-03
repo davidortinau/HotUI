@@ -22,6 +22,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\beans.png" Color="#362E27" />
+		<MauiSplashScreen Include="Resources\Splash\beans.png" Color="#362E27" BaseSize="256,256" />
 		<MauiImage Include="Resources\Images\*" />
 		<MauiFont Include="Resources\Fonts\*.ttf" />
 		<MauiFont Include="Resources\Fonts\*.otf" />
@@ -30,6 +32,7 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
+		<PackageReference Include="Syncfusion.Maui.Gauges" Version="32.2.8" />
 	</ItemGroup>
 
 	<ItemGroup>

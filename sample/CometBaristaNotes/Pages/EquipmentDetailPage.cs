@@ -109,7 +109,7 @@ public class EquipmentDetailPage : Comet.View
 		stack.Add(FormHelpers.MakeFormEntry("Notes", _notes.Value, "Additional details", v => _notes.Value = v));
 
 		if (!string.IsNullOrEmpty(_error.Value))
-			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontSize = 14 });
+			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontFamily = Theme.FontRegular, FontSize = 14 });
 
 		stack.Add(FormHelpers.MakePrimaryButton(isEdit ? "Save Changes" : "Add Equipment", Save));
 

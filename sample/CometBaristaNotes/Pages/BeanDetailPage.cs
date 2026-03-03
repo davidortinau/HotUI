@@ -105,7 +105,7 @@ public class BeanDetailPage : Comet.View
 		stack.Add(FormHelpers.MakeFormEntry("Notes", _notes.Value, "Tasting notes, processing, etc.", v => _notes.Value = v));
 
 		if (!string.IsNullOrEmpty(_error.Value))
-			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontSize = 14 });
+			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontFamily = Theme.FontRegular, FontSize = 14 });
 
 		stack.Add(FormHelpers.MakePrimaryButton(isEdit ? "Save Changes" : "Create Bean", Save));
 
@@ -116,7 +116,7 @@ public class BeanDetailPage : Comet.View
 
 			stack.Add(FormHelpers.MakeSectionHeader("BAGS"));
 			if (_bags.Value.Count == 0)
-				stack.Add(new MauiLabel { Text = "No bags added yet", FontSize = 14, TextColor = Theme.TextSecondary });
+				stack.Add(new MauiLabel { Text = "No bags added yet", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 
 			stack.Add(FormHelpers.MakeSecondaryButton("+ Add Bag", () =>
 			{
@@ -150,21 +150,21 @@ public class BeanDetailPage : Comet.View
 		};
 
 		var infoStack = new VerticalStackLayout { Spacing = 4 };
-		infoStack.Add(new MauiLabel { Text = $"Roasted {bag.RoastDate:MMM d, yyyy}", FontSize = 14, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		infoStack.Add(new MauiLabel { Text = $"Roasted {bag.RoastDate:MMM d, yyyy}", FontFamily = Theme.FontSemibold, FontSize = 14, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
 
 		if (bag.Notes != null)
-			infoStack.Add(new MauiLabel { Text = bag.Notes, FontSize = 12, TextColor = Theme.TextSecondary });
+			infoStack.Add(new MauiLabel { Text = bag.Notes, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary });
 
 		var statsStack = new HorizontalStackLayout { Spacing = 12 };
-		statsStack.Add(new MauiLabel { Text = $"{bag.ShotCount} shots", FontSize = 12, TextColor = Theme.TextMuted });
+		statsStack.Add(new MauiLabel { Text = $"{bag.ShotCount} shots", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
 		statsStack.Add(bag.AverageRating.HasValue
-			? new MauiLabel { Text = $"★ {bag.AverageRating.Value:F1}", FontSize = 12, TextColor = Theme.StarFilled }
-			: new MauiLabel { Text = "No ratings", FontSize = 12, TextColor = Theme.TextMuted });
-		statsStack.Add(new MauiLabel { Text = bag.IsComplete ? "Complete" : "Active", FontSize = 12, TextColor = bag.IsComplete ? Theme.Success : Theme.Primary });
+			? new MauiLabel { Text = $"{Icons.SentimentVerySatisfied} {bag.AverageRating.Value:F1}", FontFamily = Icons.FontFamily, FontSize = 12, TextColor = Theme.StarFilled }
+			: new MauiLabel { Text = "No ratings", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
+		statsStack.Add(new MauiLabel { Text = bag.IsComplete ? "Complete" : "Active", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = bag.IsComplete ? Theme.Success : Theme.Primary });
 		infoStack.Add(statsStack);
 
 		grid.Add(infoStack, 0, 0);
-		grid.Add(new MauiLabel { Text = "›", FontSize = 20, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center }, 1, 0);
+		grid.Add(new MauiLabel { Text = Icons.ChevronRight, FontFamily = Icons.FontFamily, FontSize = 20, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center }, 1, 0);
 
 		var border = new MauiBorder
 		{

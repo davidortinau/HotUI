@@ -5,6 +5,7 @@ using Microsoft.Maui.Graphics;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
+using Syncfusion.Maui.Gauges;
 
 using MauiLabel = Microsoft.Maui.Controls.Label;
 using MauiBorder = Microsoft.Maui.Controls.Border;
@@ -105,9 +106,9 @@ public class ShotLoggingPage : Comet.View
 			BackgroundColor = Theme.Background,
 		};
 
-		stack.Add(new MauiLabel { Text = "✅", FontSize = 48, HorizontalTextAlignment = TextAlignment.Center });
-		stack.Add(new MauiLabel { Text = "Shot Logged!", FontSize = 24, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalTextAlignment = TextAlignment.Center });
-		stack.Add(new MauiLabel { Text = "Your espresso shot has been recorded.", FontSize = 14, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
+		stack.Add(new MauiLabel { Text = Icons.CheckCircle, FontFamily = Icons.FontFamily, FontSize = 48, TextColor = Theme.Success, HorizontalTextAlignment = TextAlignment.Center });
+		stack.Add(new MauiLabel { Text = "Shot Logged!", FontFamily = Theme.FontSemibold, FontSize = 24, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalTextAlignment = TextAlignment.Center });
+		stack.Add(new MauiLabel { Text = "Your espresso shot has been recorded.", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
 
 		var btn = FormHelpers.MakePrimaryButton("Log Another", ResetForm);
 		btn.Margin = new Thickness(0, 16, 0, 0);
@@ -143,44 +144,59 @@ public class ShotLoggingPage : Comet.View
 			HorizontalOptions = LayoutOptions.Center,
 		};
 
-		stack.Add(new MauiLabel { Text = label, FontSize = 12, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontSemibold, FontSize = 12, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
 
-		// Circular display
-		var circleGrid = new MauiGrid { WidthRequest = Theme.GaugeSize, HeightRequest = Theme.GaugeSize };
+		// SfRadialGauge
+		var gauge = new SfRadialGauge();
+		gauge.WidthRequest = 160;
+		gauge.HeightRequest = 160;
 
-		var circleBorder = new MauiBorder
-		{
-			BackgroundColor = Theme.CardBackground,
-			Stroke = new SolidColorBrush(Theme.CardStroke),
-			StrokeThickness = 2,
-			StrokeShape = new MauiEllipse(),
-			WidthRequest = Theme.GaugeSize,
-			HeightRequest = Theme.GaugeSize,
-		};
-		circleGrid.Add(circleBorder);
+		var axis = new RadialAxis();
+		axis.Minimum = 0;
+		axis.Maximum = max;
+		axis.ShowLabels = false;
+		axis.ShowTicks = false;
+		axis.AxisLineStyle = new RadialLineStyle { Thickness = 8, Fill = new SolidColorBrush(Theme.SurfaceVariant) };
 
-		var valueStack = new VerticalStackLayout
-		{
-			Spacing = 0,
-			HorizontalOptions = LayoutOptions.Center,
-			VerticalOptions = LayoutOptions.Center,
-		};
+		var range = new RadialRange();
+		range.StartValue = 0;
+		range.EndValue = value;
+		range.Fill = new SolidColorBrush(Theme.Primary);
+		range.StartWidth = 8;
+		range.EndWidth = 8;
+		axis.Ranges.Add(range);
 
-		var valueLabel = new MauiLabel { Text = $"{value:F1}", FontSize = 28, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalTextAlignment = TextAlignment.Center };
-		valueStack.Add(valueLabel);
-		valueStack.Add(new MauiLabel { Text = unit, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
-		circleGrid.Add(valueStack);
+		var pointer = new NeedlePointer();
+		pointer.Value = value;
+		pointer.NeedleFill = new SolidColorBrush(Theme.Primary);
+		pointer.NeedleLength = 0.6;
+		pointer.NeedleStartWidth = 2;
+		pointer.NeedleEndWidth = 2;
+		pointer.KnobRadius = 6;
+		pointer.KnobFill = new SolidColorBrush(Theme.Primary);
+		axis.Pointers.Add(pointer);
 
-		stack.Add(circleGrid);
+		var annotation = new GaugeAnnotation();
+		annotation.DirectionUnit = AnnotationDirection.Angle;
+		annotation.DirectionValue = 90;
+		annotation.PositionFactor = 0;
+		var annotationContent = new VerticalStackLayout();
+		annotationContent.Add(new MauiLabel { Text = $"{value:F1}", FontFamily = Theme.FontSemibold, FontSize = 24, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalTextAlignment = TextAlignment.Center });
+		annotationContent.Add(new MauiLabel { Text = unit, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
+		annotation.Content = annotationContent;
+		axis.Annotations.Add(annotation);
+
+		gauge.Axes.Add(axis);
+		stack.Add(gauge);
 
 		// Stepper controls
 		var stepperStack = new HorizontalStackLayout { Spacing = Theme.SpacingS, HorizontalOptions = LayoutOptions.Center };
-		stepperStack.Add(BuildStepperButton("-", () =>
+		stepperStack.Add(BuildStepperButton(Icons.Remove, () =>
 		{
 			var newVal = Math.Max(min, value - 0.5);
 			onChange(newVal);
 		}));
-		stepperStack.Add(BuildStepperButton("+", () =>
+		stepperStack.Add(BuildStepperButton(Icons.Add, () =>
 		{
 			var newVal = Math.Min(max, value + 0.5);
 			onChange(newVal);
@@ -195,6 +211,7 @@ public class ShotLoggingPage : Comet.View
 		var label = new MauiLabel
 		{
 			Text = text,
+			FontFamily = Icons.FontFamily,
 			FontSize = 20,
 			FontAttributes = MauiFontAttributes.Bold,
 			TextColor = Theme.Primary,
@@ -245,7 +262,7 @@ public class ShotLoggingPage : Comet.View
 			HeightRequest = Theme.EquipmentButtonSize,
 		};
 		circleGrid.Add(circleBorder);
-		circleGrid.Add(new MauiLabel { Text = "☕", FontSize = 24, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center });
+		circleGrid.Add(new MauiLabel { Text = Icons.Machine, FontFamily = Icons.CoffeeFontFamily, FontSize = 24, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center });
 
 		var tap = new TapGestureRecognizer();
 		tap.Tapped += (s, e) =>
@@ -256,7 +273,7 @@ public class ShotLoggingPage : Comet.View
 		circleGrid.GestureRecognizers.Add(tap);
 
 		stack.Add(circleGrid);
-		stack.Add(new MauiLabel { Text = displayName, FontSize = 11, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center, WidthRequest = 80 });
+		stack.Add(new MauiLabel { Text = displayName, FontFamily = Theme.FontRegular, FontSize = 11, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center, WidthRequest = 80 });
 
 		return stack;
 	}
@@ -270,8 +287,8 @@ public class ShotLoggingPage : Comet.View
 			Padding = new Thickness(Theme.SpacingS),
 		};
 
-		stack.Add(new MauiLabel { Text = "Ratio: ", FontSize = 16, TextColor = Theme.TextSecondary });
-		stack.Add(new MauiLabel { Text = $"1:{Ratio:F1}", FontSize = 18, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		stack.Add(new MauiLabel { Text = "Ratio: ", FontFamily = Theme.FontRegular, FontSize = 16, TextColor = Theme.TextSecondary });
+		stack.Add(new MauiLabel { Text = $"1:{Ratio:F1}", FontFamily = Theme.FontSemibold, FontSize = 18, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
 
 		return stack;
 	}
@@ -281,8 +298,8 @@ public class ShotLoggingPage : Comet.View
 		var contentStack = new VerticalStackLayout { Spacing = Theme.SpacingS };
 
 		var headerGrid = new MauiGrid();
-		headerGrid.Add(new MauiLabel { Text = "Time", FontSize = 14, TextColor = Theme.TextSecondary, HorizontalOptions = LayoutOptions.Start });
-		var timeLabel = new MauiLabel { Text = $"{_actualTime.Value:F0}s", FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalOptions = LayoutOptions.End };
+		headerGrid.Add(new MauiLabel { Text = "Time", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalOptions = LayoutOptions.Start });
+		var timeLabel = new MauiLabel { Text = $"{_actualTime.Value:F0}s", FontFamily = Theme.FontSemibold, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalOptions = LayoutOptions.End };
 		headerGrid.Add(timeLabel);
 		contentStack.Add(headerGrid);
 
@@ -305,7 +322,7 @@ public class ShotLoggingPage : Comet.View
 
 		// Made By
 		var madeByStack = new VerticalStackLayout { Spacing = Theme.SpacingXS };
-		madeByStack.Add(new MauiLabel { Text = "Made By", FontSize = 12, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
+		madeByStack.Add(new MauiLabel { Text = "Made By", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
 		var madeByAvatar = BuildUserAvatar(_madeByIndex.Value, profiles);
 		madeByStack.Add(madeByAvatar);
 
@@ -314,11 +331,11 @@ public class ShotLoggingPage : Comet.View
 		madeByStack.GestureRecognizers.Add(madeByTap);
 		contentStack.Add(madeByStack);
 
-		contentStack.Add(new MauiLabel { Text = "→", FontSize = 20, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center, Margin = new Thickness(0, Theme.SpacingM) });
+		contentStack.Add(new MauiLabel { Text = "→", FontFamily = Theme.FontRegular, FontSize = 20, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center, Margin = new Thickness(0, Theme.SpacingM) });
 
 		// Made For
 		var madeForStack = new VerticalStackLayout { Spacing = Theme.SpacingXS };
-		madeForStack.Add(new MauiLabel { Text = "Made For", FontSize = 12, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
+		madeForStack.Add(new MauiLabel { Text = "Made For", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
 		var madeForAvatar = BuildUserAvatar(_madeForIndex.Value, profiles);
 		madeForStack.Add(madeForAvatar);
 
@@ -352,6 +369,7 @@ public class ShotLoggingPage : Comet.View
 		circleGrid.Add(new MauiLabel
 		{
 			Text = name,
+			FontFamily = Theme.FontSemibold,
 			FontSize = 18,
 			FontAttributes = MauiFontAttributes.Bold,
 			TextColor = selectedIndex == 0 ? Theme.TextMuted : Colors.White,
@@ -359,7 +377,7 @@ public class ShotLoggingPage : Comet.View
 			VerticalTextAlignment = TextAlignment.Center,
 		});
 		stack.Add(circleGrid);
-		stack.Add(new MauiLabel { Text = fullName, FontSize = 11, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
+		stack.Add(new MauiLabel { Text = fullName, FontFamily = Theme.FontRegular, FontSize = 11, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
 
 		return stack;
 	}
@@ -367,15 +385,17 @@ public class ShotLoggingPage : Comet.View
 	Microsoft.Maui.Controls.View BuildStarRating()
 	{
 		var contentStack = new VerticalStackLayout { Spacing = Theme.SpacingS };
-		contentStack.Add(new MauiLabel { Text = "Rating", FontSize = 14, TextColor = Theme.TextSecondary });
+		contentStack.Add(new MauiLabel { Text = "Rating", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 
+		var sentiments = new[] { Icons.SentimentVeryDissatisfied, Icons.SentimentDissatisfied, Icons.SentimentNeutral, Icons.SentimentSatisfied, Icons.SentimentVerySatisfied };
 		var starsStack = new HorizontalStackLayout { Spacing = Theme.SpacingS, HorizontalOptions = LayoutOptions.Center };
 		for (int i = 1; i <= 5; i++)
 		{
 			var starIndex = i;
 			var star = new MauiLabel
 			{
-				Text = i <= _rating.Value ? "★" : "☆",
+				Text = sentiments[i - 1],
+				FontFamily = Icons.FontFamily,
 				FontSize = 32,
 				TextColor = i <= _rating.Value ? Theme.StarFilled : Theme.StarEmpty,
 			};
@@ -393,7 +413,7 @@ public class ShotLoggingPage : Comet.View
 	Microsoft.Maui.Controls.View BuildTastingNotes()
 	{
 		var contentStack = new VerticalStackLayout { Spacing = Theme.SpacingS };
-		contentStack.Add(new MauiLabel { Text = "Tasting Notes", FontSize = 14, TextColor = Theme.TextSecondary });
+		contentStack.Add(new MauiLabel { Text = "Tasting Notes", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 
 		var editor = new MauiEditor
 		{
@@ -423,8 +443,8 @@ public class ShotLoggingPage : Comet.View
 		var grinderNames = new[] { "None" }.Concat(grinders.Select(g => g.Name)).ToArray();
 
 		var headerGrid = new MauiGrid();
-		headerGrid.Add(new MauiLabel { Text = "Additional Details", FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalOptions = LayoutOptions.Start });
-		headerGrid.Add(new MauiLabel { Text = _showAdditionalDetails.Value ? "▼" : "▶", FontSize = 14, TextColor = Theme.TextMuted, HorizontalOptions = LayoutOptions.End });
+		headerGrid.Add(new MauiLabel { Text = "Additional Details", FontFamily = Theme.FontSemibold, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalOptions = LayoutOptions.Start });
+		headerGrid.Add(new MauiLabel { Text = _showAdditionalDetails.Value ? "▼" : "▶", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextMuted, HorizontalOptions = LayoutOptions.End });
 
 		var headerCard = FormHelpers.MakeCard(headerGrid);
 		var tap = new TapGestureRecognizer();

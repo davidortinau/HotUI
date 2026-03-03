@@ -85,7 +85,7 @@ public class BagDetailPage : Comet.View
 				Padding = new Thickness(Theme.SpacingM),
 				BackgroundColor = Theme.Background,
 			};
-			errorStack.Add(new MauiLabel { Text = "Bag not found", TextColor = Theme.TextSecondary });
+			errorStack.Add(new MauiLabel { Text = "Bag not found", FontFamily = Theme.FontRegular, TextColor = Theme.TextSecondary });
 			return new MauiViewHost(errorStack);
 		}
 
@@ -99,8 +99,8 @@ public class BagDetailPage : Comet.View
 		// Shot count card
 		var shotCountStack = new HorizontalStackLayout();
 		var shotInfoStack = new VerticalStackLayout { Spacing = 2 };
-		shotInfoStack.Add(new MauiLabel { Text = "Shots Logged", FontSize = 14, TextColor = Theme.TextSecondary });
-		shotInfoStack.Add(new MauiLabel { Text = $"{_shotCount.Value}", FontSize = 24, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		shotInfoStack.Add(new MauiLabel { Text = "Shots Logged", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+		shotInfoStack.Add(new MauiLabel { Text = $"{_shotCount.Value}", FontFamily = Theme.FontSemibold, FontSize = 24, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
 		shotCountStack.Add(shotInfoStack);
 		stack.Add(FormHelpers.MakeCard(shotCountStack));
 

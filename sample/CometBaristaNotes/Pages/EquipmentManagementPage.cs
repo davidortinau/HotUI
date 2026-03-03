@@ -40,7 +40,7 @@ public class EquipmentManagementPage : Comet.View
 				BackgroundColor = Theme.Background,
 				VerticalOptions = LayoutOptions.Fill,
 			};
-			emptyStack.Add(FormHelpers.MakeEmptyState("⚙️", "No Equipment Yet", "Add your coffee machines, grinders, and accessories"));
+			emptyStack.Add(FormHelpers.MakeEmptyState(Icons.Build, "No Equipment Yet", "Add your coffee machines, grinders, and accessories"));
 			emptyStack.Add(FormHelpers.MakePrimaryButton("+ Add Equipment", () =>
 			{
 				Microsoft.Maui.Controls.Shell.Current.GoToAsync("equipment-detail?id=0");

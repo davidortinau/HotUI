@@ -31,8 +31,8 @@ public static class ShotRecordCardFactory
 		};
 
 		var headerLeft = new HorizontalStackLayout { Spacing = 6 };
-		headerLeft.Add(new MauiLabel { Text = "☕", FontSize = 18 });
-		headerLeft.Add(new MauiLabel { Text = shot.DrinkType, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		headerLeft.Add(new MauiLabel { Text = Icons.Coffee, FontFamily = Icons.FontFamily, FontSize = 18, TextColor = Theme.TextPrimary });
+		headerLeft.Add(new MauiLabel { Text = shot.DrinkType, FontFamily = Theme.FontSemibold, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
 		headerGrid.Add(headerLeft, 0, 0);
 
 		// Rating stars
@@ -43,16 +43,16 @@ public static class ShotRecordCardFactory
 
 		// Bean name
 		var beanName = shot.BeanName ?? shot.BagDisplayName ?? "Unknown Bean";
-		contentStack.Add(new MauiLabel { Text = beanName, FontSize = 14, TextColor = Theme.TextSecondary });
+		contentStack.Add(new MauiLabel { Text = beanName, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 
 		// Recipe line
-		contentStack.Add(new MauiLabel { Text = FormatRecipeLine(shot), FontSize = 14, TextColor = Theme.TextSecondary });
+		contentStack.Add(new MauiLabel { Text = FormatRecipeLine(shot), FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 
 		// Footer: timestamp + user
 		var footerStack = new HorizontalStackLayout { Spacing = 4 };
-		footerStack.Add(new MauiLabel { Text = FormatTimestamp(shot), FontSize = 12, TextColor = Theme.TextMuted });
+		footerStack.Add(new MauiLabel { Text = FormatTimestamp(shot), FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
 		if (shot.MadeByName != null)
-			footerStack.Add(new MauiLabel { Text = $"• By: {shot.MadeByName}", FontSize = 12, TextColor = Theme.TextMuted });
+			footerStack.Add(new MauiLabel { Text = $"• By: {shot.MadeByName}", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
 		contentStack.Add(footerStack);
 
 		var border = new MauiBorder
@@ -79,10 +79,11 @@ public static class ShotRecordCardFactory
 	static Microsoft.Maui.Controls.View MakeRatingBadge(ShotRecord shot)
 	{
 		if (!shot.Rating.HasValue)
-			return new MauiLabel { Text = "—", FontSize = 14, TextColor = Theme.TextMuted };
+			return new MauiLabel { Text = "—", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextMuted };
 
-		var stars = new string('★', shot.Rating.Value);
-		return new MauiLabel { Text = stars, FontSize = 14, TextColor = Theme.StarFilled };
+		var sentiments = new[] { Icons.SentimentVeryDissatisfied, Icons.SentimentDissatisfied, Icons.SentimentNeutral, Icons.SentimentSatisfied, Icons.SentimentVerySatisfied };
+		var idx = Math.Clamp(shot.Rating.Value - 1, 0, sentiments.Length - 1);
+		return new MauiLabel { Text = sentiments[idx], FontFamily = Icons.FontFamily, FontSize = 18, TextColor = Theme.StarFilled };
 	}
 
 	static string FormatRecipeLine(ShotRecord shot)

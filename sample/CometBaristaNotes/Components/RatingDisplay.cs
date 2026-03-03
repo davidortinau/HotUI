@@ -38,8 +38,8 @@ public static class RatingDisplayFactory
 	static Microsoft.Maui.Controls.View MakeStatBlock(string label, string value)
 	{
 		var stack = new VerticalStackLayout { Spacing = 2 };
-		stack.Add(new MauiLabel { Text = value, FontSize = 20, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
-		stack.Add(new MauiLabel { Text = label, FontSize = 12, TextColor = Theme.TextMuted });
+		stack.Add(new MauiLabel { Text = value, FontFamily = Theme.FontSemibold, FontSize = 20, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
 		return stack;
 	}
 }

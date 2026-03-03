@@ -76,7 +76,7 @@ public class BagFormPage : Comet.View
 		stack.Add(FormHelpers.MakeFormEntry("Notes (optional)", _notes.Value, "e.g., From Trader Joe's, Gift from friend", v => _notes.Value = v));
 
 		if (!string.IsNullOrEmpty(_error.Value))
-			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontSize = 14 });
+			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontFamily = Theme.FontRegular, FontSize = 14 });
 
 		stack.Add(FormHelpers.MakePrimaryButton("Add Bag", Save));
 
