@@ -82,6 +82,7 @@ namespace Comet
 				{ typeof(Toggle), typeof(SwitchHandler) },
 				{ typeof(Toolbar), typeof(ToolbarHandler) },
 				{ typeof(CometApp), typeof(ApplicationHandler) },
+				{ typeof(MediaElement), typeof(MediaElementHandler) },
 				{ typeof(ListView),typeof(ListViewHandler) },
 				{ typeof(CollectionView),typeof(Handlers.CollectionViewHandler) },
 				{ typeof(CarouselView),typeof(Handlers.CollectionViewHandler) },
