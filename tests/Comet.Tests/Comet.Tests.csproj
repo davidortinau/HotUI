@@ -1,17 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <!-- Suppress platform compatibility warnings: tests reference maccatalyst DLL from net9.0 -->
+    <!-- Suppress platform compatibility warnings: tests reference maccatalyst DLL from net10.0 -->
     <NoWarn>CA1416</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Maui.Core" Version="9.0.51" />
-    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.51" />
-    <PackageReference Include="Microsoft.Maui.Graphics" Version="9.0.51" />
+    <PackageReference Include="Microsoft.Maui.Core" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Maui.Graphics" Version="10.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <Reference Include="Comet">
-      <HintPath>..\..\src\Comet\bin\$(Configuration)\net9.0-maccatalyst\Comet.dll</HintPath>
+      <HintPath>..\..\src\Comet\bin\$(Configuration)\net10.0-maccatalyst\Comet.dll</HintPath>
     </Reference>
   </ItemGroup>
 
