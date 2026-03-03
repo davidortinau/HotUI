@@ -92,6 +92,19 @@ namespace Comet
 	}
 
 	/// <summary>
+	/// Brush that paints an area with an image. Maps to MAUI's ImageBrush concept.
+	/// </summary>
+	public class ImageBrush
+	{
+		public ImageBrush() { }
+		public ImageBrush(ImageSource imageSource) { ImageSource = imageSource; }
+
+		public ImageSource ImageSource { get; set; }
+
+		public bool IsEmpty => ImageSource == null;
+	}
+
+	/// <summary>
 	/// Radial gradient brush wrapping Comet's RadialGradient.
 	/// </summary>
 	public class RadialGradientBrush : GradientBrush
@@ -106,6 +119,29 @@ namespace Comet
 				? new RadialGradient(stops, Center, 0f, Radius)
 				: new RadialGradient(new[] { Colors.Transparent, Colors.Transparent }, Center, 0f, Radius);
 		}
+	}
+
+	// ──────────────────────────────────────────────
+	// 3b. Keyboard accelerator
+	// ──────────────────────────────────────────────
+
+	/// <summary>
+	/// Defines a keyboard shortcut for a menu item. Maps to MAUI's KeyboardAccelerator.
+	/// </summary>
+	public class KeyboardAccelerator
+	{
+		public string Key { get; set; }
+		public KeyboardAcceleratorModifiers Modifiers { get; set; }
+	}
+
+	[Flags]
+	public enum KeyboardAcceleratorModifiers
+	{
+		None = 0,
+		Shift = 1,
+		Ctrl = 2,
+		Alt = 4,
+		Windows = 8
 	}
 
 	// ──────────────────────────────────────────────
@@ -344,6 +380,36 @@ namespace Comet
 	{
 		public Point Point1 { get; set; }
 		public Point Point2 { get; set; }
+	}
+
+	/// <summary>
+	/// A poly Bezier segment composed of multiple points.
+	/// </summary>
+	public class PolyBezierSegment : PathSegment
+	{
+		public PolyBezierSegment() { }
+		public PolyBezierSegment(IList<Point> points) { Points = new List<Point>(points); }
+		public List<Point> Points { get; set; } = new();
+	}
+
+	/// <summary>
+	/// A poly line segment composed of multiple points.
+	/// </summary>
+	public class PolyLineSegment : PathSegment
+	{
+		public PolyLineSegment() { }
+		public PolyLineSegment(IList<Point> points) { Points = new List<Point>(points); }
+		public List<Point> Points { get; set; } = new();
+	}
+
+	/// <summary>
+	/// A poly quadratic Bezier segment composed of multiple points.
+	/// </summary>
+	public class PolyQuadraticBezierSegment : PathSegment
+	{
+		public PolyQuadraticBezierSegment() { }
+		public PolyQuadraticBezierSegment(IList<Point> points) { Points = new List<Point>(points); }
+		public List<Point> Points { get; set; } = new();
 	}
 
 	/// <summary>

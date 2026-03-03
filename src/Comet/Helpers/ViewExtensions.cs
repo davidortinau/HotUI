@@ -392,5 +392,14 @@ namespace Comet
 			return view;
 		}
 
+		/// <summary>
+		/// Attaches a context menu (MenuFlyout) to the view.
+		/// </summary>
+		public static T ContextMenu<T>(this T view, MenuFlyout menu) where T : View
+		{
+			view.SetEnvironment(nameof(ContextMenu), menu, true);
+			return view;
+		}
+
 	}
 }
