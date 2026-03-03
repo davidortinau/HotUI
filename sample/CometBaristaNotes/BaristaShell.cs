@@ -109,24 +109,20 @@ BackgroundColor = Theme.Background,
 
 page.On<iOS>().SetLargeTitleDisplay(LargeTitleDisplayMode.Always);
 
-var container = new Microsoft.Maui.Controls.ContentView
-{
-BackgroundColor = Theme.Background,
-};
-
+var container = new Microsoft.Maui.Controls.ContentView();
 page.Content = container;
 
-// Use both Loaded and HandlerChanged to cover iOS 18 and iOS 26+
-// iOS 26 does not fire Loaded, but HandlerChanged works on both
 void TryEmbed()
 {
-if (container.Content != null || page.Handler?.MauiContext == null) return;
+if (container.Content != null) return;
 EmbedCometView(container, cometView);
+if (container.Content != null)
 cometView.ReloadHandler = new CometPageReloadHandler(container, cometView);
 }
 
 page.Loaded += (s, e) => TryEmbed();
 page.HandlerChanged += (s, e) => TryEmbed();
+page.Appearing += (s, e) => TryEmbed();
 
 MauiShell.SetNavBarIsVisible(page, true);
 return page;
@@ -146,6 +142,8 @@ if (viewToRender is Comet.MauiViewHost mvh)
 var hostedView = mvh.HostedView;
 if (hostedView is Microsoft.Maui.Controls.View mauiView)
 {
+if (mauiView.Parent is Microsoft.Maui.Controls.Layout parentLayout)
+parentLayout.Remove(mauiView);
 container.Content = mauiView;
 return;
 }
@@ -155,7 +153,7 @@ container.Content = new Comet.CometHost(cometView);
 }
 catch (Exception ex)
 {
-Console.WriteLine($"[EmbedCometView] Failed: {ex.Message}");
+System.Diagnostics.Debug.WriteLine($"[EmbedCometView] Failed: {ex.Message}");
 }
 }
 }

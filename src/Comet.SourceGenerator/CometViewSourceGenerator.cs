@@ -194,8 +194,14 @@ namespace {{NameSpace}} {
 		}
 		public static string GetFullName(ISymbol symbol, string ending = null)
 		{
-			//TODO: loop through and get parent
-			var name = Combine(symbol.Name, ending);
+			string symbolName = symbol.Name;
+			// Handle generic types (e.g. Nullable<DateTime> → System.Nullable<System.DateTime>)
+			if (symbol is INamedTypeSymbol nts && nts.TypeArguments.Length > 0)
+			{
+				var typeArgs = string.Join(", ", nts.TypeArguments.Select(ta => GetFullName(ta)));
+				symbolName = $"{symbol.Name}<{typeArgs}>";
+			}
+			var name = Combine(symbolName, ending);
 			if (symbol.ContainingNamespace != null)
 				return GetFullName(symbol.ContainingNamespace, name);
 
