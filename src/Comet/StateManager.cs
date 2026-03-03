@@ -16,9 +16,12 @@ namespace Comet
 	public static class StateManager
 	{
 		static readonly object _lock = new object();
-		static readonly Dictionary<Thread, WeakStack<View>> ViewsByThread = new Dictionary<Thread, WeakStack<View>>();
-		static readonly Dictionary<Thread, List<(INotifyPropertyRead bindingObject, string property)>> CurrentReadProperiesByThread = new Dictionary<Thread, List<(INotifyPropertyRead bindingObject, string property)>>();
-		public static View CurrentView => ViewsByThread.GetCurrent().Peek() ?? LastView?.Target as View;
+		[ThreadStatic] static WeakStack<View> _viewStack;
+		[ThreadStatic] static List<(INotifyPropertyRead bindingObject, string property)> _currentReadProperties;
+		static WeakStack<View> GetCurrentViewStack() => _viewStack ??= new WeakStack<View>();
+		static List<(INotifyPropertyRead bindingObject, string property)> GetCurrentReadProperties()
+			=> _currentReadProperties ??= new List<(INotifyPropertyRead bindingObject, string property)>();
+		public static View CurrentView => GetCurrentViewStack().Peek() ?? LastView?.Target as View;
 
 		static WeakReference LastView;
 		static Dictionary<string, List<INotifyPropertyRead>> ViewObjectMappings = new Dictionary<string, List<INotifyPropertyRead>>();
@@ -74,25 +77,23 @@ namespace Comet
 
 		static void FlushBatch()
 		{
-			// Flush dirty bindings first
+			// Flush dirty bindings first (iterate then clear - no concurrent modification possible)
 			if (_dirtyBindings.Count > 0)
 			{
-				var bindings = _dirtyBindings.ToList();
+				for (int i = 0; i < _dirtyBindings.Count; i++)
+					_dirtyBindings[i].Flush();
 				_dirtyBindings.Clear();
-				foreach (var b in bindings)
-					b.Flush();
 			}
 
 			// Then reload views that had global property changes
 			if (_viewsNeedingReload.Count > 0)
 			{
-				var views = _viewsNeedingReload.ToList();
-				_viewsNeedingReload.Clear();
-				foreach (var v in views)
+				foreach (var v in _viewsNeedingReload)
 				{
 					if (!v.IsDisposed)
 						v.Reload();
 				}
+				_viewsNeedingReload.Clear();
 			}
 		}
 
@@ -108,7 +109,7 @@ namespace Comet
 		}
 
 		[ThreadStatic] static bool _isTrackingProperties;
-		public static bool IsBuilding => ViewsByThread.GetCurrent().Count > 0 || _isTrackingProperties;
+		public static bool IsBuilding => GetCurrentViewStack().Count > 0 || _isTrackingProperties;
 		public static void ConstructingView(View view)
 		{
 			LastView = new WeakReference(view);
@@ -125,7 +126,7 @@ namespace Comet
 					}
 				}
 			}
-			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
+			var currentReadProperies = GetCurrentReadProperties();
 			if (currentReadProperies.Count > 0)
 			{
 				CurrentView.GetState().AddGlobalProperties(currentReadProperies);
@@ -174,9 +175,9 @@ namespace Comet
 				CurrentContext = imvc.MauiContext;
 
 			//TODO: Grab objects and add them to previous views globals
-			var currentBuildingView = ViewsByThread.GetCurrent();
+			var currentBuildingView = GetCurrentViewStack();
 			currentBuildingView.Push(view);
-			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
+			var currentReadProperies = GetCurrentReadProperties();
 			if (currentReadProperies.Count > 0)
 			{
 				CurrentView.GetState().AddGlobalProperties(currentReadProperies);
@@ -185,17 +186,12 @@ namespace Comet
 		}
 		public static void EndBuilding(View view)
 		{
-			var currentBuildingView = ViewsByThread.GetCurrent();
+			var currentBuildingView = GetCurrentViewStack();
 			var v = currentBuildingView.Pop();
 			Debug.Assert(v == view);
 			if (currentBuildingView.Count == 0)
 			{
-				var thread = Thread.CurrentThread;
-				lock (_lock)
-				{
-					ViewsByThread.Remove(thread);
-					CurrentReadProperiesByThread.Remove(thread);
-				}
+				GetCurrentReadProperties().Clear();
 			}
 		}
 
@@ -305,7 +301,7 @@ namespace Comet
 		{
 			if (!IsBuilding)
 				return;
-			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
+			var currentReadProperies = GetCurrentReadProperties();
 			currentReadProperies.Add((sender as INotifyPropertyRead, propertyName));
 		}
 		static readonly Dictionary<(string parent, string child), string> _propertyNameCache
@@ -339,7 +335,8 @@ namespace Comet
 				View view;
 				lock (_lock)
 				{
-					view = views.FirstOrDefault();
+					using var enumerator = views.GetEnumerator();
+					view = enumerator.MoveNext() ? enumerator.Current : null;
 				}
 				if (view == null || view.IsDisposed)
 				{
@@ -349,22 +346,8 @@ namespace Comet
 				string parentproperty = null;
 				if (mappings != null && mappings.Count > 0 && !mappings.TryGetValue(view.Id, out parentproperty))
 					parentproperty = mappings.First().Value;
-				string prop;
-				if (string.IsNullOrWhiteSpace(parentproperty))
-				{
-					prop = propertyName;
-				}
-				else
-				{
-					var cacheKey = (parentproperty, propertyName);
-					if (!_propertyNameCache.TryGetValue(cacheKey, out prop))
-					{
-						prop = string.Concat(parentproperty, ".", propertyName);
-						_propertyNameCache[cacheKey] = prop;
-					}
-				}
-				ThreadHelper.RunOnMainThread(() =>
-					view.BindingPropertyChanged(notify, propertyName, prop, value));
+				var prop = ResolvePropertyName(parentproperty, propertyName);
+				view.BindingPropertyChanged(notify, propertyName, prop, value);
 				return;
 			}
 
@@ -396,22 +379,8 @@ namespace Comet
 					{
 						parentproperty = mappings.First().Value;
 					}
-					string prop;
-					if (string.IsNullOrWhiteSpace(parentproperty))
-					{
-						prop = propertyName;
-					}
-					else
-					{
-						var cacheKey = (parentproperty, propertyName);
-						if (!_propertyNameCache.TryGetValue(cacheKey, out prop))
-						{
-							prop = string.Concat(parentproperty, ".", propertyName);
-							_propertyNameCache[cacheKey] = prop;
-						}
-					}
-					ThreadHelper.RunOnMainThread(() =>
-						view.BindingPropertyChanged(notify, propertyName, prop, value));
+					var prop = ResolvePropertyName(parentproperty, propertyName);
+					view.BindingPropertyChanged(notify, propertyName, prop, value);
 				}
 			}
 			finally
@@ -433,13 +402,26 @@ namespace Comet
 			}
 		}
 
+		static string ResolvePropertyName(string parentProperty, string propertyName)
+		{
+			if (string.IsNullOrWhiteSpace(parentProperty))
+				return propertyName;
+			var cacheKey = (parentProperty, propertyName);
+			if (!_propertyNameCache.TryGetValue(cacheKey, out var prop))
+			{
+				prop = string.Concat(parentProperty, ".", propertyName);
+				_propertyNameCache[cacheKey] = prop;
+			}
+			return prop;
+		}
+
 
 
 
 		internal static IReadOnlyList<(INotifyPropertyRead BindingObject, string PropertyName)> EndProperty()
 		{
 			_isTrackingProperties = false;
-			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
+			var currentReadProperies = GetCurrentReadProperties();
 			var count = currentReadProperies.Count;
 			if (count == 0)
 				return Array.Empty<(INotifyPropertyRead, string)>();
@@ -473,7 +455,7 @@ namespace Comet
 		internal static void StartProperty()
 		{
 			_isTrackingProperties = true;
-			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
+			var currentReadProperies = GetCurrentReadProperties();
 			if (currentReadProperies.Count > 0)
 			{
 				CurrentView.GetState()?.AddGlobalProperties(currentReadProperies);
