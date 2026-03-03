@@ -1,27 +1,33 @@
 # XAML vs MVU (Comet) Benchmark Results
 
-**Environment:** Apple M1 · macOS 26.3 · .NET 10.0.2 · BenchmarkDotNet 0.14.0
+**Environment:** Apple M-series · macOS 26.x · .NET 10.0 · BenchmarkDotNet 0.14.0
 
 ## Summary
 
 | Category | MVU Advantage | XAML Advantage |
 |----------|--------------|----------------|
-| View Construction | ✅ **60-4000x faster**, 50-2000x less memory | — |
-| State Updates (per-update, post-warmup) | ✅ Competitive (~2x) | ✅ **~2x faster** for single property |
-| N Independent State Changes | ✅ **2.6x faster** | — |
-| Selective Update (1 of 100) | ✅ **2.4x faster** | — |
-| Rapid Counter (5000 iters) | — | ✅ **~1.9x faster** |
-| Multi-prop Animation (batched) | — | ✅ **~2.7x faster** |
-| Multi-prop Animation (unbatched) | — | ✅ **~3.7x faster** |
-| String-heavy Updates | — | ✅ **~1.6x faster** |
+| View Construction | ✅ **60-5,500x faster**, 50-2,100x less memory | — |
+| Single State Update (1 op) | ✅ **5.8x faster** | — |
+| N Independent Changes (50) | ✅ **2.6x faster** | — |
+| Selective Update (1 of 100, 50 ops) | ✅ **2.4x faster** | — |
+| Rapid Counter (5000 iters) | — | ✅ **~2x slower** |
+| Multi-prop Animation (batched) | — | ✅ **~2.7x slower** |
+| Multi-prop Animation (unbatched) | — | ✅ **~3.7x slower** |
+| String-heavy Updates | — | ✅ **~1.6x slower** |
+| No-op Same Value (50 ops) | — | ✅ **~1.9x slower** |
 | Startup (50-control page) | ✅ **148x faster**, 138x less memory | — |
 | Todo App (100 items) | ✅ **120x faster**, 30x less memory | — |
 | Dashboard (100 items) | ✅ **1948x faster**, 1224x less memory | — |
+| **Memory allocation** | ✅ **~45% less** than pre-optimization | — |
 
-> **⚠️ Correction:** Previous results showed XAML winning 91-320x for state updates.
-> Those benchmarks mixed view construction cost with update cost. With proper
-> `[IterationSetup]` isolation, MVU per-update cost is only ~2x slower than XAML,
-> and MVU wins for independent multi-state scenarios.
+### Optimizations Applied
+- **State batching** (`StateManager.BeginBatch()/EndBatch()`): coalesces multi-property updates
+- **Binding deferral**: Func re-evaluation deferred during batching (single eval per batch)
+- **PropertyChangedEventArgs caching**: one allocation per unique property name
+- **Property name caching**: concatenated paths cached for reuse
+- **Single-view fast path**: avoids ArrayPool rent/copy for the common 1-view case
+- **LINQ elimination**: `.Any()` → `.Count`, `Except().Any()` → manual loop
+- **EndProperty optimization**: thread-static buffer reuse for single-property case
 
 ## 1. View Construction (Building the UI Tree)
 
