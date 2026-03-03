@@ -388,7 +388,6 @@ namespace Comet
 		{
 			try
 			{
-				var prop = property.Split('.').Last();
 				if (!State.UpdateValue(this, (bindingObject, property), fullProperty, value))
 				{
 					if (StateManager.IsBatching)
@@ -398,7 +397,7 @@ namespace Comet
 				}
 				else if (!StateManager.IsBatching)
 				{
-					ViewPropertyChanged(prop, value);
+					ViewPropertyChanged(property, value);
 				}
 				// During batching, the deferred Binding.Flush() handles ViewPropertyChanged
 			}

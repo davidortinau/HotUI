@@ -114,7 +114,7 @@ namespace Comet
 			LastView = new WeakReference(view);
 
 			var mappings = CheckForStateAttributes(view, view).ToList();
-			if (mappings.Any())
+			if (mappings.Count > 0)
 			{
 				lock (_lock)
 				{
@@ -126,9 +126,8 @@ namespace Comet
 				}
 			}
 			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
-			if (currentReadProperies.Any())
+			if (currentReadProperies.Count > 0)
 			{
-				//TODO: Change this to object and property!!!
 				CurrentView.GetState().AddGlobalProperties(currentReadProperies);
 			}
 			currentReadProperies.Clear();
@@ -178,9 +177,8 @@ namespace Comet
 			var currentBuildingView = ViewsByThread.GetCurrent();
 			currentBuildingView.Push(view);
 			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
-			if (currentReadProperies.Any())
+			if (currentReadProperies.Count > 0)
 			{
-				//TODO: Change this to object and property!!!
 				CurrentView.GetState().AddGlobalProperties(currentReadProperies);
 			}
 			currentReadProperies.Clear();
@@ -310,6 +308,9 @@ namespace Comet
 			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
 			currentReadProperies.Add((sender as INotifyPropertyRead, propertyName));
 		}
+		static readonly Dictionary<(string parent, string child), string> _propertyNameCache
+			= new Dictionary<(string, string), string>();
+
 		public static  void OnPropertyChanged(object sender, string propertyName, object value)
 		{
 			if (value?.GetType() == typeof(View))
@@ -320,62 +321,116 @@ namespace Comet
 			if (notify == null)
 				throw new Exception("Error, this is null!!!");
 
-			List<View> viewsCopy;
+			HashSet<View> views;
 			Dictionary<string, string> mappings;
 
 			lock (_lock)
 			{
-				if (!NotifyToViewMappings.TryGetValue(notify, out var views))
+				if (!NotifyToViewMappings.TryGetValue(notify, out views))
 					return;
-				if (!views.Any())
-				{
-					Console.WriteLine("I think this means it is a child BindingObject");
+				if (views.Count == 0)
 					return;
-				}
-				viewsCopy = views.ToList();
 				ChildPropertyNamesMapping.TryGetValue(notify, out mappings);
 			}
 
-			List<View> disposedViews = new List<View>();
-			viewsCopy.ForEach((view) => {
+			// Fast path for single-view (most common case)
+			if (views.Count == 1)
+			{
+				View view;
+				lock (_lock)
+				{
+					view = views.FirstOrDefault();
+				}
 				if (view == null || view.IsDisposed)
 				{
-					disposedViews.Add(view);
+					lock (_lock) { views.Remove(view); }
 					return;
 				}
 				string parentproperty = null;
-				if (!mappings?.TryGetValue(view.Id, out parentproperty) ?? false && (mappings?.Count ?? 0) > 0)
+				if (mappings != null && mappings.Count > 0 && !mappings.TryGetValue(view.Id, out parentproperty))
+					parentproperty = mappings.First().Value;
+				string prop;
+				if (string.IsNullOrWhiteSpace(parentproperty))
 				{
-					parentproperty ??= mappings?.First().Value;
+					prop = propertyName;
 				}
-				var prop = string.IsNullOrWhiteSpace(parentproperty) ? propertyName : $"{parentproperty}.{propertyName}";
-				ThreadHelper.RunOnMainThread(()=>
-				view.BindingPropertyChanged(notify, propertyName, prop, value));
+				else
+				{
+					var cacheKey = (parentproperty, propertyName);
+					if (!_propertyNameCache.TryGetValue(cacheKey, out prop))
+					{
+						prop = string.Concat(parentproperty, ".", propertyName);
+						_propertyNameCache[cacheKey] = prop;
+					}
+				}
+				ThreadHelper.RunOnMainThread(() =>
+					view.BindingPropertyChanged(notify, propertyName, prop, value));
+				return;
+			}
 
-			});
+			// Multi-view path: use ArrayPool
+			View[] viewsCopy = null;
+			int viewCount;
 
-			if (disposedViews.Count > 0)
+			lock (_lock)
+			{
+				viewCount = views.Count;
+				viewsCopy = System.Buffers.ArrayPool<View>.Shared.Rent(viewCount);
+				views.CopyTo(viewsCopy);
+			}
+
+			List<View> disposedViews = null;
+			try
+			{
+				for (int i = 0; i < viewCount; i++)
+				{
+					var view = viewsCopy[i];
+					if (view == null || view.IsDisposed)
+					{
+						disposedViews ??= new List<View>();
+						disposedViews.Add(view);
+						continue;
+					}
+					string parentproperty = null;
+					if (mappings != null && mappings.Count > 0 && !mappings.TryGetValue(view.Id, out parentproperty))
+					{
+						parentproperty = mappings.First().Value;
+					}
+					string prop;
+					if (string.IsNullOrWhiteSpace(parentproperty))
+					{
+						prop = propertyName;
+					}
+					else
+					{
+						var cacheKey = (parentproperty, propertyName);
+						if (!_propertyNameCache.TryGetValue(cacheKey, out prop))
+						{
+							prop = string.Concat(parentproperty, ".", propertyName);
+							_propertyNameCache[cacheKey] = prop;
+						}
+					}
+					ThreadHelper.RunOnMainThread(() =>
+						view.BindingPropertyChanged(notify, propertyName, prop, value));
+				}
+			}
+			finally
+			{
+				if (viewsCopy != null)
+					System.Buffers.ArrayPool<View>.Shared.Return(viewsCopy, true);
+			}
+
+			if (disposedViews?.Count > 0)
 			{
 				lock (_lock)
 				{
-					if (NotifyToViewMappings.TryGetValue(notify, out var views))
+					if (NotifyToViewMappings.TryGetValue(notify, out var viewsForCleanup))
 					{
 						foreach (var view in disposedViews)
-							views.Remove(view);
+							viewsForCleanup.Remove(view);
 					}
 				}
 			}
-
-			//var first = childrenProperty.FirstOrDefault(x => x.Key.Target == sender);
-			//string parentproperty = first.Value;
-			//var prop = string.IsNullOrWhiteSpace(parentproperty) ? propertyName : $"{parentproperty}.{propertyName}";
-			//changeDictionary[prop] = value;
-			//pendingUpdates.Add((prop, value));
-			//if (!isUpdating)
-			//{
-			//    EndUpdate();
-			//}
-
 		}
 
 
@@ -385,18 +440,41 @@ namespace Comet
 		{
 			_isTrackingProperties = false;
 			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
-			var changed = currentReadProperies.ToList().Distinct().ToList();
-			currentReadProperies.Clear();
-			return changed;
+			var count = currentReadProperies.Count;
+			if (count == 0)
+				return Array.Empty<(INotifyPropertyRead, string)>();
 
+			if (count == 1)
+			{
+				var single = currentReadProperies[0];
+				currentReadProperies.Clear();
+				// Reuse a thread-static buffer for the single-element case
+				var buf = _endPropertyBuffer ??= new List<(INotifyPropertyRead, string)>(1);
+				buf.Clear();
+				buf.Add(single);
+				return buf;
+			}
+
+			// Multi-property: deduplicate in-place
+			var seen = new HashSet<(INotifyPropertyRead, string)>();
+			var result = new List<(INotifyPropertyRead, string)>(count);
+			foreach (var prop in currentReadProperies)
+			{
+				if (seen.Add(prop))
+					result.Add(prop);
+			}
+			currentReadProperies.Clear();
+			return result;
 		}
+
+		[ThreadStatic] static List<(INotifyPropertyRead, string)> _endPropertyBuffer;
 
 
 		internal static void StartProperty()
 		{
 			_isTrackingProperties = true;
 			var currentReadProperies = CurrentReadProperiesByThread.GetCurrent();
-			if (currentReadProperies.Any())
+			if (currentReadProperies.Count > 0)
 			{
 				CurrentView.GetState()?.AddGlobalProperties(currentReadProperies);
 			}

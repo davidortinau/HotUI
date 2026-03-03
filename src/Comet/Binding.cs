@@ -243,15 +243,29 @@ namespace Comet
 				var props = StateManager.EndProperty();
 				CurrentValue = result;
 				BoundProperties = props;
-				if(BoundProperties.Except(oldProps).Any())
+				if (ArePropertiesDifferent(BoundProperties, oldProps))
 					BindToProperty(View, PropertyName);
 			}
 			else
 			{
 				CurrentValue = Cast(value);
 			}
-			if(!(oldValue?.Equals(CurrentValue) ?? false))
+			if (!(oldValue?.Equals(CurrentValue) ?? false))
 				View?.ViewPropertyChanged(propertyName, CurrentValue);
+		}
+
+		private static bool ArePropertiesDifferent(IReadOnlyList<(INotifyPropertyRead BindingObject, string PropertyName)> props1, IReadOnlyList<(INotifyPropertyRead BindingObject, string PropertyName)> props2)
+		{
+			if (props1 == props2) return false;
+			if (props1 == null || props2 == null) return true;
+			if (props1.Count != props2.Count) return true;
+
+			for (int i = 0; i < props1.Count; i++)
+			{
+				if (!props1[i].Equals(props2[i]))
+					return true;
+			}
+			return false;
 		}
 
 		internal override void Flush()

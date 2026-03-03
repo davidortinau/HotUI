@@ -27,6 +27,19 @@ namespace Comet
 
 		internal protected Dictionary<string, object> dictionary = new Dictionary<string, object>();
 
+		static readonly Dictionary<string, PropertyChangedEventArgs> _argsCache
+			= new Dictionary<string, PropertyChangedEventArgs>();
+
+		static PropertyChangedEventArgs GetCachedArgs(string propertyName)
+		{
+			if (!_argsCache.TryGetValue(propertyName, out var args))
+			{
+				args = new PropertyChangedEventArgs(propertyName);
+				_argsCache[propertyName] = args;
+			}
+			return args;
+		}
+
 		protected T GetProperty<T>(T defaultValue = default, [CallerMemberName] string propertyName = "")
 		{
 			CallPropertyRead(propertyName);
@@ -68,13 +81,15 @@ namespace Comet
 		protected virtual void CallPropertyChanged(string propertyName, object value)
 		{
 			StateManager.OnPropertyChanged(this, propertyName, value);
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+			if (PropertyChanged != null)
+				PropertyChanged.Invoke(this, GetCachedArgs(propertyName));
 		}
 
 		protected virtual void CallPropertyRead(string propertyName)
 		{
 			StateManager.OnPropertyRead(this, propertyName);
-			PropertyRead?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+			if (PropertyRead != null)
+				PropertyRead.Invoke(this, GetCachedArgs(propertyName));
 		}
 
 		internal bool SetPropertyInternal(object value, [CallerMemberName] string propertyName = "")
@@ -143,9 +158,20 @@ namespace Comet
 			UpdatePropertyChangeProperty(view, fullProperty, value);
 			if (ViewUpdateProperties.TryGetValue((property.BindingObject, property.PropertyName), out var bindings))
 			{
-				foreach (var binding in bindings.ToList())
+				var count = bindings.Count;
+				var bindingsArray = System.Buffers.ArrayPool<(string PropertyName, Binding Binding)>.Shared.Rent(count);
+				bindings.CopyTo(bindingsArray);
+				try
 				{
-					binding.Binding.BindingValueChanged(property.BindingObject, binding.PropertyName, value);
+					for (var i = 0; i < count; i++)
+					{
+						var binding = bindingsArray[i];
+						binding.Binding.BindingValueChanged(property.BindingObject, binding.PropertyName, value);
+					}
+				}
+				finally
+				{
+					System.Buffers.ArrayPool<(string PropertyName, Binding Binding)>.Shared.Return(bindingsArray, true);
 				}
 			}
 			if (GlobalProperties.Contains(property))
