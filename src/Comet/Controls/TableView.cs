@@ -103,4 +103,46 @@ get => _placeholder;
 set => this.SetBindingValue(ref _placeholder, value);
 }
 }
+
+/// <summary>
+/// A cell displaying an image with text and detail text, for use within TableSection.
+/// </summary>
+public class ImageCell : View
+{
+private Binding<string> _imageSource;
+public Binding<string> ImageSource
+{
+get => _imageSource;
+set => this.SetBindingValue(ref _imageSource, value);
+}
+
+private Binding<string> _text;
+public Binding<string> CellText
+{
+get => _text;
+set => this.SetBindingValue(ref _text, value);
+}
+
+private Binding<string> _detail;
+public Binding<string> Detail
+{
+get => _detail;
+set => this.SetBindingValue(ref _detail, value);
+}
+}
+
+/// <summary>
+/// A cell containing a custom view, for use within TableSection.
+/// </summary>
+public class ViewCell : View
+{
+public View Content { get; set; }
+
+public ViewCell() { }
+
+public ViewCell(View content)
+{
+Content = content;
+}
+}
 }
