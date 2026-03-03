@@ -49,7 +49,7 @@ namespace Comet
 			return defaultValue;
 		}
 
-		internal (bool hasValue, object value) GetValueInternal(string propertyName)
+		internal virtual (bool hasValue, object value) GetValueInternal(string propertyName)
 		{
 			if (string.IsNullOrWhiteSpace(propertyName))
 				return (false, null);
@@ -112,14 +112,12 @@ namespace Comet
 		public Dictionary<(INotifyPropertyRead BindingObject, string PropertyName), HashSet<(string PropertyName, Binding Binding)>> ViewUpdateProperties = new Dictionary<(INotifyPropertyRead BindingObject, string PropertyName), HashSet<(string PropertyName, Binding Binding)>>();
 		public void AddGlobalProperty((INotifyPropertyRead BindingObject, string PropertyName) property)
 		{
-			if (GlobalProperties.Add(property))
-				Debug.WriteLine($"Adding Global Property: {property}");
+			GlobalProperties.Add(property);
 		}
 		public void AddGlobalProperties(IReadOnlyList<(INotifyPropertyRead BindingObject, string PropertyName)> properties)
 		{
-			var props = properties.ToList();
-			foreach (var prop in props)
-				AddGlobalProperty(prop);
+			for (int i = 0; i < properties.Count; i++)
+				AddGlobalProperty(properties[i]);
 		}
 		public void AddViewProperty((INotifyPropertyRead BindingObject, string PropertyName) property, string propertyName, Binding binding)
 		{

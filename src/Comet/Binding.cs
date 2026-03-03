@@ -56,6 +56,7 @@ namespace Comet
 
 		Func<T> Get { get; set; }
 		Action<T> _set;
+		bool _bindingStable;
 		public Action<T> Set
 		{
 			get => _set ?? (_set = (v)=>CurrentValue = v);
@@ -237,14 +238,24 @@ namespace Comet
 			var oldValue = CurrentValue;
 			if (IsFunc)
 			{
-				var oldProps = BoundProperties;
-				StateManager.StartProperty();
-				var result = Get == null ? default : Get.Invoke();
-				var props = StateManager.EndProperty();
-				CurrentValue = result;
-				BoundProperties = props;
-				if (ArePropertiesDifferent(BoundProperties, oldProps))
-					BindToProperty(View, PropertyName);
+				if (_bindingStable)
+				{
+					// Fast path: skip property tracking — bindings haven't changed
+					CurrentValue = Get == null ? default : Get.Invoke();
+				}
+				else
+				{
+					var oldProps = BoundProperties;
+					StateManager.StartProperty();
+					var result = Get == null ? default : Get.Invoke();
+					var props = StateManager.EndProperty();
+					CurrentValue = result;
+					BoundProperties = props;
+					if (ArePropertiesDifferent(BoundProperties, oldProps))
+						BindToProperty(View, PropertyName);
+					else
+						_bindingStable = true;
+				}
 			}
 			else
 			{

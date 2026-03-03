@@ -319,6 +319,7 @@ namespace Comet
 
 			HashSet<View> views;
 			Dictionary<string, string> mappings;
+			View singleView = null;
 
 			lock (_lock)
 			{
@@ -327,27 +328,27 @@ namespace Comet
 				if (views.Count == 0)
 					return;
 				ChildPropertyNamesMapping.TryGetValue(notify, out mappings);
-			}
 
-			// Fast path for single-view (most common case)
-			if (views.Count == 1)
-			{
-				View view;
-				lock (_lock)
+				// Fast path for single-view: extract view inside same lock
+				if (views.Count == 1)
 				{
 					using var enumerator = views.GetEnumerator();
-					view = enumerator.MoveNext() ? enumerator.Current : null;
+					singleView = enumerator.MoveNext() ? enumerator.Current : null;
 				}
-				if (view == null || view.IsDisposed)
+			}
+
+			if (singleView != null)
+			{
+				if (singleView.IsDisposed)
 				{
-					lock (_lock) { views.Remove(view); }
+					lock (_lock) { views.Remove(singleView); }
 					return;
 				}
 				string parentproperty = null;
-				if (mappings != null && mappings.Count > 0 && !mappings.TryGetValue(view.Id, out parentproperty))
+				if (mappings != null && mappings.Count > 0 && !mappings.TryGetValue(singleView.Id, out parentproperty))
 					parentproperty = mappings.First().Value;
 				var prop = ResolvePropertyName(parentproperty, propertyName);
-				view.BindingPropertyChanged(notify, propertyName, prop, value);
+				singleView.BindingPropertyChanged(notify, propertyName, prop, value);
 				return;
 			}
 
@@ -438,7 +439,8 @@ namespace Comet
 			}
 
 			// Multi-property: deduplicate in-place
-			var seen = new HashSet<(INotifyPropertyRead, string)>();
+			var seen = _endPropertySeen ??= new HashSet<(INotifyPropertyRead, string)>();
+			seen.Clear();
 			var result = new List<(INotifyPropertyRead, string)>(count);
 			foreach (var prop in currentReadProperies)
 			{
@@ -450,6 +452,7 @@ namespace Comet
 		}
 
 		[ThreadStatic] static List<(INotifyPropertyRead, string)> _endPropertyBuffer;
+		[ThreadStatic] static HashSet<(INotifyPropertyRead, string)> _endPropertySeen;
 
 
 		internal static void StartProperty()

@@ -16,11 +16,6 @@ namespace Comet.Reflection
 				if (info.PropertyType.IsDeepSubclass(typeof(Binding)))
 				{
 					//I used to set this but I don't think it is needed now.
-
-					//Console.WriteLine("Hello");
-					//var v = info.GetValue(obj);
-					//var binding = v as Binding;
-					//binding.SetValue(value);
 				}
 				else
 					info.SetValue(obj, Convert(value, info.PropertyType));
@@ -28,7 +23,6 @@ namespace Comet.Reflection
 			}
 			else
 			{
-
 				var field = type.GetField(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 				if (field == null)
 					return false;

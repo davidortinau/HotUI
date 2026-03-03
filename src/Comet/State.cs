@@ -8,11 +8,17 @@ using Comet.Reflection;
 namespace Comet
 {
 
-	public class State<T> : BindingObject
+	public sealed class State<T> : BindingObject
 	{
+		T _value;
+		bool _hasValue;
+		static readonly string ValuePropertyName = "Value";
+
 		public State(T value)
 		{
-			Value = value;
+			_value = value;
+			_hasValue = true;
+			dictionary[ValuePropertyName] = value;
 		}
 
 		public State()
@@ -22,12 +28,33 @@ namespace Comet
 
 		public T Value
 		{
-			get => GetProperty<T>();
+			get
+			{
+				CallPropertyRead(ValuePropertyName);
+				return _hasValue ? _value : default;
+			}
 			set
 			{
-				if (SetProperty(value))
-					ValueChanged?.Invoke(value);
+				// Fast typed equality check — no dictionary lookup, no boxing
+				if (_hasValue && EqualityComparer<T>.Default.Equals(_value, value))
+					return;
+
+				_value = value;
+				_hasValue = true;
+
+				CallPropertyChanged(ValuePropertyName, value);
+				ValueChanged?.Invoke(value);
 			}
+		}
+
+		/// <summary>
+		/// Override to return typed value without dictionary lookup.
+		/// </summary>
+		internal override (bool hasValue, object value) GetValueInternal(string propertyName)
+		{
+			if (propertyName == ValuePropertyName)
+				return (_hasValue, _value);
+			return base.GetValueInternal(propertyName);
 		}
 
 		public static implicit operator T(State<T> state) => state.Value;
