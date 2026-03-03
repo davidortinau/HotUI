@@ -400,11 +400,65 @@ namespace Comet
 			}
 		}
 		protected const string ResetPropertyString = "ResetPropertyString";
+
+		private bool _isBatching;
+		private readonly List<(string property, object value)> _batchedChanges = new List<(string, object)>();
+
+		/// <summary>
+		/// Begins a batch update. Property changes will be queued until BatchCommit() is called,
+		/// preventing multiple re-renders during bulk updates.
+		/// </summary>
+		public void BatchBegin()
+		{
+			_isBatching = true;
+		}
+
+		/// <summary>
+		/// Commits all batched property changes and triggers a single re-render.
+		/// </summary>
+		public void BatchCommit()
+		{
+			_isBatching = false;
+			if (_batchedChanges.Count == 0)
+				return;
+
+			var changes = _batchedChanges.ToList();
+			_batchedChanges.Clear();
+
+			foreach (var (property, value) in changes)
+			{
+				try
+				{
+					this.SetPropertyValue(property, value);
+				}
+				catch (Exception ex)
+				{
+					Debug.WriteLine($"Error setting batched property:{property} : {value} on :{this}");
+					Debug.WriteLine(ex);
+				}
+			}
+
+			// Single handler update and layout invalidation
+			foreach (var (property, _) in changes)
+			{
+				var newPropName = GetHandlerPropertyName(property);
+				ViewHandler?.UpdateValue(newPropName);
+			}
+
+			InvalidateMeasurement();
+		}
+
 		public virtual void ViewPropertyChanged(string property, object value)
 		{
 			if (property == ResetPropertyString)
 			{
 				ResetView();
+				return;
+			}
+
+			if (_isBatching)
+			{
+				_batchedChanges.Add((property, value));
 				return;
 			}
 

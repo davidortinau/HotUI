@@ -21,6 +21,21 @@ namespace Comet
 		public ShellItem CurrentItem { get; set; }
 		public ShellItem FlyoutHeader { get; set; }
 		public bool FlyoutIsPresented { get; set; }
+		public SearchHandler SearchHandler { get; set; }
+
+		/// <summary>
+		/// Sets the search handler for the current Shell instance.
+		/// </summary>
+		public static void SetSearchHandler(SearchHandler handler)
+		{
+			if (Current != null)
+				Current.SearchHandler = handler;
+		}
+
+		/// <summary>
+		/// Gets the search handler from the current Shell instance.
+		/// </summary>
+		public static SearchHandler GetSearchHandler() => Current?.SearchHandler;
 
 		public CometShell()
 		{
@@ -213,5 +228,20 @@ namespace Comet
 
 			throw new InvalidOperationException("No Shell instance is currently active.");
 		}
+
+		/// <summary>
+		/// Sets the back button behavior for a view in Shell navigation.
+		/// </summary>
+		public static T BackButtonBehavior<T>(this T view, BackButtonBehavior behavior) where T : View
+		{
+			view.SetEnvironment(nameof(BackButtonBehavior), behavior, false);
+			return view;
+		}
+
+		/// <summary>
+		/// Gets the back button behavior for a view.
+		/// </summary>
+		public static BackButtonBehavior GetBackButtonBehavior(this View view) =>
+			view.GetEnvironment<BackButtonBehavior>(nameof(BackButtonBehavior), false);
 	}
 }
