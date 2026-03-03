@@ -28,11 +28,16 @@ namespace Comet
 
 		public IReadOnlyList<(INotifyPropertyRead BindingObject, string PropertyName)> BoundProperties { get; protected set; }
 		protected string PropertyName;
+		internal bool IsDirty { get; set; }
 		public virtual void BindingValueChanged(INotifyPropertyRead bindingObject, string propertyName, object value)
 		{
 			Value = value;
 			View?.ViewPropertyChanged(propertyName, value);
 		}
+		/// <summary>
+		/// Flushes a deferred binding update. Override in Binding&lt;T&gt; for Func re-evaluation.
+		/// </summary>
+		internal virtual void Flush() { }
 
 	}
 
@@ -214,6 +219,21 @@ namespace Comet
 		}
 		public override void BindingValueChanged(INotifyPropertyRead bindingObject, string propertyName, object value)
 		{
+			// When batching, defer Func re-evaluation to avoid redundant work
+			if (IsFunc && StateManager.IsBatching)
+			{
+				if (!IsDirty)
+				{
+					IsDirty = true;
+					StateManager.AddDirtyBinding(this);
+				}
+				return;
+			}
+			EvaluateAndNotify(bindingObject, propertyName, value);
+		}
+
+		private void EvaluateAndNotify(INotifyPropertyRead bindingObject, string propertyName, object value)
+		{
 			var oldValue = CurrentValue;
 			if (IsFunc)
 			{
@@ -232,7 +252,13 @@ namespace Comet
 			}
 			if(!(oldValue?.Equals(CurrentValue) ?? false))
 				View?.ViewPropertyChanged(propertyName, CurrentValue);
+		}
 
+		internal override void Flush()
+		{
+			if (!IsDirty) return;
+			IsDirty = false;
+			EvaluateAndNotify(null, PropertyName, null);
 		}
 
 		static T Cast(object value)

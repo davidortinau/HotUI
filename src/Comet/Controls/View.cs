@@ -390,9 +390,17 @@ namespace Comet
 			{
 				var prop = property.Split('.').Last();
 				if (!State.UpdateValue(this, (bindingObject, property), fullProperty, value))
-					Reload(false);
-				else
+				{
+					if (StateManager.IsBatching)
+						StateManager.AddViewNeedingReload(this);
+					else
+						Reload(false);
+				}
+				else if (!StateManager.IsBatching)
+				{
 					ViewPropertyChanged(prop, value);
+				}
+				// During batching, the deferred Binding.Flush() handles ViewPropertyChanged
 			}
 			catch (Exception ex)
 			{

@@ -28,6 +28,74 @@ namespace Comet
 
 		static List<INotifyPropertyRead> MonitoredObjects = new List<INotifyPropertyRead>();
 
+		// --- State batching ---
+		static int _batchDepth;
+		static readonly List<Binding> _dirtyBindings = new List<Binding>();
+		static readonly HashSet<View> _viewsNeedingReload = new HashSet<View>();
+
+		/// <summary>
+		/// Returns true if state changes are being batched.
+		/// During batching, Binding Func re-evaluations are deferred until EndBatch().
+		/// </summary>
+		public static bool IsBatching => _batchDepth > 0;
+
+		/// <summary>
+		/// Begins batching state changes. Multiple state mutations within a batch
+		/// trigger only a single Binding re-evaluation per affected binding.
+		/// Batches can be nested; only the outermost EndBatch() flushes.
+		/// </summary>
+		public static void BeginBatch()
+		{
+			_batchDepth++;
+		}
+
+		/// <summary>
+		/// Ends the current batch. When the outermost batch ends, all deferred
+		/// Binding re-evaluations execute and pending view reloads fire.
+		/// </summary>
+		public static void EndBatch()
+		{
+			if (--_batchDepth <= 0)
+			{
+				_batchDepth = 0;
+				FlushBatch();
+			}
+		}
+
+		internal static void AddDirtyBinding(Binding binding)
+		{
+			_dirtyBindings.Add(binding);
+		}
+
+		internal static void AddViewNeedingReload(View view)
+		{
+			_viewsNeedingReload.Add(view);
+		}
+
+		static void FlushBatch()
+		{
+			// Flush dirty bindings first
+			if (_dirtyBindings.Count > 0)
+			{
+				var bindings = _dirtyBindings.ToList();
+				_dirtyBindings.Clear();
+				foreach (var b in bindings)
+					b.Flush();
+			}
+
+			// Then reload views that had global property changes
+			if (_viewsNeedingReload.Count > 0)
+			{
+				var views = _viewsNeedingReload.ToList();
+				_viewsNeedingReload.Clear();
+				foreach (var v in views)
+				{
+					if (!v.IsDisposed)
+						v.Reload();
+				}
+			}
+		}
+
 		static T GetCurrent<T>(this Dictionary<Thread,T> dictionary) where T : new ()
 		{
 			lock (_lock)
