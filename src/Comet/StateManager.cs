@@ -161,6 +161,7 @@ namespace Comet
 
 		public static void Disposing(View view)
 		{
+			List<INotifyPropertyRead> toStopMonitoring = null;
 			_rwLock.EnterWriteLock();
 			try
 			{
@@ -174,7 +175,13 @@ namespace Comet
 							if (views.Count == 0)
 							{
 								NotifyToViewMappings.Remove(obj);
-								StopMonitoring(obj);
+								// Can't call StopMonitoring here (would recurse on lock)
+								if (MonitoredObjects.Remove(obj))
+								{
+									toStopMonitoring ??= new List<INotifyPropertyRead>();
+									toStopMonitoring.Add(obj);
+								}
+								ChildPropertyNamesMapping.Remove(obj);
 							}
 						}
 					}
@@ -184,6 +191,18 @@ namespace Comet
 			finally
 			{
 				_rwLock.ExitWriteLock();
+			}
+			// Unsubscribe events outside lock
+			if (toStopMonitoring != null)
+			{
+				foreach (var obj in toStopMonitoring)
+				{
+					if (!(obj is IAutoImplemented))
+					{
+						obj.PropertyChanged -= Obj_PropertyChanged;
+						obj.PropertyRead -= Obj_PropertyRead;
+					}
+				}
 			}
 		}
 
@@ -256,19 +275,21 @@ namespace Comet
 
 		public static void RegisterChild(View view, INotifyPropertyRead value, string fieldName)
 		{
+			bool needsMonitoring;
 			_rwLock.EnterWriteLock();
 			try
 			{
 				ChildPropertyNamesMapping.GetOrCreateForKey(value)[view?.Id ?? ""] = fieldName;
-				if (!MonitoredObjects.Contains(value))
-				{
-					StartMonitoring(value);
-				}
+				needsMonitoring = !MonitoredObjects.Contains(value);
+				if (needsMonitoring)
+					MonitoredObjects.Add(value);
 			}
 			finally
 			{
 				_rwLock.ExitWriteLock();
 			}
+			if (needsMonitoring)
+				StartMonitoringCore(value);
 		}
 
 		static public void StartMonitoring(INotifyPropertyRead obj)
@@ -284,6 +305,11 @@ namespace Comet
 			{
 				_rwLock.ExitWriteLock();
 			}
+			StartMonitoringCore(obj);
+		}
+
+		static void StartMonitoringCore(INotifyPropertyRead obj)
+		{
 			CheckForStateAttributes(obj, null).ToList();
 
 			if (!(obj is IAutoImplemented))
