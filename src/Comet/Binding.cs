@@ -5,6 +5,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using Comet.Reflection;
 
+using System.Runtime.CompilerServices;
+
 namespace Comet
 {
 	public class Binding
@@ -33,6 +35,11 @@ namespace Comet
 		{
 			Value = value;
 			View?.ViewPropertyChanged(propertyName, value);
+		}
+
+		public virtual void BindingValueChanged<T>(INotifyPropertyRead bindingObject, string propertyName, T value)
+		{
+			BindingValueChanged(bindingObject, propertyName, (object)value);
 		}
 		/// <summary>
 		/// Flushes a deferred binding update. Override in Binding&lt;T&gt; for Func re-evaluation.
@@ -152,8 +159,18 @@ namespace Comet
 			View = view;
 			if (IsFunc && BoundProperties?.Count > 0)
 			{
-				StateManager.UpdateBinding(this, view);
-				view.GetState().AddViewProperty(BoundProperties, this, property);
+				// Register the binding in the monitoring view's BindingState (the view
+				// that declared the State<T> field), NOT the target view's. This prevents
+				// double-dispatch: without this, both the monitoring view and the target
+				// view end up in NotifyToViewMappings, causing OnPropertyChanged to
+				// dispatch to both — the monitoring view cascades to the target, AND the
+				// target processes bindings directly. By registering in the monitoring
+				// view's state, OnPropertyChanged dispatches once to the monitoring view,
+				// which finds the binding and calls EvaluateAndNotify → ViewPropertyChanged
+				// on the target view. Single dispatch path, no redundancy.
+				var monitoringView = BoundFromView ?? view;
+				StateManager.UpdateBinding(this, monitoringView);
+				monitoringView.GetState().AddViewProperty(BoundProperties, this, property);
 				return;
 			}
 
@@ -231,6 +248,60 @@ namespace Comet
 				return;
 			}
 			EvaluateAndNotify(bindingObject, propertyName, value);
+		}
+
+		public override void BindingValueChanged<TVal>(INotifyPropertyRead bindingObject, string propertyName, TVal value)
+		{
+			// When batching, defer Func re-evaluation to avoid redundant work
+			if (IsFunc && StateManager.IsBatching)
+			{
+				if (!IsDirty)
+				{
+					IsDirty = true;
+					StateManager.AddDirtyBinding(this);
+				}
+				return;
+			}
+			EvaluateAndNotify(bindingObject, propertyName, value);
+		}
+
+		private void EvaluateAndNotify<TVal>(INotifyPropertyRead bindingObject, string propertyName, TVal value)
+		{
+			var oldValue = CurrentValue;
+			if (IsFunc)
+			{
+				if (_bindingStable)
+				{
+					// Fast path: skip property tracking — bindings haven't changed
+					CurrentValue = Get == null ? default : Get.Invoke();
+				}
+				else
+				{
+					var oldProps = BoundProperties;
+					StateManager.StartProperty();
+					var result = Get == null ? default : Get.Invoke();
+					var props = StateManager.EndProperty();
+					CurrentValue = result;
+					BoundProperties = props;
+					if (ArePropertiesDifferent(BoundProperties, oldProps))
+						BindToProperty(View, PropertyName);
+					else
+						_bindingStable = true;
+				}
+			}
+			else
+			{
+				if (typeof(TVal) == typeof(T))
+				{
+					CurrentValue = Unsafe.As<TVal, T>(ref value);
+				}
+				else
+				{
+					CurrentValue = Cast((object)value);
+				}
+			}
+			if (!(oldValue?.Equals(CurrentValue) ?? false))
+				View?.ViewPropertyChanged(propertyName, CurrentValue);
 		}
 
 		private void EvaluateAndNotify(INotifyPropertyRead bindingObject, string propertyName, object value)

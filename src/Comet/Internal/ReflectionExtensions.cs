@@ -7,28 +7,219 @@ namespace Comet.Reflection
 {
 	public static class ReflectionExtensions
 	{
+		// Cached per (Type, propertyName): null = skip (no writable property/field, or Binding type),
+		// PropertyInfo or FieldInfo = set via this member.
+		static readonly Dictionary<(Type, string), MemberInfo> _setMemberCache
+			= new Dictionary<(Type, string), MemberInfo>();
+
+		public static bool SetPropertyValue<T>(this object obj, string name, T value)
+		{
+			var type = obj.GetType();
+			var key = (type, name);
+
+			// Fast path using compiled delegates
+			var setter = SetterCache<T>.Get(key);
+			if (setter != null)
+			{
+				setter(obj, value);
+				return true;
+			}
+			
+			// Fallback or first run
+			if (!SetterCache<T>.Has(key))
+			{
+				var s = CreateSetter<T>(type, name);
+				SetterCache<T>.Set(key, s);
+				if (s != null)
+				{
+					s(obj, value);
+					return true;
+				}
+			}
+
+			return SetPropertyValue(obj, name, (object)value);
+		}
+
+		static class SetterCache<T>
+		{
+			static readonly Dictionary<(Type, string), Action<object, T>> Cache = new Dictionary<(Type, string), Action<object, T>>();
+			public static Action<object, T> Get((Type, string) key) => Cache.TryGetValue(key, out var action) ? action : null;
+			public static void Set((Type, string) key, Action<object, T> action) => Cache[key] = action;
+			public static bool Has((Type, string) key) => Cache.ContainsKey(key);
+		}
+
+		static Action<object, T> CreateSetter<T>(Type type, string name)
+		{
+			var property = type.GetProperty(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+			if (property != null && property.CanWrite)
+			{
+				if (property.PropertyType.IsDeepSubclass(typeof(Binding)))
+					return null;
+
+				var target = Expression.Parameter(typeof(object), "target");
+				var value = Expression.Parameter(typeof(T), "value");
+				var castTarget = Expression.Convert(target, type);
+				
+				Expression body = null;
+				if (property.PropertyType == typeof(T))
+				{
+					body = Expression.Call(castTarget, property.GetSetMethod(true), value);
+				}
+				else
+				{
+					try
+					{
+						var converted = Expression.Convert(value, property.PropertyType);
+						body = Expression.Call(castTarget, property.GetSetMethod(true), converted);
+					}
+					catch
+					{
+						// Conversion not supported by Expression.Convert
+						return null;
+					}
+				}
+				
+				return Expression.Lambda<Action<object, T>>(body, target, value).Compile();
+			}
+			
+			var field = type.GetField(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+			if (field != null)
+			{
+				var target = Expression.Parameter(typeof(object), "target");
+				var value = Expression.Parameter(typeof(T), "value");
+				var castTarget = Expression.Convert(target, type);
+
+				Expression body = null;
+				if (field.FieldType == typeof(T))
+				{
+					body = Expression.Assign(Expression.Field(castTarget, field), value);
+				}
+				else
+				{
+					try
+					{
+						var converted = Expression.Convert(value, field.FieldType);
+						body = Expression.Assign(Expression.Field(castTarget, field), converted);
+					}
+					catch
+					{
+						return null;
+					}
+				}
+
+				return Expression.Lambda<Action<object, T>>(body, target, value).Compile();
+			}
+
+			return null;
+		}
+
+		static readonly Dictionary<(Type, string), Action<object, object>> _setterCache = new Dictionary<(Type, string), Action<object, object>>();
+
 		public static bool SetPropertyValue(this object obj, string name, object value)
 		{
 			var type = obj.GetType();
-			var info = type.GetProperty(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-			if (info != null && info.CanWrite)
+			var cacheKey = (type, name);
+
+			if (_setterCache.TryGetValue(cacheKey, out var setter))
 			{
-				if (info.PropertyType.IsDeepSubclass(typeof(Binding)))
+				if (setter != null)
 				{
-					//I used to set this but I don't think it is needed now.
+					setter(obj, value);
+					return true;
 				}
-				else
-					info.SetValue(obj, Convert(value, info.PropertyType));
-				return true;
 			}
 			else
 			{
-				var field = type.GetField(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-				if (field == null)
-					return false;
-				field.SetValue(obj, Convert(value, field.FieldType));
+				var s = CreateSetter(type, name);
+				_setterCache[cacheKey] = s;
+				if (s != null)
+				{
+					s(obj, value);
+					return true;
+				}
+			}
+
+			if (!_setMemberCache.TryGetValue(cacheKey, out var member))
+			{
+				// First call for this (Type, name) — resolve and cache
+				var info = type.GetProperty(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+				if (info != null && info.CanWrite)
+				{
+					if (info.PropertyType.IsDeepSubclass(typeof(Binding)))
+						member = null; // Binding-typed — always skip
+					else
+						member = info;
+				}
+				else
+				{
+					var field = type.GetField(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+					member = field; // null if not found
+				}
+				_setMemberCache[cacheKey] = member;
+			}
+
+			if (member == null)
+				return false;
+
+			if (member is PropertyInfo pi)
+			{
+				pi.SetValue(obj, Convert(value, pi.PropertyType));
 				return true;
 			}
+			else if (member is FieldInfo fi)
+			{
+				fi.SetValue(obj, Convert(value, fi.FieldType));
+				return true;
+			}
+			return false;
+		}
+
+		static Action<object, object> CreateSetter(Type type, string name)
+		{
+			try
+			{
+				var property = type.GetProperty(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+				if (property != null && property.CanWrite)
+				{
+					if (property.PropertyType.IsDeepSubclass(typeof(Binding)))
+						return null;
+
+					var target = Expression.Parameter(typeof(object), "target");
+					var value = Expression.Parameter(typeof(object), "value");
+					var castTarget = Expression.Convert(target, type);
+					
+					var convertMethod = typeof(ReflectionExtensions).GetMethod("Convert", new[] { typeof(object), typeof(Type) });
+					var convertedValue = Expression.Call(convertMethod, value, Expression.Constant(property.PropertyType));
+					var castConvertedValue = Expression.Convert(convertedValue, property.PropertyType);
+
+					var method = property.GetSetMethod(true);
+					if (method != null)
+					{
+						var body = Expression.Call(castTarget, method, castConvertedValue);
+						return Expression.Lambda<Action<object, object>>(body, target, value).Compile();
+					}
+				}
+				
+				var field = type.GetField(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+				if (field != null)
+				{
+					var target = Expression.Parameter(typeof(object), "target");
+					var value = Expression.Parameter(typeof(object), "value");
+					var castTarget = Expression.Convert(target, type);
+					
+					var convertMethod = typeof(ReflectionExtensions).GetMethod("Convert", new[] { typeof(object), typeof(Type) });
+					var convertedValue = Expression.Call(convertMethod, value, Expression.Constant(field.FieldType));
+					var castConvertedValue = Expression.Convert(convertedValue, field.FieldType);
+
+					var body = Expression.Assign(Expression.Field(castTarget, field), castConvertedValue);
+					return Expression.Lambda<Action<object, object>>(body, target, value).Compile();
+				}
+			}
+			catch
+			{
+				// Ignore errors in expression generation, fallback to reflection
+			}
+			return null;
 		}
 
 		public static T Convert<T>(this object obj) => (T)obj.Convert(typeof(T));

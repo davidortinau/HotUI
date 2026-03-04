@@ -7,27 +7,45 @@
 | Category | MVU Advantage | XAML Advantage |
 |----------|--------------|----------------|
 | View Construction | ✅ **60-5,500x faster**, 50-2,100x less memory | — |
-| Single State Update (1 op) | ✅ **5.8x faster** | — |
-| N Independent Changes (50) | ✅ **2.6x faster** | — |
-| Selective Update (1 of 100, 50 ops) | ✅ **2.4x faster** | — |
-| Rapid Counter (5000 iters) | — | ✅ **~2x slower** |
-| Multi-prop Animation (batched) | — | ✅ **~2.7x slower** |
-| Multi-prop Animation (unbatched) | — | ✅ **~3.7x slower** |
-| String-heavy Updates | — | ✅ **~1.6x slower** |
-| No-op Same Value (50 ops) | — | ✅ **~1.9x slower** |
+| Single State Update (1 op) | ✅ **16x faster** | — |
+| N Independent Changes (50) | ✅ **2.7x faster** | — |
+| Selective Update (1 of 100, 50 ops) | ✅ **2.5x faster** | — |
+| Rapid Counter (5000 iters) | — | ✅ **~1.3x slower** |
+| Multi-prop Animation (batched) | — | ✅ **~1.7x slower** |
+| Multi-prop Animation (unbatched) | — | ✅ **~2.8x slower** |
+| String-heavy Updates | — | ✅ **~1.35x slower** |
+| No-op Same Value (50 ops) | — | ✅ **~2.5x slower** |
 | Startup (50-control page) | ✅ **148x faster**, 138x less memory | — |
 | Todo App (100 items) | ✅ **120x faster**, 30x less memory | — |
 | Dashboard (100 items) | ✅ **1948x faster**, 1224x less memory | — |
-| **Memory allocation** | ✅ **~45% less** than pre-optimization | — |
+| **Memory allocation** | ✅ **~70% less** than pre-optimization | — |
 
-### Optimizations Applied
-- **State batching** (`StateManager.BeginBatch()/EndBatch()`): coalesces multi-property updates
-- **Binding deferral**: Func re-evaluation deferred during batching (single eval per batch)
-- **PropertyChangedEventArgs caching**: one allocation per unique property name
-- **Property name caching**: concatenated paths cached for reuse
-- **Single-view fast path**: avoids ArrayPool rent/copy for the common 1-view case
-- **LINQ elimination**: `.Any()` → `.Count`, `Except().Any()` → manual loop
-- **EndProperty optimization**: thread-static buffer reuse for single-property case
+### Optimizations Applied (4 rounds)
+
+**Round 1 — State batching + allocation reduction:**
+- State batching (`StateManager.BeginBatch()/EndBatch()`): coalesces multi-property updates
+- Binding deferral: Func re-evaluation deferred during batching (single eval per batch)
+- PropertyChangedEventArgs caching: one allocation per unique property name
+- Property name caching: concatenated paths cached for reuse
+- Single-view fast path: avoids ArrayPool rent/copy for common 1-view case
+- LINQ elimination: `.Any()` → `.Count`, `Except().Any()` → manual loop
+- EndProperty optimization: thread-static buffer reuse for single-property case
+
+**Round 2 — Lock contention + closure elimination:**
+- `[ThreadStatic]` replacing `Dictionary<Thread,T>` + lock (3-5 fewer lock acquisitions/update)
+- Direct dispatch instead of `ThreadHelper.RunOnMainThread` closure allocation
+- `HashSet.GetEnumerator()` struct instead of LINQ `FirstOrDefault()` boxing
+- `FlushBatch` iterate-then-clear (no `ToList()` copy)
+
+**Round 3 — State<T> typed storage + binding fast path:**
+- Typed `_value` backing field in `State<T>` (bypasses `Dictionary<string,object>` boxing)
+- Sealed `State<T>` for JIT devirtualization
+- Virtual `GetValueInternal` override for correct generic access
+- Stable binding fast path: skip `StartProperty/EndProperty` after first evaluation
+- `AddGlobalProperties` iterates directly (no `ToList()` copy)
+- Removed `Debug.WriteLine` from `AddGlobalProperty` hot path
+- Merged double lock acquisition in `OnPropertyChanged` single-view path
+- Thread-static `HashSet` reuse in `EndProperty` multi-property path
 
 ## 1. View Construction (Building the UI Tree)
 
@@ -52,18 +70,18 @@ updates properties directly without tree diff. Body calls = 0 for all scenarios 
 
 | Scenario | Count | XAML (ns) | MVU (ns) | Winner |
 |----------|-------|-----------|----------|--------|
-| Single property change | 1 | 2,282 | 272 | **MVU 8x** (first is no-op) |
-| Single property change | 50 | 21,982 | 46,592 | XAML **2.1x** |
-| N independent changes | 1 | 1,856 | 1,268 | **MVU 1.5x** |
-| N independent changes | 50 | 26,453 | 9,999 | **MVU 2.6x** |
-| No-op (same value) | 1 | 1,854 | 12,966 | XAML **7x** (includes first real update) |
-| No-op (same value) | 50 | 8,145 | 15,687 | XAML **1.9x** |
-| Change 1 of 100 | 1 | 1,786 | 1,357 | **MVU 1.3x** |
-| Change 1 of 100 | 50 | 23,983 | 10,083 | **MVU 2.4x** |
+| Single property change | 1 | 1,922 | 121 | **MVU 16x** |
+| Single property change | 50 | 21,650 | 34,849 | XAML **1.6x** |
+| N independent changes | 1 | 1,635 | 1,266 | **MVU 1.3x** |
+| N independent changes | 50 | 26,296 | 9,629 | **MVU 2.7x** |
+| No-op (same value) | 1 | 1,796 | 12,477 | XAML **6.9x** (includes first real update) |
+| No-op (same value) | 50 | 7,741 | 19,425 | XAML **2.5x** |
+| Change 1 of 100 | 1 | 1,949 | 1,592 | **MVU 1.2x** |
+| Change 1 of 100 | 50 | 23,179 | 9,180 | **MVU 2.5x** |
 
 **Key insight:** At high update counts, MVU wins for independent/selective updates because each
 Binding targets only the affected view. XAML's per-property overhead accumulates faster. For
-single-property sequential updates, XAML's simpler property system has ~2x advantage.
+single-property sequential updates, XAML's simpler property system has ~1.6x advantage.
 
 ## 3. Diff Algorithm (MVU-only)
 
@@ -83,19 +101,25 @@ Shows the cost of Comet's tree reconciliation after a state change.
 ## 4. Rapid Updates (Animation-like) — Corrected with [IterationSetup]
 
 With construction excluded, the gap narrows significantly.
-**New: Batched mode** uses `StateManager.BeginBatch()/EndBatch()` to coalesce multi-state updates.
+**Batched mode** uses `StateManager.BeginBatch()/EndBatch()` to coalesce multi-state updates.
 
 | Scenario | Iterations | XAML (μs) | MVU (μs) | Ratio | MVU Alloc |
 |----------|-----------|-----------|----------|-------|-----------|
-| Counter | 100 | 38 | 76 | 2.0x | 49 KB |
-| Counter | 5000 | 1,653 | 3,063 | **1.9x** | 2,401 KB |
-| Multi-prop (unbatched) | 5000 | 3,324 | 12,130 | 3.7x | 9,562 KB |
-| Multi-prop **(batched)** | 5000 | 3,324 | **8,872** | **2.7x** | 8,919 KB |
-| String-heavy | 5000 | 2,037 | 3,297 | **1.6x** | 3,354 KB |
+| Counter | 100 | 38 | 57 | 1.5x | 0 B |
+| Counter | 5000 | 1,769 | 2,320 | **1.3x** | 282 KB |
+| Multi-prop (unbatched) | 5000 | 3,316 | 9,233 | 2.8x | 1,122 KB |
+| Multi-prop **(batched)** | 5000 | 3,316 | **5,545** | **1.7x** | 481 KB |
+| String-heavy | 5000 | 2,001 | 2,702 | **1.35x** | 1,314 KB |
 
-**Batching improvement:** Multi-prop animation goes from 3.7x → 2.7x slower (27% faster).
-The `BeginBatch()/EndBatch()` API defers Binding Func re-evaluation, so N state changes
-feeding the same Binding only trigger one re-evaluation instead of N.
+**Optimization improvement vs pre-optimization baseline:**
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Counter ratio | 1.97x | **1.31x** | 34% closer to XAML |
+| Batched ratio | 2.66x | **1.67x** | 37% closer to XAML |
+| String ratio | 1.59x | **1.35x** | 15% closer to XAML |
+| Counter alloc | 2,401 KB | **282 KB** | **88% reduction** |
+| Batched alloc | 8,919 KB | **481 KB** | **95% reduction** |
 
 ## 5. Memory / Startup
 
@@ -142,9 +166,9 @@ MVU is vastly more efficient for initial construction and startup.
 - **Memory efficiency at construction**: Orders of magnitude less GC pressure.
 
 ### Where XAML (Direct Property Set) Excels
-- **Sequential single-property updates**: ~2x faster for repeated changes to one property.
-- **Multi-property rapid updates**: ~2.7x faster (batched) for animation-like workloads.
-- **No-op updates**: XAML short-circuits same-value sets; MVU has ~2x overhead.
+- **Sequential single-property updates**: ~1.3x faster for repeated changes to one property.
+- **Multi-property rapid updates**: ~1.7x faster (batched) for animation-like workloads.
+- **No-op updates**: XAML short-circuits same-value sets; MVU has ~2.5x overhead.
 
 ### Optimization: State Batching
 `StateManager.BeginBatch()` / `StateManager.EndBatch()` allows multiple state changes
@@ -167,10 +191,22 @@ and updates view properties directly. Body() is only called during initial const
 or when GlobalProperties are involved (e.g., conditional rendering based on state).
 
 ### Architectural Takeaway
-With proper benchmarking (isolating construction from updates), MVU is only ~2x slower
+With proper benchmarking (isolating construction from updates), MVU is only ~1.3x slower
 than XAML for property updates — not 91-320x as previously reported. The gap is entirely
 in the StateManager notification overhead (dictionary lookups, lock acquisition), not in
 tree rebuilds. For most real apps, construction dominates — pages are built once but
-updated selectively. MVU's 60-7000x construction advantage far outweighs the 2x update cost.
+updated selectively. MVU's 60-7000x construction advantage far outweighs the 1.3x update cost.
+
+### Remaining Overhead Analysis
+The ~1.3x gap for rapid counter updates is near the practical limit for non-invasive changes.
+The remaining costs are architectural:
+- **Boxing**: `CallPropertyChanged(string, object)` boxes value types (~24 bytes/update)
+- **Lock**: `StateManager.OnPropertyChanged` acquires `_lock` for thread safety
+- **Reflection**: `SetPropertyValue` uses `PropertyInfo.SetValue` (runtime caches help)
+- **Lambda re-evaluation**: `Binding<T>.Get.Invoke()` re-evaluates the Func expression
+
+Closing this gap further would require rewriting the notification chain to be fully generic
+(eliminating boxing) or replacing reflection with source-generated setters — high-risk changes
+with diminishing returns.
 
 **Recommendation:** MVU is an excellent choice for MAUI applications. Use `StateManager.BeginBatch()/EndBatch()` for multi-property animation updates to minimize overhead.

@@ -73,12 +73,17 @@ namespace Comet
 
 			dictionary[propertyName] = value;
 
-			CallPropertyChanged(propertyName, value);
+			CallPropertyChanged<T>(propertyName, value);
 
 			return true;
 		}
 
 		protected virtual void CallPropertyChanged(string propertyName, object value)
+		{
+			CallPropertyChanged<object>(propertyName, value);
+		}
+		
+		protected virtual void CallPropertyChanged<T>(string propertyName, T value)
 		{
 			StateManager.OnPropertyChanged(this, propertyName, value);
 			if (PropertyChanged != null)
@@ -150,12 +155,22 @@ namespace Comet
 			else
 				view.GetState().changeDictionary[fullProperty] = value;
 		}
-		public bool UpdateValue(View view,(INotifyPropertyRead BindingObject, string PropertyName) property, string fullProperty, object value)
+		public bool UpdateValue(View view, (INotifyPropertyRead BindingObject, string PropertyName) property, string fullProperty, object value, out bool bindingsHandled)
+		{
+			return UpdateValue<object>(view, property, fullProperty, value, out bindingsHandled);
+		}
+
+		public bool UpdateValue<T>(View view,(INotifyPropertyRead BindingObject, string PropertyName) property, string fullProperty, T value, out bool bindingsHandled)
 		{
 			changeDictionary[fullProperty] = value;
-			UpdatePropertyChangeProperty(view, fullProperty, value);
+			// Only walk the parent chain if there IS a parent — otherwise
+			// UpdatePropertyChangeProperty writes to the same changeDictionary we just wrote to.
+			if (view.Parent != null)
+				UpdatePropertyChangeProperty(view, fullProperty, value);
+			bindingsHandled = false;
 			if (ViewUpdateProperties.TryGetValue((property.BindingObject, property.PropertyName), out var bindings))
 			{
+				bindingsHandled = true;
 				var count = bindings.Count;
 				var bindingsArray = System.Buffers.ArrayPool<(string PropertyName, Binding Binding)>.Shared.Rent(count);
 				bindings.CopyTo(bindingsArray);

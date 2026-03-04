@@ -386,17 +386,26 @@ namespace Comet
 
 		internal void BindingPropertyChanged(INotifyPropertyRead bindingObject, string property, string fullProperty, object value)
 		{
+			BindingPropertyChanged<object>(bindingObject, property, fullProperty, value);
+		}
+
+		internal void BindingPropertyChanged<T>(INotifyPropertyRead bindingObject, string property, string fullProperty, T value)
+		{
 			try
 			{
-				if (!State.UpdateValue(this, (bindingObject, property), fullProperty, value))
+				if (!State.UpdateValue(this, (bindingObject, property), fullProperty, value, out bool bindingsHandled))
 				{
 					if (StateManager.IsBatching)
 						StateManager.AddViewNeedingReload(this);
 					else
 						Reload(false);
 				}
-				else if (!StateManager.IsBatching)
+				else if (!StateManager.IsBatching && !bindingsHandled)
 				{
+					// Only cascade when no bindings handled the update.
+					// When bindings exist, Binding.EvaluateAndNotify already called
+					// ViewPropertyChanged on the target view — cascading here would
+					// cause redundant reflection lookups and duplicate handler updates.
 					ViewPropertyChanged(property, value);
 				}
 				// During batching, the deferred Binding.Flush() handles ViewPropertyChanged

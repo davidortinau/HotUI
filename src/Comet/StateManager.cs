@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -15,7 +15,7 @@ namespace Comet
 {
 	public static class StateManager
 	{
-		static readonly object _lock = new object();
+		static readonly ReaderWriterLockSlim _rwLock = new ReaderWriterLockSlim();
 		[ThreadStatic] static WeakStack<View> _viewStack;
 		[ThreadStatic] static List<(INotifyPropertyRead bindingObject, string property)> _currentReadProperties;
 		static WeakStack<View> GetCurrentViewStack() => _viewStack ??= new WeakStack<View>();
@@ -99,12 +99,17 @@ namespace Comet
 
 		static T GetCurrent<T>(this Dictionary<Thread,T> dictionary) where T : new ()
 		{
-			lock (_lock)
+			_rwLock.EnterWriteLock();
+			try
 			{
 				var thread = Thread.CurrentThread;
 				if (dictionary.TryGetValue(thread, out var item))
 					return item;
 				return dictionary[thread] = new T();
+			}
+			finally
+			{
+				_rwLock.ExitWriteLock();
 			}
 		}
 
@@ -117,13 +122,18 @@ namespace Comet
 			var mappings = CheckForStateAttributes(view, view).ToList();
 			if (mappings.Count > 0)
 			{
-				lock (_lock)
+				_rwLock.EnterWriteLock();
+				try
 				{
 					ViewObjectMappings[view.Id] = mappings;
 					foreach (var obj in mappings)
 					{
 						NotifyToViewMappings.GetOrCreateForKey(obj).Add(view);
 					}
+				}
+				finally
+				{
+					_rwLock.ExitWriteLock();
 				}
 			}
 			var currentReadProperies = GetCurrentReadProperties();
@@ -137,16 +147,22 @@ namespace Comet
 
 		public static void MonitorListViewObject(View view, INotifyPropertyRead obj)
 		{
-			lock (_lock)
+			_rwLock.EnterWriteLock();
+			try
 			{
 				ViewObjectMappings.GetOrCreateForKey(view.Id).Add(obj);
 				NotifyToViewMappings.GetOrCreateForKey(obj).Add(view);
+			}
+			finally
+			{
+				_rwLock.ExitWriteLock();
 			}
 		}
 
 		public static void Disposing(View view)
 		{
-			lock (_lock)
+			_rwLock.EnterWriteLock();
+			try
 			{
 				if (ViewObjectMappings.TryGetValue(view.Id, out var mappings))
 				{
@@ -164,6 +180,10 @@ namespace Comet
 					}
 					ViewObjectMappings.Remove(view.Id);
 				}
+			}
+			finally
+			{
+				_rwLock.ExitWriteLock();
 			}
 		}
 
@@ -236,7 +256,8 @@ namespace Comet
 
 		public static void RegisterChild(View view, INotifyPropertyRead value, string fieldName)
 		{
-			lock (_lock)
+			_rwLock.EnterWriteLock();
+			try
 			{
 				ChildPropertyNamesMapping.GetOrCreateForKey(value)[view?.Id ?? ""] = fieldName;
 				if (!MonitoredObjects.Contains(value))
@@ -244,15 +265,24 @@ namespace Comet
 					StartMonitoring(value);
 				}
 			}
+			finally
+			{
+				_rwLock.ExitWriteLock();
+			}
 		}
 
 		static public void StartMonitoring(INotifyPropertyRead obj)
 		{
-			lock (_lock)
+			_rwLock.EnterWriteLock();
+			try
 			{
 				if (MonitoredObjects.Contains(obj))
 					return;
 				MonitoredObjects.Add(obj);
+			}
+			finally
+			{
+				_rwLock.ExitWriteLock();
 			}
 			CheckForStateAttributes(obj, null).ToList();
 
@@ -265,9 +295,14 @@ namespace Comet
 		public static void StopMonitoring(INotifyPropertyRead obj)
 		{
 			bool wasTracked;
-			lock (_lock)
+			_rwLock.EnterWriteLock();
+			try
 			{
 				wasTracked = MonitoredObjects.Remove(obj);
+			}
+			finally
+			{
+				_rwLock.ExitWriteLock();
 			}
 			if (!wasTracked)
 				return;
@@ -277,10 +312,15 @@ namespace Comet
 				obj.PropertyChanged -= Obj_PropertyChanged;
 				obj.PropertyRead -= Obj_PropertyRead;
 			}
-			lock (_lock)
+			_rwLock.EnterWriteLock();
+			try
 			{
 				NotifyToViewMappings.Remove(obj);
 				ChildPropertyNamesMapping.Remove(obj);
+			}
+			finally
+			{
+				_rwLock.ExitWriteLock();
 			}
 		}
 
@@ -290,12 +330,15 @@ namespace Comet
 		{
 			if (sender is BindingObject b)
 			{
-				OnPropertyChanged(sender, e.PropertyName, b.GetValueInternal(e.PropertyName));
+				// GetValueInternal returns (bool hasValue, object value) — unpack the tuple
+				// instead of boxing it as the value parameter.
+				var (_, value) = b.GetValueInternal(e.PropertyName);
+				OnPropertyChanged(sender, e.PropertyName, value);
 				return;
 			}
 
-			var value = sender.GetPropertyValue(e.PropertyName);
-			OnPropertyChanged(sender, e.PropertyName, value);
+			var propValue = sender.GetPropertyValue(e.PropertyName);
+			OnPropertyChanged(sender, e.PropertyName, propValue);
 		}
 		public static void OnPropertyRead(object sender, string propertyName)
 		{
@@ -307,7 +350,12 @@ namespace Comet
 		static readonly Dictionary<(string parent, string child), string> _propertyNameCache
 			= new Dictionary<(string, string), string>();
 
-		public static  void OnPropertyChanged(object sender, string propertyName, object value)
+		public static void OnPropertyChanged(object sender, string propertyName, object value)
+		{
+			OnPropertyChanged<object>(sender, propertyName, value);
+		}
+
+		public static void OnPropertyChanged<T>(object sender, string propertyName, T value)
 		{
 			if (value?.GetType() == typeof(View))
 				return;
@@ -315,13 +363,15 @@ namespace Comet
 				StartMonitoring(iNotify);
 			var notify = sender as INotifyPropertyRead;
 			if (notify == null)
-				throw new Exception("Error, this is null!!!");
+				//throw new Exception("Error, this is null!!!");
+				return;
 
 			HashSet<View> views;
 			Dictionary<string, string> mappings;
 			View singleView = null;
 
-			lock (_lock)
+			_rwLock.EnterReadLock();
+			try
 			{
 				if (!NotifyToViewMappings.TryGetValue(notify, out views))
 					return;
@@ -336,12 +386,18 @@ namespace Comet
 					singleView = enumerator.MoveNext() ? enumerator.Current : null;
 				}
 			}
+			finally
+			{
+				_rwLock.ExitReadLock();
+			}
 
 			if (singleView != null)
 			{
 				if (singleView.IsDisposed)
 				{
-					lock (_lock) { views.Remove(singleView); }
+					_rwLock.EnterWriteLock();
+					try { views.Remove(singleView); }
+					finally { _rwLock.ExitWriteLock(); }
 					return;
 				}
 				string parentproperty = null;
@@ -356,11 +412,16 @@ namespace Comet
 			View[] viewsCopy = null;
 			int viewCount;
 
-			lock (_lock)
+			_rwLock.EnterReadLock();
+			try
 			{
 				viewCount = views.Count;
 				viewsCopy = System.Buffers.ArrayPool<View>.Shared.Rent(viewCount);
 				views.CopyTo(viewsCopy);
+			}
+			finally
+			{
+				_rwLock.ExitReadLock();
 			}
 
 			List<View> disposedViews = null;
@@ -392,13 +453,18 @@ namespace Comet
 
 			if (disposedViews?.Count > 0)
 			{
-				lock (_lock)
+				_rwLock.EnterWriteLock();
+				try
 				{
 					if (NotifyToViewMappings.TryGetValue(notify, out var viewsForCleanup))
 					{
 						foreach (var view in disposedViews)
 							viewsForCleanup.Remove(view);
 					}
+				}
+				finally
+				{
+					_rwLock.ExitWriteLock();
 				}
 			}
 		}
@@ -469,20 +535,30 @@ namespace Comet
 
 		internal static void UpdateBinding(Binding binding, View view)
 		{
-			lock (_lock)
+			_rwLock.EnterWriteLock();
+			try
 			{
 				foreach (var prop in binding.BoundProperties)
 				{
 					NotifyToViewMappings.GetOrCreateForKey(prop.BindingObject).Add(view);
 				}
 			}
+			finally
+			{
+				_rwLock.ExitWriteLock();
+			}
 		}
 
 		internal static void ListenToEnvironment(View view)
 		{
-			lock (_lock)
+			_rwLock.EnterWriteLock();
+			try
 			{
 				NotifyToViewMappings.GetOrCreateForKey(View.Environment).Add(view);
+			}
+			finally
+			{
+				_rwLock.ExitWriteLock();
 			}
 		}
 	}
