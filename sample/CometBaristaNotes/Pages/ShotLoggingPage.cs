@@ -1,4 +1,5 @@
 using Comet;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
@@ -18,6 +19,7 @@ using MauiBoxView = Microsoft.Maui.Controls.BoxView;
 using MauiEllipse = Microsoft.Maui.Controls.Shapes.Ellipse;
 using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
 using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
+using MauiPicker = Microsoft.Maui.Controls.Picker;
 
 namespace CometBaristaNotes.Pages;
 
@@ -28,11 +30,15 @@ namespace CometBaristaNotes.Pages;
 /// </summary>
 public class ShotLoggingPage : Comet.View
 {
+// Edit mode: if > 0, we're editing an existing shot
+int _editingShotId = 0;
+readonly IFeedbackService _feedbackService;
+
 // Current values (not Comet State<T> — we update controls directly)
 double _doseIn = 18.0;
 double _doseOut = 36.0;
 double _actualTime = 0;
-int _rating = 3;
+int _rating = 2;
 string _tastingNotes = "";
 string _grindSetting = "15";
 string _expectedTime = "28";
@@ -45,6 +51,19 @@ int _madeForIndex = 0;
 int _selectedBagIndex = -1;
 bool _showAdditional = false;
 
+bool IsEditMode => _editingShotId > 0;
+
+public ShotLoggingPage()
+{
+	_feedbackService = IPlatformApplication.Current!.Services.GetRequiredService<IFeedbackService>();
+}
+
+public ShotLoggingPage(int shotId)
+{
+	_feedbackService = IPlatformApplication.Current!.Services.GetRequiredService<IFeedbackService>();
+	_editingShotId = shotId;
+}
+
 // References to mutable controls
 MauiLabel? _doseInValueLabel, _doseInUnitLabel;
 MauiLabel? _doseOutValueLabel, _doseOutUnitLabel;
@@ -55,6 +74,8 @@ MauiLabel? _timeValueLabel;
 MauiLabel? _machineNameLabel;
 VerticalStackLayout? _additionalStack;
 MauiBorder? _additionalHeaderCard;
+Microsoft.Maui.Controls.ActivityIndicator? _savingIndicator;
+MauiButton? _saveButton;
 
 // Data
 List<Bag> _bags = new();
@@ -62,7 +83,7 @@ List<Equipment> _machines = new();
 List<Equipment> _grinders = new();
 List<UserProfile> _profiles = new();
 
-static readonly string[] DrinkTypes = { "Espresso", "Ristretto", "Lungo", "Doppio", "Americano" };
+static readonly string[] DrinkTypes = { "Espresso", "Americano", "Latte", "Cappuccino", "Flat White", "Cortado" };
 
 double Ratio => _doseIn > 0 ? Math.Round(_doseOut / _doseIn, 1) : 0;
 
@@ -75,7 +96,20 @@ _machines = store?.GetByType(EquipmentType.Machine) ?? new();
 _grinders = store?.GetByType(EquipmentType.Grinder) ?? new();
 _profiles = store?.GetAllProfiles() ?? new();
 
+// Load existing shot data in edit mode
+if (IsEditMode)
+	LoadExistingShot(store);
+
 var contentStack = new VerticalStackLayout { Spacing = Theme.SpacingM, Padding = new Thickness(Theme.SpacingM) };
+
+_savingIndicator = new Microsoft.Maui.Controls.ActivityIndicator
+{
+	Color = Theme.Primary,
+	IsRunning = false,
+	IsVisible = false,
+	HeightRequest = 32,
+};
+contentStack.Add(_savingIndicator);
 
 contentStack.Add(BuildDoseGaugesRow());
 contentStack.Add(BuildRatioDisplay());
@@ -85,9 +119,33 @@ contentStack.Add(BuildRating());
 contentStack.Add(BuildTastingNotes());
 contentStack.Add(BuildAdditionalDetails());
 
-var saveBtn = FormHelpers.MakePrimaryButton("Save Shot", SaveShot);
-saveBtn.Margin = new Thickness(0, Theme.SpacingS, 0, Theme.SpacingXL);
+var saveBtn = FormHelpers.MakePrimaryButton(IsEditMode ? "Update Shot" : "Save Shot", SaveShot);
+_saveButton = saveBtn as MauiButton;
+saveBtn.Margin = new Thickness(0, Theme.SpacingS, 0, 0);
 contentStack.Add(saveBtn);
+
+if (IsEditMode)
+{
+	var deleteBtn = new MauiButton
+	{
+		Text = "Delete Shot",
+		FontFamily = Theme.FontSemibold,
+		FontSize = 16,
+		TextColor = Theme.Error,
+		BackgroundColor = Colors.Transparent,
+		BorderWidth = 1,
+		BorderColor = Theme.Error,
+		CornerRadius = (int)Theme.RadiusPill,
+		HeightRequest = Theme.ButtonHeight,
+	};
+	deleteBtn.Clicked += async (s, e) => await DeleteShot();
+	deleteBtn.Margin = new Thickness(0, Theme.SpacingS, 0, Theme.SpacingXL);
+	contentStack.Add(deleteBtn);
+}
+else
+{
+	saveBtn.Margin = new Thickness(0, Theme.SpacingS, 0, Theme.SpacingXL);
+}
 
 var scrollView = new MauiScrollView { Content = contentStack, BackgroundColor = Theme.Background };
 return new MauiViewHost(scrollView);
@@ -246,17 +304,148 @@ circleGrid.Add(new MauiLabel { Text = Icons.Machine, FontFamily = Icons.CoffeeFo
 _machineNameLabel = new MauiLabel { Text = "Select", FontFamily = Theme.FontRegular, FontSize = 11, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center, WidthRequest = 80 };
 
 var tap = new TapGestureRecognizer();
-tap.Tapped += (s, e) =>
-{
-_machineIndex = (_machineIndex + 1) % (_machines.Count + 1);
-var name = _machineIndex > 0 && _machineIndex <= _machines.Count ? _machines[_machineIndex - 1].Name : "Select";
-_machineNameLabel.Text = name.Length > 10 ? name[..10] + "…" : name;
-};
+tap.Tapped += async (s, e) => await ShowEquipmentSelectionPopup();
 circleGrid.GestureRecognizers.Add(tap);
+stack.GestureRecognizers.Add(tap);
 
 stack.Add(circleGrid);
 stack.Add(_machineNameLabel);
 return stack;
+}
+
+async Task ShowEquipmentSelectionPopup()
+{
+try
+{
+var equipment = InMemoryDataStore.Instance?.GetAllEquipment() ?? new List<Models.Equipment>();
+if (equipment.Count == 0)
+{
+	var alertPage = Application.Current?.Windows.FirstOrDefault()?.Page;
+	if (alertPage != null)
+		await alertPage.DisplayAlertAsync("No Equipment", "Add equipment in Settings first.", "OK");
+	return;
+}
+
+var items = equipment
+	.OrderBy(e => e.Type)
+	.ThenBy(e => e.Name)
+	.Select(e => new EquipmentSelectionItem
+	{
+		Id = e.Id,
+		Name = e.Name,
+		EquipmentType = e.Type,
+		IsSelected = (e.Type == EquipmentType.Machine && _machineIndex > 0 && _machineIndex <= _machines.Count && _machines[_machineIndex - 1].Id == e.Id)
+			|| (e.Type == EquipmentType.Grinder && _grinderIndex > 0 && _grinderIndex <= _grinders.Count && _grinders[_grinderIndex - 1].Id == e.Id)
+	})
+	.ToList();
+
+var popup = new UXDivers.Popups.Maui.Controls.ListActionPopup
+{
+	Title = "Select Equipment",
+	ActionButtonText = "Done",
+	ShowActionButton = true,
+	ItemsSource = items,
+	ItemDataTemplate = new DataTemplate(() =>
+	{
+		var tapGesture = new TapGestureRecognizer();
+		tapGesture.SetBinding(TapGestureRecognizer.CommandParameterProperty, ".");
+		tapGesture.Tapped += (s, e) =>
+		{
+			if (e is TappedEventArgs args && args.Parameter is EquipmentSelectionItem item)
+			{
+				item.IsSelected = !item.IsSelected;
+				ApplyEquipmentSelection(items);
+			}
+		};
+
+		var layout = new HorizontalStackLayout { Spacing = 12, Padding = new Thickness(0, 8) };
+		layout.GestureRecognizers.Add(tapGesture);
+
+		var checkIcon = new MauiLabel
+		{
+			FontSize = 24,
+			VerticalOptions = LayoutOptions.Center,
+		};
+		checkIcon.SetBinding(MauiLabel.TextProperty, new Microsoft.Maui.Controls.Binding("IsSelected",
+			converter: new BoolToStringConverter("✓", "○")));
+		checkIcon.SetBinding(MauiLabel.TextColorProperty, new Microsoft.Maui.Controls.Binding("IsSelected",
+			converter: new BoolToColorConverter(Theme.Primary, Theme.TextSecondary)));
+
+		var nameLabel = new MauiLabel { FontSize = 16, VerticalOptions = LayoutOptions.Center, TextColor = Theme.TextPrimary };
+		nameLabel.SetBinding(MauiLabel.TextProperty, "Name");
+
+		var typeLabel = new MauiLabel { FontSize = 12, VerticalOptions = LayoutOptions.Center, TextColor = Theme.TextSecondary };
+		typeLabel.SetBinding(MauiLabel.TextProperty, "TypeName");
+
+		var textStack = new VerticalStackLayout { Spacing = 2 };
+		textStack.Add(nameLabel);
+		textStack.Add(typeLabel);
+
+		layout.Add(checkIcon);
+		layout.Add(textStack);
+		return layout;
+	})
+};
+
+popup.ActionButtonCommand = new Command(() => ApplyEquipmentSelection(items));
+
+// Close any existing popup first (reference pattern from BaristaNotes)
+try { await UXDivers.Popups.Services.IPopupService.Current.PopAsync(); } catch { }
+
+await UXDivers.Popups.Services.IPopupService.Current.PushAsync(popup);
+}
+catch (Exception ex)
+{
+	System.Diagnostics.Debug.WriteLine($"[Equipment] ERROR: {ex}");
+	// Fallback to action sheet
+	var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+	if (page != null)
+	{
+		var equipment = InMemoryDataStore.Instance?.GetAllEquipment() ?? new List<Models.Equipment>();
+		var names = equipment.OrderBy(e => e.Type).ThenBy(e => e.Name)
+			.Select(e => $"{e.Type}: {e.Name}").ToArray();
+		var result = await page.DisplayActionSheet("Select Equipment", "Cancel", null, names);
+		if (result != null && result != "Cancel")
+		{
+			var selected = equipment.FirstOrDefault(e => $"{e.Type}: {e.Name}" == result);
+			if (selected?.Type == EquipmentType.Machine)
+			{
+				_machineIndex = _machines.FindIndex(m => m.Id == selected.Id) + 1;
+				var name = selected.Name;
+				if (_machineNameLabel != null)
+					_machineNameLabel.Text = name.Length > 10 ? name[..10] + "…" : name;
+			}
+			else if (selected?.Type == EquipmentType.Grinder)
+			{
+				_grinderIndex = _grinders.FindIndex(g => g.Id == selected.Id) + 1;
+			}
+		}
+	}
+}
+}
+
+void ApplyEquipmentSelection(List<EquipmentSelectionItem> items)
+{
+var selectedMachine = items.FirstOrDefault(i => i.EquipmentType == EquipmentType.Machine && i.IsSelected);
+if (selectedMachine != null)
+{
+	_machineIndex = _machines.FindIndex(m => m.Id == selectedMachine.Id) + 1;
+	var name = selectedMachine.Name;
+	if (_machineNameLabel != null)
+		_machineNameLabel.Text = name.Length > 10 ? name[..10] + "…" : name;
+}
+else
+{
+	_machineIndex = 0;
+	if (_machineNameLabel != null)
+		_machineNameLabel.Text = "Select";
+}
+
+var selectedGrinder = items.FirstOrDefault(i => i.EquipmentType == EquipmentType.Grinder && i.IsSelected);
+if (selectedGrinder != null)
+	_grinderIndex = _grinders.FindIndex(g => g.Id == selectedGrinder.Id) + 1;
+else
+	_grinderIndex = 0;
 }
 
 Microsoft.Maui.Controls.View BuildRatioDisplay()
@@ -369,26 +558,35 @@ Microsoft.Maui.Controls.View BuildRating()
 var content = new VerticalStackLayout { Spacing = Theme.SpacingS };
 content.Add(new MauiLabel { Text = "Rating", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 
-var sentiments = new[] { Icons.SentimentVeryDissatisfied, Icons.SentimentDissatisfied, Icons.SentimentNeutral, Icons.SentimentSatisfied, Icons.SentimentVerySatisfied };
-var icons = new MauiLabel[5];
+var sentiments = new[]
+{
+Icons.SentimentVeryDissatisfied,
+Icons.SentimentDissatisfied,
+Icons.SentimentNeutral,
+Icons.SentimentSatisfied,
+Icons.SentimentVerySatisfied,
+};
+var icons = new MauiLabel[sentiments.Length];
 var row = new HorizontalStackLayout { Spacing = Theme.SpacingS, HorizontalOptions = LayoutOptions.Center };
 
-for (int i = 0; i < 5; i++)
+for (int i = 0; i < sentiments.Length; i++)
 {
 var idx = i;
 var lbl = new MauiLabel
 {
-Text = sentiments[i], FontFamily = Icons.FontFamily, FontSize = 32,
-TextColor = (i + 1) <= _rating ? Theme.Primary : Theme.StarEmpty,
+Text = sentiments[i],
+FontFamily = Icons.FontFamily,
+FontSize = 32,
+TextColor = i == _rating ? Theme.Primary : Theme.StarEmpty,
 };
 icons[i] = lbl;
 
 var tap = new TapGestureRecognizer();
 tap.Tapped += (s, e) =>
 {
-_rating = idx + 1;
-for (int j = 0; j < 5; j++)
-icons[j].TextColor = (j + 1) <= _rating ? Theme.Primary : Theme.StarEmpty;
+_rating = idx;
+for (int j = 0; j < sentiments.Length; j++)
+icons[j].TextColor = j == _rating ? Theme.Primary : Theme.StarEmpty;
 };
 lbl.GestureRecognizers.Add(tap);
 row.Add(lbl);
@@ -420,6 +618,101 @@ content.Add(border);
 return FormHelpers.MakeCard(content);
 }
 
+// Bag picker reference for refreshing after inline creation
+MauiPicker? _bagPicker;
+
+Microsoft.Maui.Controls.View BuildBagPickerWithAdd(string[] bagNames)
+{
+var stack = new VerticalStackLayout { Spacing = 4 };
+stack.Add(new MauiLabel { Text = "Coffee Bag", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+
+var row = new MauiGrid
+{
+	ColumnDefinitions =
+	{
+		new ColumnDefinition(GridLength.Star),
+		new ColumnDefinition(GridLength.Auto),
+	},
+	ColumnSpacing = Theme.SpacingS,
+};
+
+_bagPicker = new MauiPicker
+{
+	TextColor = Theme.TextPrimary,
+	BackgroundColor = Theme.SurfaceVariant,
+	HeightRequest = Theme.FormFieldHeight,
+};
+foreach (var item in bagNames) _bagPicker.Items.Add(item);
+if (_selectedBagIndex >= 0 && _selectedBagIndex < bagNames.Length) _bagPicker.SelectedIndex = _selectedBagIndex;
+_bagPicker.SelectedIndexChanged += (s, e) => _selectedBagIndex = _bagPicker.SelectedIndex;
+
+var pickerBorder = new MauiBorder
+{
+	Content = _bagPicker,
+	StrokeThickness = 0,
+	StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusPill },
+	BackgroundColor = Theme.SurfaceVariant,
+};
+
+var addBtn = new MauiButton
+{
+	Text = Icons.Add,
+	FontFamily = Icons.FontFamily,
+	FontSize = 22,
+	TextColor = Colors.White,
+	BackgroundColor = Theme.Primary,
+	WidthRequest = Theme.FormFieldHeight,
+	HeightRequest = Theme.FormFieldHeight,
+	CornerRadius = (int)Theme.RadiusPill,
+	Padding = 0,
+};
+addBtn.Clicked += async (s, e) => await AddNewBeanInline();
+
+row.Add(pickerBorder, 0, 0);
+row.Add(addBtn, 1, 0);
+stack.Add(row);
+return stack;
+}
+
+async Task AddNewBeanInline()
+{
+var page = Microsoft.Maui.Controls.Shell.Current?.CurrentPage;
+if (page == null) return;
+
+var beanName = await page.DisplayPromptAsync(
+	"New Bean",
+	"Enter the bean name to create a new bean and bag:",
+	"Create",
+	"Cancel",
+	"e.g. Ethiopia Sidamo",
+	maxLength: 100,
+	keyboard: Keyboard.Default);
+
+if (string.IsNullOrWhiteSpace(beanName)) return;
+
+var store = InMemoryDataStore.Instance;
+if (store == null) return;
+
+var bean = store.CreateBean(new Bean { Name = beanName.Trim() });
+var bag = store.CreateBag(new Bag { BeanId = bean.Id, RoastDate = DateTime.Now });
+
+// Refresh local bags list and update picker
+_bags = store.GetAllBags().Where(b => !b.IsComplete).ToList();
+var newIndex = _bags.FindIndex(b => b.Id == bag.Id);
+
+if (_bagPicker != null)
+{
+	_bagPicker.Items.Clear();
+	foreach (var b in _bags)
+		_bagPicker.Items.Add(b.BeanName ?? $"Bag #{b.Id}");
+	if (newIndex >= 0)
+	{
+		_bagPicker.SelectedIndex = newIndex;
+		_selectedBagIndex = newIndex;
+	}
+}
+}
+
 Microsoft.Maui.Controls.View BuildAdditionalDetails()
 {
 var wrapper = new VerticalStackLayout { Spacing = Theme.SpacingS };
@@ -436,7 +729,7 @@ _additionalStack = new VerticalStackLayout { Spacing = Theme.SpacingS, IsVisible
 var bagNames = _bags.Select(b => b.BeanName ?? $"Bag #{b.Id}").ToArray();
 var grinderNames = new[] { "None" }.Concat(_grinders.Select(g => g.Name)).ToArray();
 
-_additionalStack.Add(FormHelpers.MakeFormPicker("Coffee Bag", _selectedBagIndex, bagNames, v => _selectedBagIndex = v));
+_additionalStack.Add(BuildBagPickerWithAdd(bagNames));
 _additionalStack.Add(FormHelpers.MakeFormPicker("Drink Type", _drinkTypeIndex, DrinkTypes, v => _drinkTypeIndex = v));
 _additionalStack.Add(FormHelpers.MakeFormPicker("Grinder", _grinderIndex, grinderNames, v => _grinderIndex = v));
 _additionalStack.Add(FormHelpers.MakeFormEntry("Grind Setting", _grindSetting, "e.g. 15", v => _grindSetting = v));
@@ -457,21 +750,102 @@ wrapper.Add(_additionalStack);
 return wrapper;
 }
 
+void LoadExistingShot(IDataStore? store)
+{
+	if (store == null) return;
+	var shot = store.GetShot(_editingShotId);
+	if (shot == null) return;
+
+	_doseIn = (double)shot.DoseIn;
+	_doseOut = (double)(shot.ActualOutput ?? 0m);
+	_actualTime = (double)(shot.ActualTime ?? 0m);
+	_rating = shot.Rating ?? -1;
+	_tastingNotes = shot.TastingNotes ?? "";
+	_grindSetting = shot.GrindSetting ?? "15";
+	_expectedTime = shot.ExpectedTime.ToString("G");
+	_expectedOutput = shot.ExpectedOutput.ToString("G");
+
+	var dtIdx = Array.IndexOf(DrinkTypes, shot.DrinkType);
+	_drinkTypeIndex = dtIdx >= 0 ? dtIdx : 0;
+
+	if (shot.MachineId.HasValue)
+	{
+		var mi = _machines.FindIndex(m => m.Id == shot.MachineId.Value);
+		_machineIndex = mi >= 0 ? mi + 1 : 0;
+	}
+	if (shot.GrinderId.HasValue)
+	{
+		var gi = _grinders.FindIndex(g => g.Id == shot.GrinderId.Value);
+		_grinderIndex = gi >= 0 ? gi + 1 : 0;
+	}
+	if (shot.MadeById.HasValue)
+	{
+		var bi = _profiles.FindIndex(p => p.Id == shot.MadeById.Value);
+		_madeByIndex = bi >= 0 ? bi + 1 : 0;
+	}
+	if (shot.MadeForId.HasValue)
+	{
+		var fi = _profiles.FindIndex(p => p.Id == shot.MadeForId.Value);
+		_madeForIndex = fi >= 0 ? fi + 1 : 0;
+	}
+
+	if (shot.BagId > 0)
+	{
+		var allBags = store.GetAllBags();
+		var activeBagIdx = _bags.FindIndex(b => b.Id == shot.BagId);
+		if (activeBagIdx < 0)
+		{
+			var bag = allBags.FirstOrDefault(b => b.Id == shot.BagId);
+			if (bag != null)
+			{
+				_bags.Add(bag);
+				_selectedBagIndex = _bags.Count - 1;
+			}
+		}
+		else
+		{
+			_selectedBagIndex = activeBagIdx;
+		}
+	}
+}
+
 void SaveShot()
 {
+if (_savingIndicator != null)
+{
+	_savingIndicator.IsRunning = true;
+	_savingIndicator.IsVisible = true;
+}
+if (_saveButton != null)
+	_saveButton.IsEnabled = false;
+
 var store = InMemoryDataStore.Instance;
-if (store == null) return;
+if (store == null)
+{
+	SetSavingState(false);
+	return;
+}
 
 var bagIdx = _selectedBagIndex;
 if (bagIdx < 0 && _bags.Count > 0) bagIdx = 0;
-if (bagIdx < 0 || bagIdx >= _bags.Count) return;
+if (bagIdx < 0 || bagIdx >= _bags.Count)
+{
+	Microsoft.Maui.Controls.Application.Current?.Dispatcher.Dispatch(async () =>
+	{
+		await _feedbackService.ShowWarning("Please select a coffee bag before saving your shot. Add a bag in Settings if none are available.");
+	});
+	SetSavingState(false);
+	return;
+}
 
 var machineIdx = _machineIndex - 1;
 var grinderIdx = _grinderIndex - 1;
 var madeByIdx = _madeByIndex - 1;
 var madeForIdx = _madeForIndex - 1;
 
-store.CreateShot(new ShotRecord
+var drinkType = _drinkTypeIndex >= 0 && _drinkTypeIndex < DrinkTypes.Length ? DrinkTypes[_drinkTypeIndex] : "Espresso";
+
+var record = new ShotRecord
 {
 BagId = _bags[bagIdx].Id,
 DoseIn = (decimal)_doseIn,
@@ -480,20 +854,65 @@ ExpectedTime = decimal.TryParse(_expectedTime, out var et) ? et : 28m,
 ExpectedOutput = decimal.TryParse(_expectedOutput, out var eo) ? eo : 36m,
 ActualTime = (decimal)_actualTime,
 ActualOutput = (decimal)_doseOut,
-Rating = _rating,
+Rating = _rating >= 0 ? _rating : null,
 TastingNotes = string.IsNullOrWhiteSpace(_tastingNotes) ? null : _tastingNotes,
-DrinkType = _drinkTypeIndex >= 0 && _drinkTypeIndex < DrinkTypes.Length ? DrinkTypes[_drinkTypeIndex] : "Espresso",
+DrinkType = drinkType,
 MachineId = machineIdx >= 0 && machineIdx < _machines.Count ? _machines[machineIdx].Id : null,
 GrinderId = grinderIdx >= 0 && grinderIdx < _grinders.Count ? _grinders[grinderIdx].Id : null,
 MadeById = madeByIdx >= 0 && madeByIdx < _profiles.Count ? _profiles[madeByIdx].Id : null,
 MadeForId = madeForIdx >= 0 && madeForIdx < _profiles.Count ? _profiles[madeForIdx].Id : null,
-});
+};
 
-// Show success and allow logging another
-if (Navigation != null)
+if (IsEditMode)
+{
+	record.Id = _editingShotId;
+	store.UpdateShot(record);
+}
+else
+{
+	store.CreateShot(record);
+}
+
 Microsoft.Maui.Controls.Application.Current?.Dispatcher.Dispatch(async () =>
 {
-await Microsoft.Maui.Controls.Shell.Current.DisplayAlert("Shot Logged!", "Your espresso shot has been recorded.", "OK");
+	if (IsEditMode)
+	{
+		await _feedbackService.ShowSuccess($"Your {drinkType} shot ({_doseIn:F1}g dose) has been updated.");
+		await Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+	}
+	else
+	{
+		await _feedbackService.ShowSuccess($"Your {drinkType} shot ({_doseIn:F1}g dose) has been recorded.");
+	}
+	SetSavingState(false);
 });
+}
+
+void SetSavingState(bool isSaving)
+{
+	if (_savingIndicator != null)
+	{
+		_savingIndicator.IsRunning = isSaving;
+		_savingIndicator.IsVisible = isSaving;
+	}
+	if (_saveButton != null)
+		_saveButton.IsEnabled = !isSaving;
+}
+
+async Task DeleteShot()
+{
+	var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+	if (page == null) return;
+
+	var confirm = await page.DisplayAlertAsync(
+		"Delete Shot",
+		"Are you sure you want to delete this shot? This cannot be undone.",
+		"Delete", "Cancel");
+
+	if (confirm)
+	{
+		InMemoryDataStore.Instance?.DeleteShot(_editingShotId);
+		await Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+	}
 }
 }

@@ -2,9 +2,10 @@ namespace CometBaristaNotes.Services;
 
 using CometBaristaNotes.Models;
 
-public class InMemoryDataStore : IShotService, IBeanService, IBagService, IEquipmentService, IUserProfileService, IRatingService
+public class InMemoryDataStore : IDataStore
 {
-    public static InMemoryDataStore Instance { get; private set; } = null!;
+    public static IDataStore Instance { get; set; } = null!;
+    public IDataChangeNotifier? DataChangeNotifier { get; set; }
 
     private int _nextShotId = 1;
     private int _nextBeanId = 1;
@@ -80,15 +81,21 @@ public class InMemoryDataStore : IShotService, IBeanService, IBagService, IEquip
         shot.Id = _nextShotId++;
         PopulateShotNames(shot);
         _shots.Add(shot);
+        DataChangeNotifier?.NotifyChange("Shot", shot.Id, DataChangeType.Created);
         return shot;
     }
     public ShotRecord UpdateShot(ShotRecord shot)
     {
         var idx = _shots.FindIndex(s => s.Id == shot.Id);
         if (idx >= 0) { PopulateShotNames(shot); _shots[idx] = shot; }
+        DataChangeNotifier?.NotifyChange("Shot", shot.Id, DataChangeType.Updated);
         return shot;
     }
-    public void DeleteShot(int id) => _shots.RemoveAll(s => s.Id == id);
+    public void DeleteShot(int id)
+    {
+        _shots.RemoveAll(s => s.Id == id);
+        DataChangeNotifier?.NotifyChange("Shot", id, DataChangeType.Deleted);
+    }
     public List<ShotRecord> GetShotsByBean(int beanId)
     {
         var bagIds = _bags.Where(b => b.BeanId == beanId).Select(b => b.Id).ToHashSet();
@@ -98,7 +105,13 @@ public class InMemoryDataStore : IShotService, IBeanService, IBagService, IEquip
     // BEAN SERVICE
     public List<Bean> GetAllBeans() => _beans.Where(b => b.IsActive).ToList();
     public Bean? GetBean(int id) => _beans.FirstOrDefault(b => b.Id == id);
-    public Bean CreateBean(Bean bean) { bean.Id = _nextBeanId++; _beans.Add(bean); return bean; }
+    public Bean CreateBean(Bean bean)
+    {
+        bean.Id = _nextBeanId++;
+        _beans.Add(bean);
+        DataChangeNotifier?.NotifyChange("Bean", bean.Id, DataChangeType.Created);
+        return bean;
+    }
     public Bean UpdateBean(Bean bean)
     {
         var idx = _beans.FindIndex(b => b.Id == bean.Id);
@@ -142,6 +155,8 @@ public class InMemoryDataStore : IShotService, IBeanService, IBagService, IEquip
         return bag;
     }
     public void MarkComplete(int id) { var b = GetBag(id); if (b != null) b.IsComplete = true; }
+    public void ArchiveBag(int id) { var b = GetBag(id); if (b != null) b.IsActive = false; }
+    public void ReactivateBag(int id) { var b = GetBag(id); if (b != null) b.IsComplete = false; }
 
     // EQUIPMENT SERVICE
     public List<Equipment> GetAllEquipment() => _equipment.Where(e => e.IsActive).ToList();

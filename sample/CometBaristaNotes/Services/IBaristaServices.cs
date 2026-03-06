@@ -2,6 +2,11 @@ namespace CometBaristaNotes.Services;
 
 using CometBaristaNotes.Models;
 
+public interface IDataStore : IShotService, IBeanService, IBagService, IEquipmentService, IUserProfileService, IRatingService
+{
+	IDataChangeNotifier? DataChangeNotifier { get; set; }
+}
+
 public interface IShotService
 {
     List<ShotRecord> GetAllShots();
@@ -29,6 +34,8 @@ public interface IBagService
     Bag CreateBag(Bag bag);
     Bag UpdateBag(Bag bag);
     void MarkComplete(int id);
+    void ArchiveBag(int id);
+    void ReactivateBag(int id);
 }
 
 public interface IEquipmentService
