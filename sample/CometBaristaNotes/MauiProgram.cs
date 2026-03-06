@@ -16,7 +16,7 @@ public static class MauiProgram
 		builder.ConfigureSyncfusionCore();
 		builder.UseUXDiversPopups();
 
-		// Add UXDivers popup theme resources when the app is created
+		// Add UXDivers popup theme resources
 		builder.ConfigureLifecycleEvents(events =>
 		{
 #if IOS || MACCATALYST
@@ -28,8 +28,19 @@ public static class MauiProgram
 					mauiApp.Resources.MergedDictionaries.Add(new UXDivers.Popups.Maui.Controls.DarkTheme());
 					mauiApp.Resources.MergedDictionaries.Add(new UXDivers.Popups.Maui.Controls.PopupStyles());
 				}
+
 				return true;
 			}));
+#endif
+		});
+
+		// Configure iOS navigation bar: large titles + matching background color
+		builder.ConfigureMauiHandlers(handlers =>
+		{
+#if IOS || MACCATALYST
+			// Use compatibility renderer for Shell to enable PrefersLargeTitles
+			handlers.AddHandler(typeof(Microsoft.Maui.Controls.Shell),
+				typeof(CometBaristaNotes.Platforms.iOS.CustomShellRenderer));
 #endif
 		});
 

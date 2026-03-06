@@ -1,5 +1,6 @@
 using CometBaristaNotes.Pages;
 using CometBaristaNotes.Components;
+using CometBaristaNotes.Services;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.PlatformConfiguration;
 using Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;
@@ -52,8 +53,8 @@ public class BaristaShell : MauiShell
 {
 public BaristaShell()
 {
-// Nav bar matches page background for seamless look (no visible bar boundary)
-BackgroundColor = Theme.Background;
+// Nav bar background is transparent for seamless edge-to-edge look
+BackgroundColor = Colors.Transparent;
 MauiShell.SetForegroundColor(this, Theme.TextPrimary);
 MauiShell.SetNavBarHasShadow(this, false);
 MauiShell.SetTitleColor(this, Theme.TextPrimary);
@@ -93,6 +94,8 @@ Items.Add(tabBar);
 Routing.RegisterRoute("bean-detail", typeof(BeanDetailShellPage));
 Routing.RegisterRoute("bag-detail", typeof(BagDetailShellPage));
 Routing.RegisterRoute("equipment-detail", typeof(EquipmentDetailShellPage));
+Routing.RegisterRoute("shot-detail", typeof(ShotDetailShellPage));
+Routing.RegisterRoute("shot-edit", typeof(ShotLoggingShellPage));
 Routing.RegisterRoute("beans", typeof(BeanManagementShellPage));
 Routing.RegisterRoute("equipment", typeof(EquipmentManagementShellPage));
 Routing.RegisterRoute("profiles", typeof(UserProfileManagementShellPage));
@@ -178,6 +181,43 @@ Title = id > 0 ? "Edit Bean" : "New Bean";
 _cometView?.Dispose();
 _cometView = new BeanDetailPage(id);
 _embedded = false;
+
+ToolbarItems.Clear();
+if (id > 0)
+{
+ToolbarItems.Add(new Microsoft.Maui.Controls.ToolbarItem
+{
+Text = "Add Bag",
+Order = Microsoft.Maui.Controls.ToolbarItemOrder.Secondary,
+Command = new Command(async () =>
+{
+await MauiShell.Current.GoToAsync($"bag-detail?id=0&beanId={id}");
+})
+});
+ToolbarItems.Add(new Microsoft.Maui.Controls.ToolbarItem
+{
+Text = "Delete",
+Order = Microsoft.Maui.Controls.ToolbarItemOrder.Secondary,
+Command = new Command(async () =>
+{
+var p = Microsoft.Maui.Controls.Application.Current?.Windows.FirstOrDefault()?.Page;
+if (p == null) return;
+
+var confirmed = await p.DisplayAlertAsync(
+"Delete Bean",
+"Are you sure you want to delete this bean? This will also archive all associated bags.",
+"Delete", "Cancel");
+if (!confirmed) return;
+
+var store = Services.InMemoryDataStore.Instance;
+if (store == null) return;
+
+store.ArchiveBean(id);
+await MauiShell.Current.GoToAsync("..");
+})
+});
+}
+
 TryEmbed();
 }
 
@@ -211,6 +251,34 @@ Title = id > 0 ? "Bag Details" : "New Bag";
 _cometView?.Dispose();
 _cometView = new BagDetailPage(id);
 _embedded = false;
+
+ToolbarItems.Clear();
+if (id > 0)
+{
+ToolbarItems.Add(new Microsoft.Maui.Controls.ToolbarItem
+{
+Text = "Delete",
+Order = Microsoft.Maui.Controls.ToolbarItemOrder.Secondary,
+Command = new Command(async () =>
+{
+var p = Microsoft.Maui.Controls.Application.Current?.Windows.FirstOrDefault()?.Page;
+if (p == null) return;
+
+var confirmed = await p.DisplayAlertAsync(
+"Delete Bag",
+"Are you sure you want to delete this bag?",
+"Delete", "Cancel");
+if (!confirmed) return;
+
+var store = Services.InMemoryDataStore.Instance;
+if (store == null) return;
+
+store.ArchiveBag(id);
+await MauiShell.Current.GoToAsync("..");
+})
+});
+}
+
 TryEmbed();
 }
 
@@ -244,6 +312,34 @@ Title = id > 0 ? "Edit Equipment" : "New Equipment";
 _cometView?.Dispose();
 _cometView = new EquipmentDetailPage(id);
 _embedded = false;
+
+ToolbarItems.Clear();
+if (id > 0)
+{
+ToolbarItems.Add(new Microsoft.Maui.Controls.ToolbarItem
+{
+Text = "Archive",
+Order = Microsoft.Maui.Controls.ToolbarItemOrder.Secondary,
+Command = new Command(async () =>
+{
+var p = Microsoft.Maui.Controls.Application.Current?.Windows.FirstOrDefault()?.Page;
+if (p == null) return;
+
+var confirm = await p.DisplayAlertAsync(
+"Archive Equipment?",
+"Are you sure you want to archive this equipment? This action cannot be undone.",
+"Archive", "Cancel");
+if (!confirm) return;
+
+var store = Services.InMemoryDataStore.Instance;
+if (store == null) return;
+
+store.ArchiveEquipment(id);
+await MauiShell.Current.GoToAsync("..");
+})
+});
+}
+
 TryEmbed();
 }
 
@@ -331,9 +427,129 @@ void LoadPage()
 {
 int.TryParse(_profileId, out var id);
 Title = id > 0 ? "Edit Profile" : "New Profile";
+
+// Add Delete toolbar item in edit mode
+ToolbarItems.Clear();
+if (id > 0)
+{
+var deleteItem = new Microsoft.Maui.Controls.ToolbarItem
+{
+Text = "Delete",
+IconImageSource = new Microsoft.Maui.Controls.FontImageSource
+{
+Glyph = Icons.Delete,
+FontFamily = Icons.FontFamily,
+Color = Theme.Error,
+Size = 24,
+},
+};
+deleteItem.Clicked += async (s, e) =>
+{
+var confirmed = await DisplayAlertAsync(
+"Delete Profile?",
+$"Are you sure you want to delete this profile? This action cannot be undone.",
+"Delete",
+"Cancel");
+if (!confirmed) return;
+
+var store = Services.InMemoryDataStore.Instance;
+store?.DeleteProfile(id);
+await MauiShell.Current.GoToAsync("..");
+};
+ToolbarItems.Add(deleteItem);
+}
+
 _cometView?.Dispose();
 _cometView = new ProfileFormPage(id);
 _embedded = false;
+TryEmbed();
+}
+
+void TryEmbed()
+{
+if (_embedded || _cometView == null || Handler?.MauiContext == null) return;
+BaristaShell.EmbedCometView(_container, _cometView);
+_cometView.ReloadHandler = new CometPageReloadHandler(_container, _cometView);
+_embedded = true;
+}
+
+protected override void OnHandlerChanged() { base.OnHandlerChanged(); TryEmbed(); }
+}
+
+[QueryProperty(nameof(ShotId), "id")]
+public class ShotDetailShellPage : MauiPage
+{
+string _shotId = "";
+Microsoft.Maui.Controls.ContentView _container = new();
+Comet.View? _cometView;
+bool _embedded;
+
+public ShotDetailShellPage() { Content = _container; BackgroundColor = Theme.Background; }
+
+public string ShotId { get => _shotId; set { _shotId = value; LoadPage(); } }
+
+void LoadPage()
+{
+if (!int.TryParse(_shotId, out var id)) return;
+Title = "Shot Detail";
+_cometView?.Dispose();
+_cometView = new ShotDetailPage(id);
+_embedded = false;
+TryEmbed();
+}
+
+void TryEmbed()
+{
+if (_embedded || _cometView == null || Handler?.MauiContext == null) return;
+BaristaShell.EmbedCometView(_container, _cometView);
+_cometView.ReloadHandler = new CometPageReloadHandler(_container, _cometView);
+_embedded = true;
+}
+
+protected override void OnHandlerChanged() { base.OnHandlerChanged(); TryEmbed(); }
+}
+
+[QueryProperty(nameof(ShotId), "id")]
+public class ShotLoggingShellPage : MauiPage
+{
+string _shotId = "";
+Microsoft.Maui.Controls.ContentView _container = new();
+Comet.View? _cometView;
+bool _embedded;
+
+public ShotLoggingShellPage() { Content = _container; BackgroundColor = Theme.Background; }
+
+public string ShotId { get => _shotId; set { _shotId = value; LoadPage(); } }
+
+void LoadPage()
+{
+if (!int.TryParse(_shotId, out var id) || id <= 0) return;
+Title = "Edit Shot";
+_cometView?.Dispose();
+_cometView = new ShotLoggingPage(id);
+_embedded = false;
+
+ToolbarItems.Clear();
+ToolbarItems.Add(new Microsoft.Maui.Controls.ToolbarItem
+{
+Text = "Delete",
+Order = Microsoft.Maui.Controls.ToolbarItemOrder.Secondary,
+Command = new Command(async () =>
+{
+var p = Microsoft.Maui.Controls.Application.Current?.Windows.FirstOrDefault()?.Page;
+if (p == null) return;
+
+var confirm = await p.DisplayAlertAsync(
+"Delete Shot",
+"Are you sure you want to delete this shot? This cannot be undone.",
+"Delete", "Cancel");
+if (!confirm) return;
+
+Services.InMemoryDataStore.Instance?.DeleteShot(id);
+await MauiShell.Current.GoToAsync("..");
+})
+});
+
 TryEmbed();
 }
 
