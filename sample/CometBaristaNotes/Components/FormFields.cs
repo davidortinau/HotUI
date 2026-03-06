@@ -305,6 +305,52 @@ public static class FormHelpers
 		return stack;
 	}
 
+	public static Microsoft.Maui.Controls.View MakeFormEntryWithLimit(string label, string value, string placeholder, int maxLength, Action<string> onChanged)
+	{
+		var stack = new VerticalStackLayout { Spacing = 4 };
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+
+		var entry = new MauiEntry
+		{
+			Text = value,
+			Placeholder = placeholder,
+			FontSize = 16,
+			TextColor = Theme.TextPrimary,
+			BackgroundColor = Theme.SurfaceVariant,
+			HeightRequest = Theme.FormFieldHeight,
+			MaxLength = maxLength,
+		};
+
+		var counterLabel = new MauiLabel
+		{
+			Text = $"{(value?.Length ?? 0)}/{maxLength}",
+			FontFamily = Theme.FontRegular,
+			FontSize = 12,
+			TextColor = Theme.TextMuted,
+			HorizontalTextAlignment = TextAlignment.End,
+		};
+
+		entry.TextChanged += (s, e) =>
+		{
+			var text = e.NewTextValue ?? "";
+			counterLabel.Text = $"{text.Length}/{maxLength}";
+			counterLabel.TextColor = text.Length >= maxLength ? Theme.Warning : Theme.TextMuted;
+			onChanged(text);
+		};
+
+		var border = new MauiBorder
+		{
+			Content = entry,
+			StrokeThickness = 0,
+			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusPill },
+			BackgroundColor = Theme.SurfaceVariant,
+		};
+
+		stack.Add(border);
+		stack.Add(counterLabel);
+		return stack;
+	}
+
 	public static Microsoft.Maui.Controls.View MakeToggleRow(string label, bool isOn, Action<bool> onChanged)
 	{
 		var grid = new MauiGrid

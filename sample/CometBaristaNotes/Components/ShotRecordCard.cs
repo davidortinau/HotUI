@@ -53,6 +53,8 @@ public static class ShotRecordCardFactory
 		footerStack.Add(new MauiLabel { Text = FormatTimestamp(shot), FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
 		if (shot.MadeByName != null)
 			footerStack.Add(new MauiLabel { Text = $"• By: {shot.MadeByName}", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
+		if (shot.MadeForName != null)
+			footerStack.Add(new MauiLabel { Text = $"• For: {shot.MadeForName}", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
 		contentStack.Add(footerStack);
 
 		var border = new MauiBorder

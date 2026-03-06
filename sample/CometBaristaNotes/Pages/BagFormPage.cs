@@ -73,7 +73,7 @@ public class BagFormPage : Comet.View
 		stack.Add(FormHelpers.MakeSectionHeader("ADD BAG"));
 		stack.Add(FormHelpers.MakeReadOnlyField("Bean", _beanName.Value));
 		stack.Add(FormHelpers.MakeFormEntry("Roast Date", _roastDate.Value, "yyyy-MM-dd", v => _roastDate.Value = v));
-		stack.Add(FormHelpers.MakeFormEntry("Notes (optional)", _notes.Value, "e.g., From Trader Joe's, Gift from friend", v => _notes.Value = v));
+		stack.Add(FormHelpers.MakeFormEntryWithLimit("Notes (optional)", _notes.Value, "e.g., From Trader Joe's, Gift from friend", 500, v => _notes.Value = v));
 
 		if (!string.IsNullOrEmpty(_error.Value))
 			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontFamily = Theme.FontRegular, FontSize = 14 });

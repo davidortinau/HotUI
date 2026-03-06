@@ -72,6 +72,34 @@ public class BagDetailPage : Comet.View
 		Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
 	}
 
+	async void DeleteBag()
+	{
+		var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+		if (page == null) return;
+
+		var message = _shotCount.Value > 0
+			? $"This bag has {_shotCount.Value} shot(s) logged. Deleting it will hide it from all lists. Continue?"
+			: "Are you sure you want to delete this bag?";
+
+		var confirmed = await page.DisplayAlertAsync("Delete Bag", message, "Delete", "Cancel");
+		if (!confirmed) return;
+
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
+
+		store.ArchiveBag(_bagId);
+		await Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+	}
+
+	void ReactivateBag()
+	{
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
+
+		store.ReactivateBag(_bagId);
+		_isComplete.Value = false;
+	}
+
 	[Body]
 	Comet.View body()
 	{
@@ -94,7 +122,7 @@ public class BagDetailPage : Comet.View
 		stack.Add(FormHelpers.MakeSectionHeader("BAG DETAILS"));
 		stack.Add(FormHelpers.MakeReadOnlyField("Bean", _beanName.Value));
 		stack.Add(FormHelpers.MakeReadOnlyField("Roast Date", _roastDate.Value));
-		stack.Add(FormHelpers.MakeFormEntry("Notes", _notes.Value, "Bag notes", v => _notes.Value = v));
+		stack.Add(FormHelpers.MakeFormEntryWithLimit("Notes", _notes.Value, "Bag notes", 500, v => _notes.Value = v));
 
 		// Shot count card
 		var shotCountStack = new HorizontalStackLayout();
@@ -115,6 +143,11 @@ public class BagDetailPage : Comet.View
 			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontSize = 14 });
 
 		stack.Add(FormHelpers.MakePrimaryButton("Save Changes", Save));
+
+		if (_isComplete.Value)
+			stack.Add(FormHelpers.MakeSecondaryButton("Reactivate Bag", ReactivateBag));
+
+		stack.Add(FormHelpers.MakeDangerButton("Delete Bag", DeleteBag));
 
 		stack.Add(FormHelpers.MakeSectionHeader("RATINGS"));
 		stack.Add(RatingDisplayFactory.Create(_rating.Value));
