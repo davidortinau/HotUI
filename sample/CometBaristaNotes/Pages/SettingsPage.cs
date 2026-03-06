@@ -1,8 +1,10 @@
 using Comet;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using CometBaristaNotes.Models;
+using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
 
 using MauiLabel = Microsoft.Maui.Controls.Label;
@@ -16,7 +18,15 @@ namespace CometBaristaNotes.Pages;
 
 public class SettingsPage : Comet.View
 {
-	[State] readonly State<ThemeMode> _themeMode = new(ThemeMode.Auto);
+	readonly IThemeService _themeService;
+	[State] readonly State<AppThemeMode> _themeMode;
+
+	public SettingsPage()
+	{
+		_themeService = IPlatformApplication.Current!.Services.GetRequiredService<IThemeService>();
+		_themeService.LoadSavedTheme();
+		_themeMode = new(_themeService.CurrentMode);
+	}
 
 	[Body]
 	Comet.View body()
@@ -52,13 +62,13 @@ public class SettingsPage : Comet.View
 	Microsoft.Maui.Controls.View BuildAppearanceButtons()
 	{
 		var hStack = new HorizontalStackLayout { Spacing = Theme.SpacingS };
-		hStack.Add(BuildThemeButton(Icons.LightMode, "Light", ThemeMode.Light));
-		hStack.Add(BuildThemeButton(Icons.DarkMode, "Dark", ThemeMode.Dark));
-		hStack.Add(BuildThemeButton(Icons.BrightnessAuto, "Auto", ThemeMode.Auto));
+		hStack.Add(BuildThemeButton(Icons.LightMode, "Light", AppThemeMode.Light));
+		hStack.Add(BuildThemeButton(Icons.DarkMode, "Dark", AppThemeMode.Dark));
+		hStack.Add(BuildThemeButton(Icons.BrightnessAuto, "Auto", AppThemeMode.System));
 		return hStack;
 	}
 
-	Microsoft.Maui.Controls.View BuildThemeButton(string icon, string label, ThemeMode mode)
+	Microsoft.Maui.Controls.View BuildThemeButton(string icon, string label, AppThemeMode mode)
 	{
 		var isSelected = _themeMode.Value == mode;
 
@@ -84,7 +94,11 @@ public class SettingsPage : Comet.View
 		};
 
 		var tap = new TapGestureRecognizer();
-		tap.Tapped += (s, e) => _themeMode.Value = mode;
+		tap.Tapped += (s, e) =>
+		{
+			_themeMode.Value = mode;
+			_themeService.SetTheme(mode);
+		};
 		border.GestureRecognizers.Add(tap);
 
 		return border;

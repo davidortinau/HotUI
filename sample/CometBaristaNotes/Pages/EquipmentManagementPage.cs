@@ -7,6 +7,7 @@ using CometBaristaNotes.Components;
 
 using MauiLabel = Microsoft.Maui.Controls.Label;
 using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
+using Application = Microsoft.Maui.Controls.Application;
 
 namespace CometBaristaNotes.Pages;
 
@@ -57,12 +58,14 @@ public class EquipmentManagementPage : Comet.View
 
 		foreach (var eq in items)
 		{
-			stack.Add(FormHelpers.MakeListCard(
+			var card = FormHelpers.MakeListCard(
 				eq.Name,
 				eq.Type.ToString(),
 				eq.Notes,
 				() => Microsoft.Maui.Controls.Shell.Current.GoToAsync($"equipment-detail?id={eq.Id}")
-			));
+			);
+
+			stack.Add(card);
 		}
 
 		var scrollView = new MauiScrollView

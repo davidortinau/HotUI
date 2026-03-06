@@ -480,7 +480,22 @@ return FormHelpers.MakeCard(content);
 Microsoft.Maui.Controls.View BuildUserSelectionRow()
 {
 var profileNames = new[] { "None" }.Concat(_profiles.Select(p => p.Name)).ToArray();
-var hstack = new HorizontalStackLayout { Spacing = Theme.SpacingM };
+
+var grid = new MauiGrid
+{
+	ColumnDefinitions = new ColumnDefinitionCollection
+	{
+		new ColumnDefinition(GridLength.Star),
+		new ColumnDefinition(GridLength.Auto),
+		new ColumnDefinition(GridLength.Star),
+	},
+	RowDefinitions = new RowDefinitionCollection
+	{
+		new RowDefinition(GridLength.Auto),
+	},
+	ColumnSpacing = 16,
+	HorizontalOptions = LayoutOptions.Center,
+};
 
 var madeByAvatarLabel = new MauiLabel();
 var madeByNameLabel = new MauiLabel();
@@ -488,10 +503,23 @@ var madeByCircleBg = new MauiBorder();
 
 var madeByStack = BuildAvatarControl("Made By", _madeByIndex, profileNames,
 ref madeByAvatarLabel, ref madeByNameLabel, ref madeByCircleBg,
-() => { _madeByIndex = (_madeByIndex + 1) % profileNames.Length; UpdateAvatar(_madeByIndex, profileNames, madeByAvatarLabel, madeByNameLabel, madeByCircleBg); });
-hstack.Add(madeByStack);
+() => ShowProfileSelectionPopup("Made By", idx =>
+{
+	_madeByIndex = idx;
+	UpdateAvatar(_madeByIndex, profileNames, madeByAvatarLabel, madeByNameLabel, madeByCircleBg);
+}));
+grid.Add(madeByStack, 0, 0);
 
-hstack.Add(new MauiLabel { Text = "→", FontFamily = Theme.FontRegular, FontSize = 20, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center, Margin = new Thickness(0, Theme.SpacingM) });
+var arrow = new MauiLabel
+{
+	Text = "→",
+	FontFamily = Theme.FontRegular,
+	FontSize = 24,
+	TextColor = Theme.TextMuted,
+	HorizontalTextAlignment = TextAlignment.Center,
+	VerticalTextAlignment = TextAlignment.Center,
+};
+grid.Add(arrow, 1, 0);
 
 var madeForAvatarLabel = new MauiLabel();
 var madeForNameLabel = new MauiLabel();
@@ -499,10 +527,94 @@ var madeForCircleBg = new MauiBorder();
 
 var madeForStack = BuildAvatarControl("Made For", _madeForIndex, profileNames,
 ref madeForAvatarLabel, ref madeForNameLabel, ref madeForCircleBg,
-() => { _madeForIndex = (_madeForIndex + 1) % profileNames.Length; UpdateAvatar(_madeForIndex, profileNames, madeForAvatarLabel, madeForNameLabel, madeForCircleBg); });
-hstack.Add(madeForStack);
+() => ShowProfileSelectionPopup("Made For", idx =>
+{
+	_madeForIndex = idx;
+	UpdateAvatar(_madeForIndex, profileNames, madeForAvatarLabel, madeForNameLabel, madeForCircleBg);
+}));
+grid.Add(madeForStack, 2, 0);
 
-return FormHelpers.MakeCard(hstack);
+return FormHelpers.MakeCard(grid);
+}
+
+async void ShowProfileSelectionPopup(string title, Action<int> onSelected)
+{
+var items = new List<string> { "None" };
+items.AddRange(_profiles.Select(p => p.Name));
+
+try
+{
+	var popup = new UXDivers.Popups.Maui.Controls.ListActionPopup
+	{
+		Title = title,
+		ShowActionButton = false,
+		ItemsSource = items.Select((name, idx) => new { Name = name, Index = idx }).ToList(),
+		ItemDataTemplate = new Microsoft.Maui.Controls.DataTemplate(() =>
+		{
+			var tapGesture = new TapGestureRecognizer();
+			tapGesture.Tapped += async (s, e) =>
+			{
+				var element = s as Microsoft.Maui.Controls.Element;
+				var bindingCtx = element?.BindingContext;
+				if (bindingCtx != null)
+				{
+					var indexProp = bindingCtx.GetType().GetProperty("Index");
+					if (indexProp != null)
+					{
+						var idx = (int)indexProp.GetValue(bindingCtx)!;
+						onSelected(idx);
+						try { await UXDivers.Popups.Services.IPopupService.Current.PopAsync(); } catch { }
+					}
+				}
+			};
+
+			var layout = new HorizontalStackLayout { Spacing = 12, Padding = new Thickness(0, 8) };
+			layout.GestureRecognizers.Add(tapGesture);
+
+			var circle = new MauiBorder
+			{
+				StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
+				HeightRequest = 40,
+				WidthRequest = 40,
+				BackgroundColor = Theme.Primary,
+				StrokeThickness = 0,
+			};
+			var initial = new MauiLabel
+			{
+				FontFamily = Theme.FontSemibold,
+				FontSize = 16,
+				TextColor = Colors.White,
+				HorizontalTextAlignment = TextAlignment.Center,
+				VerticalTextAlignment = TextAlignment.Center,
+			};
+			initial.SetBinding(MauiLabel.TextProperty, new Microsoft.Maui.Controls.Binding("Name",
+				converter: new InitialConverter()));
+			circle.Content = initial;
+			layout.Children.Add(circle);
+
+			var label = new MauiLabel
+			{
+				FontSize = 16,
+				VerticalOptions = LayoutOptions.Center,
+			};
+			label.SetBinding(MauiLabel.TextProperty, "Name");
+			layout.Children.Add(label);
+			return layout;
+		}),
+	};
+	await UXDivers.Popups.Services.IPopupService.Current.PushAsync(popup);
+}
+catch
+{
+	// Fallback to ActionSheet if UXDivers popup fails
+	var result = await Application.Current?.Windows.FirstOrDefault()?.Page?.DisplayActionSheet(
+		title, "Cancel", null, items.ToArray())!;
+	if (result != null && result != "Cancel")
+	{
+		var idx = items.IndexOf(result);
+		if (idx >= 0) onSelected(idx);
+	}
+}
 }
 
 Microsoft.Maui.Controls.View BuildAvatarControl(string title, int idx, string[] names,
@@ -914,5 +1026,18 @@ async Task DeleteShot()
 		InMemoryDataStore.Instance?.DeleteShot(_editingShotId);
 		await Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
 	}
+}
+
+public class InitialConverter : Microsoft.Maui.Controls.IValueConverter
+{
+	public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+	{
+		if (value is string s && !string.IsNullOrEmpty(s))
+			return s == "None" ? "?" : s[..1].ToUpper();
+		return "?";
+	}
+
+	public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+		=> throw new NotImplementedException();
 }
 }

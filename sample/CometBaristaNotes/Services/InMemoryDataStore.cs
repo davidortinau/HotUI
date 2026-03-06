@@ -58,7 +58,7 @@ public class InMemoryDataStore : IDataStore
         CreateShot(new ShotRecord { BagId = bag2.Id, MachineId = machine1.Id, GrinderId = grinder1.Id, MadeById = me.Id, MadeForId = partner.Id,
             DoseIn = 18m, GrindSetting = "14", ExpectedTime = 30, ExpectedOutput = 40,
             ActualTime = 32, ActualOutput = 42, Rating = 3, TastingNotes = "Slightly over-extracted, bitter finish",
-            DrinkType = "Lungo", Timestamp = DateTime.Now.AddHours(-5) });
+            DrinkType = "Americano", Timestamp = DateTime.Now.AddHours(-5) });
         CreateShot(new ShotRecord { BagId = bag1.Id, MachineId = machine2.Id, GrinderId = grinder1.Id, MadeById = me.Id,
             DoseIn = 20m, GrindSetting = "16", ExpectedTime = 25, ExpectedOutput = 40,
             ActualTime = 24, ActualOutput = 38, Rating = 5, TastingNotes = "Perfect extraction, sweet and complex",
@@ -70,7 +70,7 @@ public class InMemoryDataStore : IDataStore
         CreateShot(new ShotRecord { BagId = bag3.Id, MachineId = machine1.Id, GrinderId = grinder1.Id, MadeById = partner.Id,
             DoseIn = 18m, GrindSetting = "15", ExpectedTime = 28, ExpectedOutput = 36,
             ActualTime = 29, ActualOutput = 37, Rating = 4,
-            DrinkType = "Ristretto", Timestamp = DateTime.Now.AddDays(-5) });
+            DrinkType = "Flat White", Timestamp = DateTime.Now.AddDays(-5) });
     }
 
     // SHOT SERVICE

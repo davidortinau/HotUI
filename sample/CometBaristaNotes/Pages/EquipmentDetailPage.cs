@@ -83,11 +83,20 @@ public class EquipmentDetailPage : Comet.View
 		Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
 	}
 
-	void Archive()
+	async void Archive()
 	{
 		if (_equipmentId <= 0) return;
 		var store = InMemoryDataStore.Instance;
 		if (store == null) return;
+
+		var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+		if (page == null) return;
+
+		var confirm = await page.DisplayAlertAsync(
+			"Archive Equipment?",
+			$"Are you sure you want to archive '{_name.Value}'? This action cannot be undone.",
+			"Archive", "Cancel");
+		if (!confirm) return;
 
 		store.ArchiveEquipment(_equipmentId);
 		Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");

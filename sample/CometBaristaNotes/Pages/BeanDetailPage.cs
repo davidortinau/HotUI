@@ -18,6 +18,7 @@ namespace CometBaristaNotes.Pages;
 public class BeanDetailPage : Comet.View
 {
 	readonly int _beanId;
+	const int ShotsPageSize = 10;
 
 	[State] readonly State<string> _name = new("");
 	[State] readonly State<string> _roaster = new("");
@@ -27,6 +28,8 @@ public class BeanDetailPage : Comet.View
 	[State] readonly State<string> _error = new("");
 	[State] readonly State<List<Bag>> _bags = new(new());
 	[State] readonly State<RatingAggregate> _rating = new(new());
+	[State] readonly State<List<ShotRecord>> _allShots = new(new());
+	[State] readonly State<int> _visibleShotCount = new(ShotsPageSize);
 
 	public BeanDetailPage(int beanId = 0) { _beanId = beanId; }
 
@@ -46,6 +49,7 @@ public class BeanDetailPage : Comet.View
 		_notes.Value = bean.Notes ?? "";
 		_bags.Value = store.GetBagsForBean(_beanId);
 		_rating.Value = store.GetBeanRating(_beanId);
+		_allShots.Value = store.GetShotsByBean(_beanId);
 
 		_isLoaded.Value = true;
 	}
@@ -88,6 +92,25 @@ public class BeanDetailPage : Comet.View
 		Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
 	}
 
+	async void DeleteBean()
+	{
+		var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+		if (page == null) return;
+
+		var confirmed = await page.DisplayAlertAsync(
+			"Delete Bean",
+			$"Are you sure you want to delete \"{_name.Value}\"? This will also archive all associated bags.",
+			"Delete", "Cancel");
+
+		if (!confirmed) return;
+
+		var store = InMemoryDataStore.Instance;
+		if (store == null) return;
+
+		store.ArchiveBean(_beanId);
+		await Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+	}
+
 	[Body]
 	Comet.View body()
 	{
@@ -111,8 +134,10 @@ public class BeanDetailPage : Comet.View
 
 		if (isEdit)
 		{
+			stack.Add(FormHelpers.MakeDangerButton("Delete Bean", DeleteBean));
 			stack.Add(FormHelpers.MakeSectionHeader("RATINGS"));
 			stack.Add(RatingDisplayFactory.Create(_rating.Value));
+			stack.Add(BuildRatingDistribution());
 
 			stack.Add(FormHelpers.MakeSectionHeader("BAGS"));
 			if (_bags.Value.Count == 0)
@@ -127,6 +152,33 @@ public class BeanDetailPage : Comet.View
 			{
 				stack.Add(BuildBagCard(bag));
 			}
+
+			// Shot History
+			stack.Add(FormHelpers.MakeSectionHeader("SHOT HISTORY"));
+			var shots = _allShots.Value;
+			if (shots.Count == 0)
+			{
+				stack.Add(new MauiLabel { Text = "No shots recorded yet", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+			}
+			else
+			{
+				var visible = shots.Take(_visibleShotCount.Value).ToList();
+				foreach (var shot in visible)
+				{
+					var shotId = shot.Id;
+					stack.Add(ShotRecordCardFactory.Create(shot, () =>
+					{
+						Microsoft.Maui.Controls.Shell.Current.GoToAsync($"shot-edit?id={shotId}");
+					}));
+				}
+
+				if (_visibleShotCount.Value < shots.Count)
+				{
+					stack.Add(FormHelpers.MakeSecondaryButton(
+						$"Load More ({shots.Count - _visibleShotCount.Value} remaining)",
+						() => { _visibleShotCount.Value += ShotsPageSize; }));
+				}
+			}
 		}
 
 		var scrollView = new MauiScrollView
@@ -136,6 +188,113 @@ public class BeanDetailPage : Comet.View
 		};
 
 		return new MauiViewHost(scrollView);
+	}
+
+	Microsoft.Maui.Controls.View BuildRatingDistribution()
+	{
+		var shots = _allShots.Value;
+		// Sentiment icons indexed 0-4 matching rating values 1-5
+		var sentiments = new[] { Icons.SentimentVeryDissatisfied, Icons.SentimentDissatisfied, Icons.SentimentNeutral, Icons.SentimentSatisfied, Icons.SentimentVerySatisfied };
+		var sentimentColors = new[] { Theme.Error, Theme.Warning, Theme.TextMuted, Theme.Success, Theme.StarFilled };
+
+		// Count shots per rating (1-5); unrated shots are excluded
+		var counts = new int[5];
+		foreach (var shot in shots)
+		{
+			if (shot.Rating.HasValue)
+			{
+				var idx = Math.Clamp(shot.Rating.Value - 1, 0, 4);
+				counts[idx]++;
+			}
+		}
+		var maxCount = counts.Max();
+
+		var container = new VerticalStackLayout { Spacing = Theme.SpacingXS };
+
+		// Iterate from highest rating (5/VerySatisfied) down to lowest (1/VeryDissatisfied)
+		for (var i = 4; i >= 0; i--)
+		{
+			var row = new MauiGrid
+			{
+				ColumnDefinitions =
+				{
+					new ColumnDefinition(new GridLength(28, GridUnitType.Absolute)),
+					new ColumnDefinition(GridLength.Star),
+					new ColumnDefinition(new GridLength(30, GridUnitType.Absolute)),
+				},
+				ColumnSpacing = Theme.SpacingS,
+				HeightRequest = 24,
+			};
+
+			// Sentiment icon
+			row.Add(new MauiLabel
+			{
+				Text = sentiments[i],
+				FontFamily = Icons.FontFamily,
+				FontSize = 18,
+				TextColor = sentimentColors[i],
+				HorizontalTextAlignment = TextAlignment.Center,
+				VerticalTextAlignment = TextAlignment.Center,
+			}, 0, 0);
+
+			// Progress bar background
+			var barFraction = maxCount > 0 ? (double)counts[i] / maxCount : 0;
+			var barBackground = new MauiBorder
+			{
+				BackgroundColor = Theme.SurfaceVariant,
+				StrokeThickness = 0,
+				StrokeShape = new RoundRectangle { CornerRadius = 4 },
+				HeightRequest = 12,
+			};
+			// Use a Grid to overlay fill on background
+			var barGrid = new MauiGrid { };
+			barGrid.Add(barBackground, 0, 0);
+			var fillBorder = new MauiBorder
+			{
+				BackgroundColor = sentimentColors[i],
+				StrokeThickness = 0,
+				StrokeShape = new RoundRectangle { CornerRadius = 4 },
+				HeightRequest = 12,
+				HorizontalOptions = LayoutOptions.Fill,
+			};
+			barGrid.Add(fillBorder, 0, 0);
+
+			// Animate fill width using SizeChanged on the background
+			var fraction = barFraction;
+			barBackground.SizeChanged += (s, e) =>
+			{
+				var totalWidth = barBackground.Width;
+				if (totalWidth > 0)
+					fillBorder.WidthRequest = totalWidth * fraction;
+			};
+			fillBorder.HorizontalOptions = LayoutOptions.Start;
+
+			row.Add(barGrid, 1, 0);
+
+			// Count label
+			row.Add(new MauiLabel
+			{
+				Text = counts[i].ToString(),
+				FontFamily = Theme.FontRegular,
+				FontSize = 12,
+				TextColor = Theme.TextSecondary,
+				HorizontalTextAlignment = TextAlignment.End,
+				VerticalTextAlignment = TextAlignment.Center,
+			}, 2, 0);
+
+			container.Add(row);
+		}
+
+		return new MauiBorder
+		{
+			Content = container,
+			BackgroundColor = Theme.CardBackground,
+			Stroke = new SolidColorBrush(Theme.CardStroke),
+			StrokeThickness = 1,
+			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
+			Padding = new Thickness(Theme.SpacingM),
+			Margin = new Thickness(0, Theme.SpacingXS, 0, 0),
+		};
 	}
 
 	Microsoft.Maui.Controls.View BuildBagCard(Bag bag)

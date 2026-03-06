@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Comet;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using CometBaristaNotes.Models;
@@ -26,7 +27,29 @@ public class ActivityFeedPage : Comet.View
 	readonly ShotFilterCriteria _filters = new();
 
 	[State] readonly State<bool> _isLoading = new(true);
+	[State] readonly State<string> _errorMessage = new("");
 	[State] readonly State<int> _filterVersion = new(0);
+
+	public ActivityFeedPage()
+	{
+		var notifier = IPlatformApplication.Current?.Services.GetService<IDataChangeNotifier>();
+		if (notifier is not null)
+		{
+			notifier.DataChanged += OnDataChanged;
+		}
+	}
+
+	void OnDataChanged(string entityType, int entityId, DataChangeType changeType)
+	{
+		if (entityType == "Shot")
+		{
+			Microsoft.Maui.Controls.Application.Current?.Dispatcher.Dispatch(() =>
+			{
+				LoadNextPage(reset: true);
+				_filterVersion.Value++;
+			});
+		}
+	}
 
 	[Body]
 	Comet.View body()
@@ -40,7 +63,59 @@ public class ActivityFeedPage : Comet.View
 			_isLoading.Value = false;
 		}
 
-		if (_displayedShots.Count == 0 && !_isLoading.Value && !_filters.HasFilters)
+		// Loading state
+		if (_isLoading.Value)
+		{
+			var loadingStack = new VerticalStackLayout
+			{
+				BackgroundColor = Theme.Background,
+				VerticalOptions = LayoutOptions.Fill,
+				HorizontalOptions = LayoutOptions.Fill,
+			};
+			var indicator = new Microsoft.Maui.Controls.ActivityIndicator
+			{
+				IsRunning = true,
+				Color = Theme.Primary,
+				HorizontalOptions = LayoutOptions.Center,
+				VerticalOptions = LayoutOptions.Center,
+			};
+			loadingStack.Add(indicator);
+			return new MauiViewHost(loadingStack);
+		}
+
+		// Error state
+		if (!string.IsNullOrEmpty(_errorMessage.Value))
+		{
+			var errorStack = new VerticalStackLayout
+			{
+				BackgroundColor = Theme.Background,
+				VerticalOptions = LayoutOptions.Fill,
+				HorizontalOptions = LayoutOptions.Fill,
+			};
+			errorStack.Add(FormHelpers.MakeEmptyState(Icons.Error, "Error Loading History", _errorMessage.Value));
+			var retryBtn = new MauiButton
+			{
+				Text = "Retry",
+				FontFamily = Theme.FontSemibold,
+				BackgroundColor = Theme.Primary,
+				TextColor = Colors.White,
+				FontSize = 16,
+				HeightRequest = Theme.ButtonHeight,
+				CornerRadius = (int)Theme.RadiusPill,
+				HorizontalOptions = LayoutOptions.Center,
+				Margin = new Thickness(0, Theme.SpacingM, 0, 0),
+			};
+			retryBtn.Clicked += (s, e) =>
+			{
+				_errorMessage.Value = "";
+				_isLoading.Value = true;
+			};
+			errorStack.Add(retryBtn);
+			return new MauiViewHost(errorStack);
+		}
+
+		// Unfiltered empty state
+		if (_displayedShots.Count == 0 && !_filters.HasFilters)
 		{
 			var emptyStack = new VerticalStackLayout
 			{
@@ -48,7 +123,7 @@ public class ActivityFeedPage : Comet.View
 				VerticalOptions = LayoutOptions.Fill,
 				HorizontalOptions = LayoutOptions.Fill,
 			};
-			emptyStack.Add(FormHelpers.MakeEmptyState(Icons.Coffee, "No Shots Yet", "Log your first espresso shot to see it here."));
+			emptyStack.Add(FormHelpers.MakeEmptyState(Icons.Coffee, "No Shots Yet", "Start logging your espresso shots to see them here."));
 			return new MauiViewHost(emptyStack);
 		}
 
@@ -130,7 +205,26 @@ public class ActivityFeedPage : Comet.View
 		// Empty state for filtered results
 		if (_displayedShots.Count == 0 && _filters.HasFilters)
 		{
-			wrapper.Add(FormHelpers.MakeEmptyState(Icons.FilterListOff, "No Matching Shots", "Try adjusting your filters."));
+			wrapper.Add(FormHelpers.MakeEmptyState(Icons.FilterListOff, "No Matching Shots", "Try adjusting or clearing your filters"));
+			var clearFiltersBtn = new MauiButton
+			{
+				Text = "Clear Filters",
+				FontFamily = Theme.FontSemibold,
+				BackgroundColor = Theme.Primary,
+				TextColor = Colors.White,
+				FontSize = 16,
+				HeightRequest = Theme.ButtonHeight,
+				CornerRadius = (int)Theme.RadiusPill,
+				HorizontalOptions = LayoutOptions.Center,
+				Margin = new Thickness(0, Theme.SpacingM, 0, 0),
+			};
+			clearFiltersBtn.Clicked += (s, e) =>
+			{
+				_filters.Clear();
+				LoadNextPage(reset: true);
+				_filterVersion.Value++;
+			};
+			wrapper.Add(clearFiltersBtn);
 			return new MauiViewHost(wrapper);
 		}
 

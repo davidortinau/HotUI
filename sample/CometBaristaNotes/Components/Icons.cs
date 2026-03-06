@@ -32,6 +32,7 @@ public static class Icons
 	public const string Person = "\ue7fd";
 	public const string Build = "\ue869";
 	public const string Info = "\ue88e";
+	public const string Error = "\ue000";
 
 	// Theme
 	public const string LightMode = "\ue518";
