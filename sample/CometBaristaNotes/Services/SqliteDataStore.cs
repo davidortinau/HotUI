@@ -74,7 +74,7 @@ public class SqliteDataStore : IDataStore
 				BagId = bag2.Id, MachineId = machine1.Id, GrinderId = grinder1.Id, MadeById = me.Id, MadeForId = partner.Id,
 				DoseIn = 18m, GrindSetting = "14", ExpectedTime = 30, ExpectedOutput = 40,
 				ActualTime = 32, ActualOutput = 42, Rating = 3, TastingNotes = "Slightly over-extracted, bitter finish",
-				DrinkType = "Lungo", Timestamp = DateTime.Now.AddHours(-5)
+				DrinkType = "Americano", Timestamp = DateTime.Now.AddHours(-5)
 			},
 			new ShotRecord
 			{
@@ -95,7 +95,7 @@ public class SqliteDataStore : IDataStore
 				BagId = bag3.Id, MachineId = machine1.Id, GrinderId = grinder1.Id, MadeById = partner.Id,
 				DoseIn = 18m, GrindSetting = "15", ExpectedTime = 28, ExpectedOutput = 36,
 				ActualTime = 29, ActualOutput = 37, Rating = 4,
-				DrinkType = "Ristretto", Timestamp = DateTime.Now.AddDays(-5)
+				DrinkType = "Flat White", Timestamp = DateTime.Now.AddDays(-5)
 			}
 		);
 		db.SaveChanges();
