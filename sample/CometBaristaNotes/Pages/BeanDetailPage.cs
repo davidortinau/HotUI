@@ -285,16 +285,9 @@ public class BeanDetailPage : Comet.View
 			container.Add(row);
 		}
 
-		return new MauiBorder
-		{
-			Content = container,
-			BackgroundColor = Theme.CardBackground,
-			Stroke = new SolidColorBrush(Theme.CardStroke),
-			StrokeThickness = 1,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
-			Padding = new Thickness(Theme.SpacingM),
-			Margin = new Thickness(0, Theme.SpacingXS, 0, 0),
-		};
+		var card = FormHelpers.MakeCard(container);
+		card.Margin = new Thickness(0, Theme.SpacingXS, 0, 0);
+		return card;
 	}
 
 	Microsoft.Maui.Controls.View BuildBagCard(Bag bag)
@@ -325,20 +318,12 @@ public class BeanDetailPage : Comet.View
 		grid.Add(infoStack, 0, 0);
 		grid.Add(new MauiLabel { Text = Icons.ChevronRight, FontFamily = Icons.FontFamily, FontSize = 20, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center }, 1, 0);
 
-		var border = new MauiBorder
-		{
-			Content = grid,
-			BackgroundColor = Theme.CardBackground,
-			Stroke = new SolidColorBrush(Theme.CardStroke),
-			StrokeThickness = 1,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
-			Padding = new Thickness(Theme.SpacingM),
-		};
+		var card = FormHelpers.MakeCard(grid);
 
 		var tap = new TapGestureRecognizer();
 		tap.Tapped += (s, e) => Microsoft.Maui.Controls.Shell.Current.GoToAsync($"bag-detail?id={bag.Id}");
-		border.GestureRecognizers.Add(tap);
+		card.GestureRecognizers.Add(tap);
 
-		return border;
+		return card;
 	}
 }

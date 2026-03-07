@@ -62,8 +62,8 @@ public static class FormHelpers
 
 	public static Microsoft.Maui.Controls.View MakeFormEntry(string label, string value, string placeholder, Action<string> onChanged)
 	{
-		var stack = new VerticalStackLayout { Spacing = 4 };
-		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+		var stack = new VerticalStackLayout { Spacing = 0 };
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
 
 		var entry = new MauiEntry
 		{
@@ -71,8 +71,9 @@ public static class FormHelpers
 			Placeholder = placeholder,
 			FontSize = 16,
 			TextColor = Theme.TextPrimary,
-			BackgroundColor = Theme.SurfaceVariant,
+			BackgroundColor = Colors.Transparent,
 			HeightRequest = Theme.FormFieldHeight,
+			Margin = new Thickness(16, 0),
 		};
 		entry.TextChanged += (s, e) => onChanged(e.NewTextValue ?? "");
 
@@ -90,8 +91,8 @@ public static class FormHelpers
 
 	public static Microsoft.Maui.Controls.View MakeReadOnlyField(string label, string value)
 	{
-		var stack = new VerticalStackLayout { Spacing = 4 };
-		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+		var stack = new VerticalStackLayout { Spacing = 0 };
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
 
 		var valueLabel = new MauiLabel
 		{
@@ -226,14 +227,15 @@ public static class FormHelpers
 
 	public static Microsoft.Maui.Controls.View MakeFormPicker(string label, int selectedIndex, string[] items, Action<int> onChanged)
 	{
-		var stack = new VerticalStackLayout { Spacing = 4 };
-		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+		var stack = new VerticalStackLayout { Spacing = 0 };
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
 
 		var picker = new MauiPicker
 		{
 			TextColor = Theme.TextPrimary,
-			BackgroundColor = Theme.SurfaceVariant,
+			BackgroundColor = Colors.Transparent,
 			HeightRequest = Theme.FormFieldHeight,
+			Margin = new Thickness(16, 0),
 		};
 		foreach (var item in items) picker.Items.Add(item);
 		if (selectedIndex >= 0 && selectedIndex < items.Length) picker.SelectedIndex = selectedIndex;
@@ -251,45 +253,64 @@ public static class FormHelpers
 		return stack;
 	}
 
-	public static Microsoft.Maui.Controls.View MakeFormSlider(string label, double value, double min, double max, Action<double> onChanged)
+	public static Microsoft.Maui.Controls.View MakeFormSlider(string label, double value, double min, double max, Action<double> onChanged, out MauiLabel valueLabelRef)
 	{
-		var headerStack = new HorizontalStackLayout();
-		headerStack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalOptions = LayoutOptions.Start });
-		var valueLabel = new MauiLabel { Text = $"{value:F1}", FontFamily = Theme.FontSemibold, FontSize = 14, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalOptions = LayoutOptions.End };
-		headerStack.Add(valueLabel);
+		var stack = new VerticalStackLayout { Spacing = 0 };
 
-		var slider = new MauiSlider { Minimum = min, Maximum = max, Value = value, MinimumTrackColor = Theme.Primary, MaximumTrackColor = Theme.SurfaceVariant };
+		var captionLabel = new MauiLabel
+		{
+			Text = label,
+			FontFamily = Theme.FontRegular,
+			FontSize = 12,
+			TextColor = Theme.TextSecondary,
+			Margin = new Thickness(16, 0, 0, 4),
+		};
+		stack.Add(captionLabel);
+
+		var slider = new MauiSlider
+		{
+			Minimum = min,
+			Maximum = max,
+			Value = value,
+			MinimumTrackColor = Theme.Primary,
+			MaximumTrackColor = Theme.SurfaceVariant,
+			Margin = new Thickness(16, 0),
+			VerticalOptions = LayoutOptions.Center,
+		};
+
+		var sliderBorder = new MauiBorder
+		{
+			Content = slider,
+			StrokeThickness = 0,
+			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusPill },
+			BackgroundColor = Theme.SurfaceVariant,
+			HeightRequest = Theme.FormFieldHeight,
+		};
+
+		valueLabelRef = captionLabel;
+
 		slider.ValueChanged += (s, e) =>
 		{
-			valueLabel.Text = $"{e.NewValue:F1}";
 			onChanged(e.NewValue);
 		};
 
-		var contentStack = new VerticalStackLayout { Spacing = 4 };
-
-		var headerGrid = new MauiGrid();
-		headerGrid.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalOptions = LayoutOptions.Start });
-		headerGrid.Add(valueLabel);
-		valueLabel.HorizontalOptions = LayoutOptions.End;
-
-		contentStack.Add(headerGrid);
-		contentStack.Add(slider);
-
-		return MakeCard(contentStack);
+		stack.Add(sliderBorder);
+		return stack;
 	}
 
 	public static Microsoft.Maui.Controls.View MakeFormEditor(string label, string value, Action<string> onChanged)
 	{
-		var stack = new VerticalStackLayout { Spacing = 4 };
-		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+		var stack = new VerticalStackLayout { Spacing = 0 };
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
 
 		var editor = new MauiEditor
 		{
 			Text = value,
 			FontSize = 16,
 			TextColor = Theme.TextPrimary,
-			BackgroundColor = Theme.SurfaceVariant,
+			BackgroundColor = Colors.Transparent,
 			HeightRequest = 80,
+			Margin = new Thickness(16, 8),
 		};
 		editor.TextChanged += (s, e) => onChanged(e.NewTextValue ?? "");
 
@@ -307,8 +328,8 @@ public static class FormHelpers
 
 	public static Microsoft.Maui.Controls.View MakeFormEntryWithLimit(string label, string value, string placeholder, int maxLength, Action<string> onChanged)
 	{
-		var stack = new VerticalStackLayout { Spacing = 4 };
-		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+		var stack = new VerticalStackLayout { Spacing = 0 };
+		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
 
 		var entry = new MauiEntry
 		{

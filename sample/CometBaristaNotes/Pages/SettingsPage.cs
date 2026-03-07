@@ -10,7 +10,6 @@ using CometBaristaNotes.Components;
 using MauiLabel = Microsoft.Maui.Controls.Label;
 using MauiBorder = Microsoft.Maui.Controls.Border;
 using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
-using MauiGrid = Microsoft.Maui.Controls.Grid;
 using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
 using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
 
@@ -106,37 +105,7 @@ public class SettingsPage : Comet.View
 
 	Microsoft.Maui.Controls.View BuildManageItem(string title, string description, Action onTap)
 	{
-		var grid = new MauiGrid
-		{
-			ColumnDefinitions =
-			{
-				new ColumnDefinition(GridLength.Star),
-				new ColumnDefinition(GridLength.Auto),
-			},
-		};
-
-		var infoStack = new VerticalStackLayout { Spacing = 2 };
-		infoStack.Add(new MauiLabel { Text = title, FontFamily = Theme.FontSemibold, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
-		infoStack.Add(new MauiLabel { Text = description, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
-		grid.Add(infoStack, 0, 0);
-
-		grid.Add(new MauiLabel { Text = Icons.ChevronRight, FontFamily = Icons.FontFamily, FontSize = 22, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center, Padding = new Thickness(Theme.SpacingS, 0) }, 1, 0);
-
-		var border = new MauiBorder
-		{
-			Content = grid,
-			BackgroundColor = Theme.CardBackground,
-			Stroke = new SolidColorBrush(Theme.CardStroke),
-			StrokeThickness = 1,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
-			Padding = new Thickness(Theme.SpacingM),
-		};
-
-		var tap = new TapGestureRecognizer();
-		tap.Tapped += (s, e) => onTap();
-		border.GestureRecognizers.Add(tap);
-
-		return border;
+		return FormHelpers.MakeListCard(title, description, null, onTap);
 	}
 
 	Microsoft.Maui.Controls.View BuildAboutCard()
@@ -146,14 +115,6 @@ public class SettingsPage : Comet.View
 		stack.Add(new MauiLabel { Text = "Version 1.0", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 		stack.Add(new MauiLabel { Text = "Track your espresso journey", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, Margin = new Thickness(0, Theme.SpacingXS, 0, 0) });
 
-		return new MauiBorder
-		{
-			Content = stack,
-			BackgroundColor = Theme.CardBackground,
-			Stroke = new SolidColorBrush(Theme.CardStroke),
-			StrokeThickness = 1,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
-			Padding = new Thickness(Theme.SpacingM),
-		};
+		return FormHelpers.MakeCard(stack);
 	}
 }

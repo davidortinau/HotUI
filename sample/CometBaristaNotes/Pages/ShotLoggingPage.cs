@@ -49,7 +49,6 @@ int _grinderIndex = 0;
 int _madeByIndex = 0;
 int _madeForIndex = 0;
 int _selectedBagIndex = -1;
-bool _showAdditional = false;
 
 bool IsEditMode => _editingShotId > 0;
 
@@ -73,7 +72,6 @@ MauiLabel? _ratioLabel;
 MauiLabel? _timeValueLabel;
 MauiLabel? _machineNameLabel;
 VerticalStackLayout? _additionalStack;
-MauiBorder? _additionalHeaderCard;
 Microsoft.Maui.Controls.ActivityIndicator? _savingIndicator;
 MauiButton? _saveButton;
 
@@ -117,12 +115,12 @@ contentStack.Add(BuildTimeSlider());
 contentStack.Add(BuildUserSelectionRow());
 contentStack.Add(BuildRating());
 contentStack.Add(BuildTastingNotes());
-contentStack.Add(BuildAdditionalDetails());
-
-var saveBtn = FormHelpers.MakePrimaryButton(IsEditMode ? "Update Shot" : "Save Shot", SaveShot);
+var saveBtn = FormHelpers.MakePrimaryButton(IsEditMode ? "Update Shot" : "Add Shot", SaveShot);
 _saveButton = saveBtn as MauiButton;
 saveBtn.Margin = new Thickness(0, Theme.SpacingS, 0, 0);
 contentStack.Add(saveBtn);
+
+contentStack.Add(BuildAdditionalDetails());
 
 if (IsEditMode)
 {
@@ -244,31 +242,44 @@ centerStack.Add(vl);
 centerStack.Add(ul);
 gaugeGrid.Add(centerStack);
 
-var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, HorizontalOptions = LayoutOptions.Center };
-stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontSemibold, FontSize = 12, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
-stack.Add(gaugeGrid);
-
-// Stepper buttons
-var stepRow = new HorizontalStackLayout { Spacing = Theme.SpacingS, HorizontalOptions = LayoutOptions.Center };
-stepRow.Add(MakeStepButton(Icons.Remove, () => onStep(-0.1)));
-stepRow.Add(MakeStepButton(Icons.Add, () => onStep(0.1)));
-stack.Add(stepRow);
-
-return stack;
-}
-
-Microsoft.Maui.Controls.View MakeStepButton(string icon, Action onTap)
+// Stepper buttons at bottom corners of gauge, with icon between
+var stepMinusBtn = new MauiButton
 {
-var btn = new MauiButton
-{
-Text = icon, FontFamily = Icons.FontFamily, FontSize = 20,
-TextColor = Theme.Primary, BackgroundColor = Theme.SurfaceVariant,
-WidthRequest = 44, HeightRequest = 44,
-CornerRadius = (int)Theme.RadiusCard,
-Padding = 0, BorderWidth = 0,
+	Text = Icons.Remove, FontFamily = Icons.FontFamily, FontSize = 12,
+	TextColor = Theme.TextSecondary, BackgroundColor = Colors.Transparent,
+	WidthRequest = 32, HeightRequest = 32,
+	CornerRadius = 16, Padding = 0, BorderWidth = 0,
+	HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
+	TranslationY = 10,
 };
-btn.Clicked += (s, e) => onTap();
-return btn;
+stepMinusBtn.Clicked += (s, e) => onStep(-0.1);
+
+var stepPlusBtn = new MauiButton
+{
+	Text = Icons.Add, FontFamily = Icons.FontFamily, FontSize = 12,
+	TextColor = Theme.TextSecondary, BackgroundColor = Colors.Transparent,
+	WidthRequest = 32, HeightRequest = 32,
+	CornerRadius = 16, Padding = 0, BorderWidth = 0,
+	HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End,
+	TranslationY = 10,
+};
+stepPlusBtn.Clicked += (s, e) => onStep(0.1);
+
+// Coffee icon glyph at bottom center
+var coffeeIconGlyph = label == "Dose In" ? "u" : "t";
+var coffeeIcon = new MauiLabel
+{
+	Text = coffeeIconGlyph, FontFamily = Icons.CoffeeFontFamily, FontSize = 24,
+	TextColor = Theme.TextSecondary,
+	HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center,
+	HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.End,
+};
+
+gaugeGrid.Add(stepMinusBtn);
+gaugeGrid.Add(stepPlusBtn);
+gaugeGrid.Add(coffeeIcon);
+
+return gaugeGrid;
 }
 
 void UpdateDoseIn()
@@ -292,14 +303,14 @@ Microsoft.Maui.Controls.View BuildEquipmentButton()
 var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, HorizontalOptions = LayoutOptions.Center };
 stack.Add(new MauiBoxView { HeightRequest = 20, BackgroundColor = Colors.Transparent });
 
-var circleGrid = new MauiGrid { WidthRequest = Theme.EquipmentButtonSize, HeightRequest = Theme.EquipmentButtonSize };
+var circleGrid = new MauiGrid { WidthRequest = 50, HeightRequest = 50 };
 circleGrid.Add(new MauiBorder
 {
-BackgroundColor = Theme.Primary, StrokeThickness = 0,
-StrokeShape = new MauiEllipse(),
-WidthRequest = Theme.EquipmentButtonSize, HeightRequest = Theme.EquipmentButtonSize,
+BackgroundColor = Theme.SurfaceVariant, StrokeThickness = 0,
+StrokeShape = new RoundRectangle { CornerRadius = 25 },
+WidthRequest = 50, HeightRequest = 50,
 });
-circleGrid.Add(new MauiLabel { Text = Icons.Machine, FontFamily = Icons.CoffeeFontFamily, FontSize = 24, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center });
+circleGrid.Add(new MauiLabel { Text = Icons.Machine, FontFamily = Icons.CoffeeFontFamily, FontSize = 32, TextColor = Theme.TextPrimary, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center });
 
 _machineNameLabel = new MauiLabel { Text = "Select", FontFamily = Theme.FontRegular, FontSize = 11, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center, WidthRequest = 80 };
 
@@ -371,10 +382,10 @@ var popup = new UXDivers.Popups.Maui.Controls.ListActionPopup
 		checkIcon.SetBinding(MauiLabel.TextColorProperty, new Microsoft.Maui.Controls.Binding("IsSelected",
 			converter: new BoolToColorConverter(Theme.Primary, Theme.TextSecondary)));
 
-		var nameLabel = new MauiLabel { FontSize = 16, VerticalOptions = LayoutOptions.Center, TextColor = Theme.TextPrimary };
+		var nameLabel = new MauiLabel { FontSize = 16, VerticalOptions = LayoutOptions.Center, TextColor = Colors.White };
 		nameLabel.SetBinding(MauiLabel.TextProperty, "Name");
 
-		var typeLabel = new MauiLabel { FontSize = 12, VerticalOptions = LayoutOptions.Center, TextColor = Theme.TextSecondary };
+		var typeLabel = new MauiLabel { FontSize = 12, VerticalOptions = LayoutOptions.Center, TextColor = Colors.Gray };
 		typeLabel.SetBinding(MauiLabel.TextProperty, "TypeName");
 
 		var textStack = new VerticalStackLayout { Spacing = 2 };
@@ -450,31 +461,57 @@ else
 
 Microsoft.Maui.Controls.View BuildRatioDisplay()
 {
-var hstack = new HorizontalStackLayout { Spacing = Theme.SpacingXS, HorizontalOptions = LayoutOptions.Center, Padding = new Thickness(Theme.SpacingS) };
-hstack.Add(new MauiLabel { Text = "Ratio: ", FontFamily = Theme.FontRegular, FontSize = 16, TextColor = Theme.TextSecondary });
-_ratioLabel = new MauiLabel { Text = $"1:{Ratio:F1}", FontFamily = Theme.FontSemibold, FontSize = 18, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary };
-hstack.Add(_ratioLabel);
-return hstack;
+_ratioLabel = new MauiLabel
+{
+	Text = $"1:{Ratio:F1}",
+	FontFamily = Theme.FontSemibold,
+	FontSize = 20,
+	TextColor = Theme.TextSecondary,
+	HorizontalTextAlignment = TextAlignment.Center,
+	HorizontalOptions = LayoutOptions.Center,
+	Margin = new Thickness(0, 8, 0, 0),
+};
+return _ratioLabel;
 }
 
 Microsoft.Maui.Controls.View BuildTimeSlider()
 {
-var content = new VerticalStackLayout { Spacing = Theme.SpacingS };
-var header = new MauiGrid();
-header.Add(new MauiLabel { Text = "Time", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalOptions = LayoutOptions.Start });
-_timeValueLabel = new MauiLabel { Text = $"{_actualTime:F0}s", FontFamily = Theme.FontSemibold, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalOptions = LayoutOptions.End };
-header.Add(_timeValueLabel);
-content.Add(header);
+var stack = new VerticalStackLayout { Spacing = 0 };
 
-var slider = new MauiSlider { Minimum = 0, Maximum = 60, Value = _actualTime, MinimumTrackColor = Theme.Primary, MaximumTrackColor = Theme.SurfaceVariant };
+_timeValueLabel = new MauiLabel
+{
+	Text = $"Time: {_actualTime:F0}s",
+	FontFamily = Theme.FontRegular,
+	FontSize = 12,
+	TextColor = Theme.TextSecondary,
+	Margin = new Thickness(16, 0, 0, 4),
+};
+stack.Add(_timeValueLabel);
+
+var slider = new MauiSlider
+{
+	Minimum = 0, Maximum = 60, Value = _actualTime,
+	MinimumTrackColor = Theme.Primary, MaximumTrackColor = Theme.SurfaceVariant,
+	Margin = new Thickness(16, 0),
+	VerticalOptions = LayoutOptions.Center,
+};
 slider.ValueChanged += (s, e) =>
 {
 _actualTime = e.NewValue;
-_timeValueLabel.Text = $"{e.NewValue:F0}s";
+_timeValueLabel.Text = $"Time: {e.NewValue:F0}s";
 };
-content.Add(slider);
 
-return FormHelpers.MakeCard(content);
+var sliderBorder = new MauiBorder
+{
+	Content = slider,
+	StrokeThickness = 0,
+	StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusPill },
+	BackgroundColor = Theme.SurfaceVariant,
+	HeightRequest = Theme.FormFieldHeight,
+};
+
+stack.Add(sliderBorder);
+return stack;
 }
 
 Microsoft.Maui.Controls.View BuildUserSelectionRow()
@@ -534,7 +571,7 @@ ref madeForAvatarLabel, ref madeForNameLabel, ref madeForCircleBg,
 }));
 grid.Add(madeForStack, 2, 0);
 
-return FormHelpers.MakeCard(grid);
+return grid;
 }
 
 async void ShowProfileSelectionPopup(string title, Action<int> onSelected)
@@ -595,6 +632,7 @@ try
 			var label = new MauiLabel
 			{
 				FontSize = 16,
+				TextColor = Colors.White,
 				VerticalOptions = LayoutOptions.Center,
 			};
 			label.SetBinding(MauiLabel.TextProperty, "Name");
@@ -621,13 +659,13 @@ Microsoft.Maui.Controls.View BuildAvatarControl(string title, int idx, string[] 
 ref MauiLabel avatarLabel, ref MauiLabel nameLabel, ref MauiBorder circleBg, Action onTap)
 {
 var stack = new VerticalStackLayout { Spacing = Theme.SpacingXS };
-stack.Add(new MauiLabel { Text = title, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
 
-var circleGrid = new MauiGrid { WidthRequest = 44, HeightRequest = 44 };
+// Avatar circle (60x60)
+var circleGrid = new MauiGrid { WidthRequest = 60, HeightRequest = 60 };
 var bg = new MauiBorder
 {
 BackgroundColor = idx == 0 ? Theme.SurfaceVariant : Theme.Primary,
-StrokeThickness = 0, StrokeShape = new MauiEllipse(), WidthRequest = 44, HeightRequest = 44,
+StrokeThickness = 0, StrokeShape = new RoundRectangle { CornerRadius = 30 }, WidthRequest = 60, HeightRequest = 60,
 };
 circleBg = bg;
 circleGrid.Add(bg);
@@ -635,7 +673,7 @@ circleGrid.Add(bg);
 var initial = idx == 0 ? "?" : (idx - 1 < _profiles.Count ? _profiles[idx - 1].Name[..1].ToUpper() : "?");
 var al = new MauiLabel
 {
-Text = initial, FontFamily = Theme.FontSemibold, FontSize = 18, FontAttributes = MauiFontAttributes.Bold,
+Text = initial, FontFamily = Theme.FontSemibold, FontSize = 24, FontAttributes = MauiFontAttributes.Bold,
 TextColor = idx == 0 ? Theme.TextMuted : Colors.White,
 HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center,
 };
@@ -643,10 +681,9 @@ avatarLabel = al;
 circleGrid.Add(al);
 stack.Add(circleGrid);
 
-var fullName = idx == 0 ? "None" : (idx - 1 < _profiles.Count ? _profiles[idx - 1].Name : "None");
-var nl = new MauiLabel { Text = fullName, FontFamily = Theme.FontRegular, FontSize = 11, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center };
-nameLabel = nl;
-stack.Add(nl);
+// Label BELOW avatar
+var labelText = title == "Made By" ? "Made by" : "For";
+stack.Add(new MauiLabel { Text = labelText, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
 
 var tap = new TapGestureRecognizer();
 tap.Tapped += (s, e) => onTap();
@@ -667,9 +704,6 @@ circleBg.BackgroundColor = idx == 0 ? Theme.SurfaceVariant : Theme.Primary;
 
 Microsoft.Maui.Controls.View BuildRating()
 {
-var content = new VerticalStackLayout { Spacing = Theme.SpacingS };
-content.Add(new MauiLabel { Text = "Rating", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
-
 var sentiments = new[]
 {
 Icons.SentimentVeryDissatisfied,
@@ -679,7 +713,7 @@ Icons.SentimentSatisfied,
 Icons.SentimentVerySatisfied,
 };
 var icons = new MauiLabel[sentiments.Length];
-var row = new HorizontalStackLayout { Spacing = Theme.SpacingS, HorizontalOptions = LayoutOptions.Center };
+var row = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center };
 
 for (int i = 0; i < sentiments.Length; i++)
 {
@@ -689,7 +723,7 @@ var lbl = new MauiLabel
 Text = sentiments[i],
 FontFamily = Icons.FontFamily,
 FontSize = 32,
-TextColor = i == _rating ? Theme.Primary : Theme.StarEmpty,
+TextColor = i == _rating ? Theme.Primary : Theme.TextMuted,
 };
 icons[i] = lbl;
 
@@ -698,25 +732,25 @@ tap.Tapped += (s, e) =>
 {
 _rating = idx;
 for (int j = 0; j < sentiments.Length; j++)
-icons[j].TextColor = j == _rating ? Theme.Primary : Theme.StarEmpty;
+icons[j].TextColor = j == _rating ? Theme.Primary : Theme.TextMuted;
 };
 lbl.GestureRecognizers.Add(tap);
 row.Add(lbl);
 }
-content.Add(row);
-return FormHelpers.MakeCard(content);
+return row;
 }
 
 Microsoft.Maui.Controls.View BuildTastingNotes()
 {
-var content = new VerticalStackLayout { Spacing = Theme.SpacingS };
-content.Add(new MauiLabel { Text = "Tasting Notes", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+var stack = new VerticalStackLayout { Spacing = 0 };
+stack.Add(new MauiLabel { Text = "Tasting Notes (optional)", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
 
 var editor = new MauiEditor
 {
 Text = _tastingNotes, FontSize = 16, FontFamily = Theme.FontRegular,
-TextColor = Theme.TextPrimary, BackgroundColor = Theme.SurfaceVariant, HeightRequest = 80,
-Placeholder = "E.g., bright, fruity, slightly sour..."
+TextColor = Theme.TextPrimary, BackgroundColor = Colors.Transparent, HeightRequest = 80,
+Placeholder = "E.g., bright, fruity, slightly sour...",
+Margin = new Thickness(16, 8),
 };
 editor.TextChanged += (s, e) => _tastingNotes = e.NewTextValue ?? "";
 
@@ -726,8 +760,8 @@ Content = editor, StrokeThickness = 0,
 StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusEditor },
 BackgroundColor = Theme.SurfaceVariant,
 };
-content.Add(border);
-return FormHelpers.MakeCard(content);
+stack.Add(border);
+return stack;
 }
 
 // Bag picker reference for refreshing after inline creation
@@ -736,7 +770,7 @@ MauiPicker? _bagPicker;
 Microsoft.Maui.Controls.View BuildBagPickerWithAdd(string[] bagNames)
 {
 var stack = new VerticalStackLayout { Spacing = 4 };
-stack.Add(new MauiLabel { Text = "Coffee Bag", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+stack.Add(new MauiLabel { Text = "Bag", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
 
 var row = new MauiGrid
 {
@@ -829,35 +863,38 @@ Microsoft.Maui.Controls.View BuildAdditionalDetails()
 {
 var wrapper = new VerticalStackLayout { Spacing = Theme.SpacingS };
 
-var headerGrid = new MauiGrid();
-headerGrid.Add(new MauiLabel { Text = "Additional Details", FontFamily = Theme.FontSemibold, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalOptions = LayoutOptions.Start });
-var chevron = new MauiLabel { Text = "▶", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextMuted, HorizontalOptions = LayoutOptions.End };
-headerGrid.Add(chevron);
+// Divider line
+var divider = new MauiBoxView
+{
+	HeightRequest = 1,
+	BackgroundColor = Theme.Outline,
+	HorizontalOptions = LayoutOptions.Fill,
+	Margin = new Thickness(0, Theme.SpacingL, 0, 0),
+};
+wrapper.Add(divider);
 
-_additionalHeaderCard = (MauiBorder)FormHelpers.MakeCard(headerGrid);
+// Section header
+var headerLabel = new MauiLabel
+{
+	Text = "Additional Details",
+	FontFamily = Theme.FontRegular,
+	FontSize = 14,
+	TextColor = Theme.TextMuted,
+};
+wrapper.Add(headerLabel);
 
-_additionalStack = new VerticalStackLayout { Spacing = Theme.SpacingS, IsVisible = false };
+_additionalStack = new VerticalStackLayout { Spacing = Theme.SpacingM, IsVisible = true };
 
 var bagNames = _bags.Select(b => b.BeanName ?? $"Bag #{b.Id}").ToArray();
-var grinderNames = new[] { "None" }.Concat(_grinders.Select(g => g.Name)).ToArray();
 
+// Field order: Bag → Grind Setting → Expected Time → Expected Output → Drink Type
 _additionalStack.Add(BuildBagPickerWithAdd(bagNames));
-_additionalStack.Add(FormHelpers.MakeFormPicker("Drink Type", _drinkTypeIndex, DrinkTypes, v => _drinkTypeIndex = v));
-_additionalStack.Add(FormHelpers.MakeFormPicker("Grinder", _grinderIndex, grinderNames, v => _grinderIndex = v));
 _additionalStack.Add(FormHelpers.MakeFormEntry("Grind Setting", _grindSetting, "e.g. 15", v => _grindSetting = v));
 _additionalStack.Add(FormHelpers.MakeFormEntry("Expected Time (s)", _expectedTime, "28", v => _expectedTime = v));
 _additionalStack.Add(FormHelpers.MakeFormEntry("Expected Output (g)", _expectedOutput, "36", v => _expectedOutput = v));
+_additionalStack.Add(FormHelpers.MakeFormPicker("Drink Type", _drinkTypeIndex, DrinkTypes, v => _drinkTypeIndex = v));
 
-var headerTap = new TapGestureRecognizer();
-headerTap.Tapped += (s, e) =>
-{
-_showAdditional = !_showAdditional;
-_additionalStack.IsVisible = _showAdditional;
-chevron.Text = _showAdditional ? "▼" : "▶";
-};
-_additionalHeaderCard.GestureRecognizers.Add(headerTap);
-
-wrapper.Add(_additionalHeaderCard);
+_additionalStack.Padding = new Thickness(0, 0, 0, Theme.SpacingXL);
 wrapper.Add(_additionalStack);
 return wrapper;
 }
