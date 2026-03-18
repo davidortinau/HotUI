@@ -53,13 +53,29 @@ namespace Comet
 				//Handle the bingings!
 				if (values.newValue == values.oldValue)
 					continue;
+
+				// When a property has never been set, oldValue is null.
+				// LerpingAnimation can't interpolate from null, so default
+				// to the numeric zero for the matching type.
+				var startValue = values.oldValue;
+				if (startValue == null)
+				{
+					startValue = values.newValue switch
+					{
+						double => 0.0,
+						float => 0.0f,
+						int => 0,
+						_ => startValue,
+					};
+				}
+
 				Animation animation = new ContextualAnimation
 				{
 					Duration = duration,
 					Easing = easing,
 					Repeats = repeats,
 					StartDelay = delay,
-					StartValue = values.oldValue,
+					StartValue = startValue,
 					EndValue = values.newValue,
 					ContextualObject = prop.view,
 					PropertyName = prop.property,

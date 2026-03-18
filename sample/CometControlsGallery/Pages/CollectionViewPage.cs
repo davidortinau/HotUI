@@ -42,9 +42,10 @@ namespace CometControlsGallery.Pages
 
 		readonly Reactive<int> activeTab = 0;
 		readonly Reactive<string> selectedItem = "Tap an item";
-		readonly Reactive<string> selectionStatus = "Tap items to select — Single mode";
+		readonly Reactive<string> selectionStatus = "Tap items to select";
 		readonly Reactive<int> selectionModeIndex = 0;
 		readonly Reactive<int> emptyItemCount = 0;
+		readonly HashSet<string> _multiSelected = new();
 
 		View TabButton(string title, int index) =>
 			Button(title, () => activeTab.Value = index)
@@ -95,7 +96,7 @@ namespace CometControlsGallery.Pages
 
 		View VerticalListContent() =>
 			VStack(8,
-				Text(selectedItem.Value)
+				Text(() => selectedItem.Value)
 					.FontSize(12)
 					.Color(Colors.Gray)
 					.Padding(new Thickness(16, 8, 16, 0)),
@@ -315,18 +316,30 @@ namespace CometControlsGallery.Pages
 			);
 		}
 
-		View SelectionContent() =>
-			VStack(spacing: 0f,
+		View SelectionContent()
+		{
+			var mode = selectionModeIndex.Value;
+			var selMode = mode == 0 ? SelectionMode.Single :
+				mode == 1 ? SelectionMode.Multiple : SelectionMode.None;
+
+			return VStack(spacing: 0f,
 				HStack(8,
 					Button(
-						selectionModeIndex.Value == 0 ? "Mode: Single" :
-						selectionModeIndex.Value == 1 ? "Mode: Multiple" : "Mode: None",
-						() => selectionModeIndex.Value = (selectionModeIndex.Value + 1) % 3
+						mode == 0 ? "Mode: Single" :
+						mode == 1 ? "Mode: Multiple" : "Mode: None",
+						() =>
+						{
+							_multiSelected.Clear();
+							selectionModeIndex.Value = (selectionModeIndex.Value + 1) % 3;
+						}
 					).FontSize(13),
-					Button("Clear", () => selectionStatus.Value = "Selection cleared")
-						.FontSize(13)
+					Button("Clear", () =>
+					{
+						_multiSelected.Clear();
+						selectionStatus.Value = "Selection cleared";
+					}).FontSize(13)
 				).Padding(new Thickness(16, 8)),
-				Text(selectionStatus.Value)
+				Text(() => selectionStatus.Value)
 					.FontSize(12)
 					.Color(Colors.Gray)
 					.Padding(new Thickness(16, 4)),
@@ -354,12 +367,25 @@ namespace CometControlsGallery.Pages
 						.CornerRadius(8)
 						.Margin(new Thickness(16, 4)),
 					ItemsLayout = ItemsLayout.Vertical(spacing: 0),
-					SelectionMode = selectionModeIndex.Value == 0 ? SelectionMode.Single :
-						selectionModeIndex.Value == 1 ? SelectionMode.Multiple : SelectionMode.None,
+					SelectionMode = selMode,
 				}
 				.OnSelected(item =>
-					selectionStatus.Value = $"Selected: {item.Name}")
+				{
+					if (selMode == SelectionMode.Multiple)
+					{
+						if (!_multiSelected.Remove(item.Name))
+							_multiSelected.Add(item.Name);
+						selectionStatus.Value = _multiSelected.Count > 0
+							? $"Selected ({_multiSelected.Count}): {string.Join(", ", _multiSelected)}"
+							: "No items selected";
+					}
+					else
+					{
+						selectionStatus.Value = $"Selected: {item.Name}";
+					}
+				})
 			);
+		}
 
 		View LargeListContent()
 		{
@@ -438,24 +464,27 @@ namespace CometControlsGallery.Pages
 					.Padding(new Thickness(16, 12)),
 			};
 
-		View ScrollToContent() =>
-			VStack(spacing: 0f,
+		View ScrollToContent()
+		{
+			var scrollToCv = new CollectionView<SimpleItem>(() => ScrollToItems)
+			{
+				ViewFor = item =>
+					Text(item.Name)
+						.FontSize(14)
+						.Padding(new Thickness(12, 6)),
+			};
+			return VStack(spacing: 0f,
 				HStack(8,
-					Button("→ First", () => { })
+					Button("→ First", () => scrollToCv.ScrollTo(0))
 						.FontSize(13),
-					Button("→ Item 50", () => { })
+					Button("→ Item 50", () => scrollToCv.ScrollTo(49))
 						.FontSize(13),
-					Button("→ Last", () => { })
+					Button("→ Last", () => scrollToCv.ScrollTo(ScrollToItems.Count - 1))
 						.FontSize(13)
 				).Padding(new Thickness(16, 8)),
-				new CollectionView<SimpleItem>(() => ScrollToItems)
-				{
-					ViewFor = item =>
-						Text(item.Name)
-							.FontSize(14)
-							.Padding(new Thickness(12, 6)),
-				}
+				scrollToCv
 			);
+		}
 
 		View BuildGroupedSection(string groupName, (string Name, string Detail)[] items)
 		{

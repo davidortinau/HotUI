@@ -261,7 +261,6 @@ namespace CometControlsGallery
 			// Lists & Collections
 			new NavItem { Title = "Collection View", Category = "Lists & Collections", Icon = "square.grid.2x2", CreatePage = () => new CollectionViewPage() },
 			new NavItem { Title = "CarouselView", Category = "Lists & Collections", Icon = "rectangle.stack", CreatePage = () => new CarouselViewPage() },
-			new NavItem { Title = "ListView", Category = "Lists & Collections", Icon = "list.bullet", CreatePage = () => new ListViewPage() },
 			new NavItem { Title = "TableView", Category = "Lists & Collections", Icon = "tablecells", CreatePage = () => new TableViewPage() },
 			// Drawing & Visual
 			new NavItem { Title = "Graphics", Category = "Drawing & Visual", Icon = "paintbrush", CreatePage = () => new GraphicsPage() },

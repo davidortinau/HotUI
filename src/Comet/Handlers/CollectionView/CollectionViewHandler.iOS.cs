@@ -14,7 +14,33 @@ namespace Comet.Handlers
 		public static void MapListViewProperty(IElementHandler handler, IListView virtualView)
 		{
 			var cvHandler = (CollectionViewHandler)handler;
-			cvHandler._mauiItemsView = CreateAndConfigureMauiItemsView(virtualView);
+			cvHandler._currentListViewRef = new WeakReference<IListView>(virtualView);
+
+			// Reuse existing MAUI CollectionView — only update changed properties.
+			// This preserves scroll position and selection state across body rebuilds.
+			if (cvHandler._mauiItemsView is Microsoft.Maui.Controls.CollectionView existingCv
+				&& !IsCarouselView(virtualView))
+			{
+				UpdateCollectionView(existingCv, virtualView);
+				return;
+			}
+
+			if (IsCarouselView(virtualView))
+			{
+				var carousel = new Microsoft.Maui.Controls.CarouselView();
+				ConfigureMauiCarouselView(carousel, virtualView);
+				RefreshItemsSource(carousel, virtualView);
+				cvHandler._mauiItemsView = carousel;
+			}
+			else
+			{
+				var cv = new Microsoft.Maui.Controls.CollectionView();
+				cvHandler.InitCollectionView(cv);
+				MapCometItemsLayout(cv, virtualView);
+				MapCometInfiniteScroll(cv, virtualView);
+				UpdateCollectionView(cv, virtualView);
+				cvHandler._mauiItemsView = cv;
+			}
 			cvHandler.EmbedMauiItemsView();
 		}
 

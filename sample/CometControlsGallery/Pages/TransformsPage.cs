@@ -19,12 +19,18 @@ namespace CometControlsGallery.Pages
 		[Body]
 		View body()
 		{
+			// Explicitly set initial values for all animatable properties so
+			// the animation system has a concrete start value to lerp from.
 			targetBox = Border(new Spacer())
 				.Background(Colors.DodgerBlue)
 				.CornerRadius(8)
 				.StrokeThickness(0)
 				.Frame(width: 100, height: 100)
-				.HorizontalLayoutAlignment(LayoutAlignment.Center);
+				.HorizontalLayoutAlignment(LayoutAlignment.Center)
+				.TranslationX(0).TranslationY(0)
+				.Rotation(0)
+				.Scale(1)
+				.Opacity(1);
 
 			var translateBtn = Button("TranslateTo (100, 0)", () =>
 			{
@@ -59,7 +65,8 @@ namespace CometControlsGallery.Pages
 				.CornerRadius(8)
 				.StrokeThickness(0)
 				.Frame(width: 80, height: 80)
-				.HorizontalLayoutAlignment(LayoutAlignment.Center);
+				.HorizontalLayoutAlignment(LayoutAlignment.Center)
+				.Rotation(0);
 
 			var anchorTopLeftBtn = Button("Anchor (0, 0)", () =>
 			{
@@ -90,7 +97,11 @@ namespace CometControlsGallery.Pages
 				.CornerRadius(8)
 				.StrokeThickness(0)
 				.Frame(width: 80, height: 80)
-				.HorizontalLayoutAlignment(LayoutAlignment.Center);
+				.HorizontalLayoutAlignment(LayoutAlignment.Center)
+				.TranslationX(0)
+				.Rotation(0)
+				.ScaleX(1).ScaleY(1)
+				.Opacity(1);
 
 			var compositeBtn = Button("Run Composite Animation", () =>
 			{
