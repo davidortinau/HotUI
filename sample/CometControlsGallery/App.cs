@@ -34,7 +34,7 @@ namespace CometControlsGallery
 	public class App : MauiApplication
 	{
 		static System.Net.Sockets.TcpListener? _navServer;
-		const int NavPort = 10224;
+		const int NavPort = 10254;
 
 		protected override MauiWindow CreateWindow(IActivationState activationState)
 		{

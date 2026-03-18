@@ -2,6 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using Comet;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
 using static Comet.CometControls;
 
@@ -9,21 +10,41 @@ namespace CometControlsGallery.Pages
 {
 	public class HomePage : View
 	{
+		static string PlatformName =>
+			DeviceInfo.Platform == DevicePlatform.iOS ? "iOS"
+			: DeviceInfo.Platform == DevicePlatform.Android ? "Android"
+			: DeviceInfo.Platform == DevicePlatform.WinUI ? "Windows"
+			: DeviceInfo.Platform == DevicePlatform.macOS ? "macOS"
+			: DeviceInfo.Platform == DevicePlatform.MacCatalyst ? "Mac Catalyst"
+			: "Unknown";
+
+		static string NativeKit =>
+			DeviceInfo.Platform == DevicePlatform.iOS ? "UIKit"
+			: DeviceInfo.Platform == DevicePlatform.MacCatalyst ? "AppKit"
+			: DeviceInfo.Platform == DevicePlatform.Android ? "Android Views"
+			: DeviceInfo.Platform == DevicePlatform.WinUI ? "WinUI"
+			: "native views";
+
+		static string PlatformTitle => $"\ud83c\udf4e Comet on {PlatformName}";
+		static string PlatformSubtitle => $"Rendered natively with {NativeKit}";
+		static string PlatformDescription =>
+			$"This sample app demonstrates Comet on {PlatformName} \u2014 " +
+			"a minimal MVU framework that uses .NET MAUI core " +
+			"to map native controls. No MAUI Controls required!";
+
 		[Body]
 		View body() =>
 			ScrollView(
 				VStack(16,
-					Text("\ud83c\udf4e Comet on Mac Catalyst")
+					Text(PlatformTitle)
 						.FontSize(32)
 						.FontWeight(FontWeight.Bold)
 						.HorizontalTextAlignment(TextAlignment.Center),
-					Text("Rendered natively with AppKit")
+					Text(PlatformSubtitle)
 						.FontSize(16)
 						.Color(Colors.Grey)
 						.HorizontalTextAlignment(TextAlignment.Center),
-					Text("This sample app demonstrates Comet on Mac Catalyst \u2014 " +
-						"a minimal MVU framework that uses .NET MAUI core " +
-						"to map native controls. No MAUI Controls required!")
+					Text(PlatformDescription)
 						.FontSize(14),
 					Border(
 						VStack(8,
