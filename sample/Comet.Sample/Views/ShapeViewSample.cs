@@ -1,8 +1,9 @@
+using static Comet.CometControls;
+
 ﻿namespace Comet.Samples;
-public class ShapeViewSample : View
+public class ShapeViewSample : Component
 {
-	[Body]
-	View body() => new ZStack {
+		public override View Render() => ZStack(
 			new ShapeView(
 				new Circle()
 					.Stroke(Colors.Blue, 4)
@@ -13,5 +14,5 @@ public class ShapeViewSample : View
 				new Rectangle()
 					.Fill(Colors.Red)
 			).Frame(width:40,height:40)
-	};
+	);
 }

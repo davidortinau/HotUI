@@ -1,59 +1,69 @@
-using Comet;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Shapes;
-using Microsoft.Maui.Graphics;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
 
-using MauiLabel = Microsoft.Maui.Controls.Label;
-using MauiBorder = Microsoft.Maui.Controls.Border;
-using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
-using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
-using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
-
 namespace CometBaristaNotes.Pages;
 
-public class BagDetailPage : Comet.View
+public class BagDetailPageState
+{
+	public string BeanName { get; set; } = "";
+	public int BeanId { get; set; }
+	public string RoastDate { get; set; } = "";
+	public string Notes { get; set; } = "";
+	public bool IsComplete { get; set; }
+	public int ShotCount { get; set; }
+	public bool IsLoaded { get; set; }
+	public string Error { get; set; } = "";
+	public RatingAggregate Rating { get; set; } = new();
+}
+
+public class BagDetailPage : Component<BagDetailPageState>
 {
 	readonly int _bagId;
-
-	[State] readonly State<string> _beanName = new("");
-	[State] readonly State<int> _beanId = new(0);
-	[State] readonly State<string> _roastDate = new("");
-	[State] readonly State<string> _notes = new("");
-	[State] readonly State<bool> _isComplete = new(false);
-	[State] readonly State<int> _shotCount = new(0);
-	[State] readonly State<bool> _isLoaded = new(false);
-	[State] readonly State<string> _error = new("");
-	[State] readonly State<RatingAggregate> _rating = new(new());
 
 	public BagDetailPage(int bagId = 0) { _bagId = bagId; }
 
 	void LoadBag()
 	{
-		if (_bagId <= 0) { _isLoaded.Value = true; return; }
+		if (_bagId <= 0)
+		{
+			SetState(s => s.IsLoaded = true);
+			return;
+		}
 
 		var store = InMemoryDataStore.Instance;
 		if (store == null) return;
 
 		var bag = store.GetBag(_bagId);
-		if (bag == null) { _error.Value = "Bag not found"; _isLoaded.Value = true; return; }
+		if (bag == null)
+		{
+			SetState(s =>
+			{
+				s.Error = "Bag not found";
+				s.IsLoaded = true;
+			});
+			return;
+		}
 
-		_beanName.Value = bag.BeanName ?? "";
-		_beanId.Value = bag.BeanId;
-		_roastDate.Value = bag.RoastDate.ToString("yyyy-MM-dd");
-		_notes.Value = bag.Notes ?? "";
-		_isComplete.Value = bag.IsComplete;
-		_shotCount.Value = bag.ShotCount;
-		_rating.Value = store.GetBagRating(_bagId);
+		var rating = store.GetBagRating(_bagId);
 
-		_isLoaded.Value = true;
+		SetState(s =>
+		{
+			s.BeanName = bag.BeanName ?? "";
+			s.BeanId = bag.BeanId;
+			s.RoastDate = bag.RoastDate.ToString("yyyy-MM-dd");
+			s.Notes = bag.Notes ?? "";
+			s.IsComplete = bag.IsComplete;
+			s.ShotCount = bag.ShotCount;
+			s.Rating = rating;
+			s.IsLoaded = true;
+		});
 	}
 
 	void Save()
 	{
-		_error.Value = "";
+		SetState(s => s.Error = "");
+
 		var store = InMemoryDataStore.Instance;
 		if (store == null) return;
 
@@ -62,23 +72,23 @@ public class BagDetailPage : Comet.View
 			store.UpdateBag(new Bag
 			{
 				Id = _bagId,
-				BeanId = _beanId.Value,
-				RoastDate = DateTime.TryParse(_roastDate.Value, out var d) ? d : DateTime.Now,
-				Notes = string.IsNullOrWhiteSpace(_notes.Value) ? null : _notes.Value,
-				IsComplete = _isComplete.Value,
+				BeanId = State.BeanId,
+				RoastDate = DateTime.TryParse(State.RoastDate, out var d) ? d : DateTime.Now,
+				Notes = string.IsNullOrWhiteSpace(State.Notes) ? null : State.Notes,
+				IsComplete = State.IsComplete,
 				IsActive = true
 			});
 		}
-		Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+		Navigation?.Pop();
 	}
 
 	async void DeleteBag()
 	{
-		var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+		var page = CometBaristaNotes.Services.PageHelper.GetCurrentPage();
 		if (page == null) return;
 
-		var message = _shotCount.Value > 0
-			? $"This bag has {_shotCount.Value} shot(s) logged. Deleting it will hide it from all lists. Continue?"
+		var message = State.ShotCount > 0
+			? $"This bag has {State.ShotCount} shot(s) logged. Deleting it will hide it from all lists. Continue?"
 			: "Are you sure you want to delete this bag?";
 
 		var confirmed = await page.DisplayAlertAsync("Delete Bag", message, "Delete", "Cancel");
@@ -88,7 +98,7 @@ public class BagDetailPage : Comet.View
 		if (store == null) return;
 
 		store.ArchiveBag(_bagId);
-		await Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+		Navigation?.Pop();
 	}
 
 	void ReactivateBag()
@@ -97,67 +107,73 @@ public class BagDetailPage : Comet.View
 		if (store == null) return;
 
 		store.ReactivateBag(_bagId);
-		_isComplete.Value = false;
+		SetState(s => s.IsComplete = false);
 	}
 
-	[Body]
-	Comet.View body()
+	public override View Render()
 	{
-		if (!_isLoaded.Value)
+		if (!State.IsLoaded)
 			LoadBag();
 
 		if (_bagId <= 0)
 		{
-			var errorStack = new VerticalStackLayout
-			{
-				Padding = new Thickness(Theme.SpacingM),
-				BackgroundColor = Theme.Background,
-			};
-			errorStack.Add(new MauiLabel { Text = "Bag not found", FontFamily = Theme.FontRegular, TextColor = Theme.TextSecondary });
-			return new MauiViewHost(errorStack);
+			return VStack(
+				Text("Bag not found")
+					.FontFamily(Theme.FontRegular)
+					.Color(Theme.TextSecondary)
+			)
+			.Padding(new Thickness(Theme.SpacingM))
+			.Background(Theme.Background);
 		}
 
-		var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, Padding = new Thickness(Theme.SpacingM) };
+		var items = new List<View>();
 
-		stack.Add(FormHelpers.MakeSectionHeader("BAG DETAILS"));
-		stack.Add(FormHelpers.MakeReadOnlyField("Bean", _beanName.Value));
-		stack.Add(FormHelpers.MakeReadOnlyField("Roast Date", _roastDate.Value));
-		stack.Add(FormHelpers.MakeFormEntryWithLimit("Notes", _notes.Value, "Bag notes", 500, v => _notes.Value = v));
+		items.Add(FormHelpers.MakeSectionHeader("BAG DETAILS"));
+		items.Add(FormHelpers.MakeReadOnlyField("Bean", State.BeanName));
+		items.Add(FormHelpers.MakeReadOnlyField("Roast Date", State.RoastDate));
+		items.Add(FormHelpers.MakeFormEntryWithLimit("Notes", State.Notes, "Bag notes", 500, v => SetState(s => s.Notes = v)));
 
 		// Shot count card
-		var shotCountStack = new HorizontalStackLayout();
-		var shotInfoStack = new VerticalStackLayout { Spacing = 2 };
-		shotInfoStack.Add(new MauiLabel { Text = "Shots Logged", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
-		shotInfoStack.Add(new MauiLabel { Text = $"{_shotCount.Value}", FontFamily = Theme.FontSemibold, FontSize = 24, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
-		shotCountStack.Add(shotInfoStack);
-		stack.Add(FormHelpers.MakeCard(shotCountStack));
-
-		// Status toggle card
-		stack.Add(FormHelpers.MakeToggleRow(
-			_isComplete.Value ? "Status: Complete" : "Status: Active",
-			_isComplete.Value,
-			v => _isComplete.Value = v
+		items.Add(FormHelpers.MakeCard(
+			VStack(2,
+				Text("Shots Logged")
+					.FontFamily(Theme.FontRegular)
+					.FontSize(14)
+					.Color(Theme.TextSecondary),
+				Text($"{State.ShotCount}")
+					.FontFamily(Theme.FontSemibold)
+					.FontSize(24)
+					.FontWeight(FontWeight.Bold)
+					.Color(Theme.TextPrimary)
+			)
 		));
 
-		if (!string.IsNullOrEmpty(_error.Value))
-			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontSize = 14 });
+		// Status toggle card
+		items.Add(FormHelpers.MakeToggleRow(
+			State.IsComplete ? "Status: Complete" : "Status: Active",
+			State.IsComplete,
+			v => SetState(s => s.IsComplete = v)
+		));
 
-		stack.Add(FormHelpers.MakePrimaryButton("Save Changes", Save));
+		if (!string.IsNullOrEmpty(State.Error))
+			items.Add(Text(State.Error).Color(Theme.Error).FontSize(14));
 
-		if (_isComplete.Value)
-			stack.Add(FormHelpers.MakeSecondaryButton("Reactivate Bag", ReactivateBag));
+		items.Add(FormHelpers.MakePrimaryButton("Save Changes", Save));
 
-		stack.Add(FormHelpers.MakeDangerButton("Delete Bag", DeleteBag));
+		if (State.IsComplete)
+			items.Add(FormHelpers.MakeSecondaryButton("Reactivate Bag", ReactivateBag));
 
-		stack.Add(FormHelpers.MakeSectionHeader("RATINGS"));
-		stack.Add(RatingDisplayFactory.Create(_rating.Value));
+		items.Add(FormHelpers.MakeDangerButton("Delete Bag", DeleteBag));
 
-		var scrollView = new MauiScrollView
-		{
-			Content = stack,
-			BackgroundColor = Theme.Background,
-		};
+		items.Add(FormHelpers.MakeSectionHeader("RATINGS"));
+		items.Add(RatingDisplayFactory.Create(State.Rating));
 
-		return new MauiViewHost(scrollView);
+		var stack = VStack(Theme.SpacingS);
+		foreach (var item in items) stack.Add(item);
+
+		return ScrollView(
+			stack.Padding(new Thickness(Theme.SpacingM))
+		)
+		.Background(Theme.Background);
 	}
 }

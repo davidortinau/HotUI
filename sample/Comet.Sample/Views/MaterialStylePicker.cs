@@ -2,10 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class MaterialStylePicker : View
+	public class MaterialStylePicker : Component
 	{
 		public MaterialStylePicker()
 		{
@@ -32,10 +33,9 @@ namespace Comet.Samples
 			ColorPalette.Teal,
 			ColorPalette.Yellow,
 		};
-		[Body]
-		View body() => new ListView<ColorPalette>(colorPalettes)
+				public override View Render() => new ListView<ColorPalette>(colorPalettes)
 		{
-			ViewFor = (colorPalette) => new Text(colorPalette.Name).Background(colorPalette.P900).Color(colorPalette.PD900),
+			ViewFor = (colorPalette) => Text(colorPalette.Name).Background(colorPalette.P900).Color(colorPalette.PD900),
 		}.OnSelectedNavigate((colorPallete)
 			=> new MaterialSample().ApplyStyle(new MaterialStyle(colorPallete))
 		);

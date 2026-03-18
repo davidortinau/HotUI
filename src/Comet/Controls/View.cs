@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Reflection;
 using Comet.Helpers;
+using Comet.HotReload;
 using Comet.Internal;
-//using System.Reflection;
+using Comet.Reactive;
 using Comet.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui;
@@ -37,6 +39,9 @@ namespace Comet
 		static internal readonly WeakList<IView> ActiveViews = new WeakList<IView>();
 		static internal readonly object ActiveViewsLock = new object();
 		HashSet<(string Field, string Key)> usedEnvironmentData = new HashSet<(string Field, string Key)>();
+		HashSet<IReactiveSource>? _bodyDependencies;
+		BodyDependencySubscriber? _bodySubscriber;
+		List<IDisposable>? _propertySubscriptions;
 		protected static Dictionary<string, string> HandlerPropertyMapper = new()
 		{
 			[nameof(MeasuredSize)] = nameof(IView.DesiredSize),
@@ -137,18 +142,12 @@ namespace Comet
 			this.Navigation = parent?.Navigation ?? parent as NavigationView;
 		}
 		public NavigationView Navigation { get; set; }
-		protected BindingState State { get; set; }
-		internal BindingState GetState() => State;
-
 		public View()
 		{
 			lock (ActiveViewsLock)
 				ActiveViews.Add(this);
 			Debug.WriteLine($"Active View Count: {ActiveViews.Count}");
-			//HotReloadHelper.Register(this);
-			//TODO: Should this need its view?
-			State = new BindingState();
-			StateManager.ConstructingView(this);
+			MauiHotReloadHelper.Register(this);
 			SetEnvironmentFields();
 
 		}
@@ -160,6 +159,20 @@ namespace Comet
 			set => __viewThatWasReplaced = new WeakReference(value);
 		}
 		public string AccessibilityId { get; set; }
+		public string AutomationId => this.GetAutomationId() ?? AccessibilityId;
+		public bool IsEnabled => this.GetEnvironment<bool?>(nameof(IView.IsEnabled)) ?? true;
+		public global::Microsoft.Maui.Visibility Visibility => this.GetEnvironment<global::Microsoft.Maui.Visibility?>(nameof(IView.Visibility)) ?? global::Microsoft.Maui.Visibility.Visible;
+		public bool IsVisible => Visibility == global::Microsoft.Maui.Visibility.Visible;
+		public bool Hidden => !IsVisible;
+		public bool Disabled => !IsEnabled;
+		public Semantics Semantics => this.GetEnvironment<Semantics>(nameof(IView.Semantics));
+		public bool InputTransparent => this.GetPropertyValue<bool?>() ?? false;
+		public Rect Bounds => Frame;
+		public Rect WindowBounds => Frame;
+		public IViewHandler Handler => ViewHandler as IViewHandler;
+		public object PlatformView => Handler?.PlatformView;
+		public object NativeView => PlatformView;
+		public string NativeType => PlatformView?.GetType().FullName;
 
 		// Lifecycle events
 		public event EventHandler Loaded;
@@ -192,6 +205,10 @@ namespace Comet
 				viewHandler?.SetVirtualView(this);
 			if (replacedView != null)
 				replacedView.ViewHandler = handler;
+			if (handler != null)
+				MauiHotReloadHelper.AddActiveView((IHotReloadableView)this);
+			else
+				MauiHotReloadHelper.UnRegister(this);
 			AddAllAnimationsToManager();
 			OnHandlerChange();
 
@@ -226,18 +243,30 @@ namespace Comet
 
 		internal void UpdateFromOldView(View view)
 		{
-			if (view is NavigationView nav)
+			// Suppress reactive notifications during internal state transfer.
+			// Setting Gestures/ViewHandler goes through SetEnvironment → ReactiveEnvironment →
+			// NotifyChanged → MarkViewDirty, which would re-dirty the view we're currently
+			// rebuilding, causing infinite Flush recursion.
+			Reactive.ReactiveScheduler.SuppressNotifications = true;
+			try
 			{
-				((NavigationView)this).SetPerformNavigate(nav);
-				((NavigationView)this).SetPerformPop(nav);
-
+				if (view is NavigationView nav)
+				{
+					((NavigationView)this).SetPerformNavigate(nav);
+					((NavigationView)this).SetPerformPop(nav);
+					((NavigationView)this).SetPerformContentReset(nav);
+				}
+				var oldView = view.ViewHandler;
+				this.ReloadHandler = view.ReloadHandler;
+				this.Gestures = view.Gestures;
+				view.ViewHandler = null;
+				view.replacedView?.Dispose();
+				this.ViewHandler = oldView;
 			}
-			var oldView = view.ViewHandler;
-			this.ReloadHandler = view.ReloadHandler;
-			this.Gestures = view.Gestures;
-			view.ViewHandler = null;
-			view.replacedView?.Dispose();
-			this.ViewHandler = oldView;
+			finally
+			{
+				Reactive.ReactiveScheduler.SuppressNotifications = false;
+			}
 		}
 		View builtView;
 		public View BuiltView => builtView?.BuiltView ?? builtView;
@@ -253,8 +282,6 @@ namespace Comet
 			var oldReplacedView = replacedView;
 			try
 			{
-				if (usedEnvironmentData.Any())
-					PopulateFromEnvironment();
 				//Built view shows off the view that has the Handler, But we still need to dispose the parent!
 				var oldView = BuiltView;
 				var oldParentView = builtView;
@@ -303,26 +330,38 @@ namespace Comet
 		}
 
 		///
-		public bool HasContent => Body != null && (MauiHotReloadHelper.IsEnabled || hasGlobalState);
-
-		bool hasGlobalState => State.GlobalProperties.Count > 0;
+		public bool HasContent => Body != null;
 		public View GetView() => GetRenderView();
 		View replacedView;
+		internal void SetHotReloadReplacement(View replacement, bool transferState = true)
+		{
+			if (replacement == null || replacement == this)
+				return;
+
+			replacement.viewThatWasReplaced = this;
+			replacement.ViewHandler = ViewHandler;
+			replacement.Navigation = Navigation;
+			replacement.Parent = this;
+			replacement.ReloadHandler = ReloadHandler;
+			replacement.PopulateFromEnvironment();
+			if (transferState)
+				TransferHotReloadStateTo(replacement);
+			if (replacement.BuiltView != null)
+				replacement.Reload(true);
+
+			replacedView = replacement;
+		}
 		protected virtual View GetRenderView()
 		{
 			if (replacedView != null)
 				return replacedView.GetRenderView();
-			var replaced = MauiHotReloadHelper.GetReplacedView(this) as View;
-			if (replaced != this)
+			MauiHotReloadHelper.Register(this);
+			var replaced = viewThatWasReplaced == null
+				? CometHotReloadHelper.CreateReplacement(this) ?? MauiHotReloadHelper.GetReplacedView(this) as View
+				: null;
+			if (replaced != null && replaced != this)
 			{
-				replaced.viewThatWasReplaced = this;
-				replaced.ViewHandler = ViewHandler;
-				replaced.Navigation = this.Navigation;
-				replaced.Parent = this;
-				replaced.ReloadHandler = this.ReloadHandler;
-				replaced.PopulateFromEnvironment();
-
-				replacedView = replaced;
+				SetHotReloadReplacement(replaced);
 				return builtView = replacedView.GetRenderView();
 			}
 			CheckForBody();
@@ -333,31 +372,22 @@ namespace Comet
 			if (BuiltView == null)
 			{
 				Debug.WriteLine($"Building View: {this.GetType().Name}");
-				using (new StateBuilder(this))
+				try
 				{
-					try
+					var view = GetRenderViewReactive();
+					view.Parent = this;
+					if (view is NavigationView navigationView)
+						Navigation = navigationView;
+					builtView = view.GetRenderView();
+					UpdateBuiltViewContext(builtView);
+				}
+				catch (Exception ex)
+				{
+					if (Debugger.IsAttached)
 					{
-						var view = Body.Invoke();
-						view.Parent = this;
-						if (view is NavigationView navigationView)
-							Navigation = navigationView;
-						var props = StateManager.EndProperty();
-						var propCount = props.Count;
-						if (propCount > 0)
-						{
-							State.AddGlobalProperties(props);
-						}
-						builtView = view.GetRenderView();
-						UpdateBuiltViewContext(builtView);
+						builtView = new VStack { new Text(ex.Message.ToString()).LineBreakMode(LineBreakMode.WordWrap) };
 					}
-					catch (Exception ex)
-					{
-						if (Debugger.IsAttached)
-						{
-							builtView = new VStack { new Text(ex.Message.ToString()).LineBreakMode(LineBreakMode.WordWrap) };
-						}
-						else throw;
-					}
+					else throw;
 				}
 			}
 
@@ -368,14 +398,67 @@ namespace Comet
 			return BuiltView;
 		}
 
+		internal View GetRenderViewReactive()
+		{
+			using var scope = ReactiveScope.BeginTracking();
+			View view;
+			try
+			{
+				if (usedEnvironmentData.Any())
+					PopulateFromEnvironment();
+				view = Body.Invoke();
+			}
+			catch
+			{
+				scope.EndTracking();
+				throw;
+			}
+			var newDependencies = scope.EndTracking();
+
+			if (_bodySubscriber == null)
+				_bodySubscriber = new BodyDependencySubscriber(this);
+
+			if (_bodyDependencies != null)
+			{
+				foreach (var dependency in _bodyDependencies)
+				{
+					if (!newDependencies.Contains(dependency))
+						dependency.Unsubscribe(_bodySubscriber);
+				}
+			}
+
+			foreach (var dependency in newDependencies)
+			{
+				if (_bodyDependencies == null || !_bodyDependencies.Contains(dependency))
+					dependency.Subscribe(_bodySubscriber);
+			}
+
+			_bodyDependencies = newDependencies;
+			return view;
+		}
+
+		sealed class BodyDependencySubscriber : IReactiveSubscriber
+		{
+			readonly View _view;
+
+			public BodyDependencySubscriber(View view)
+			{
+				_view = view;
+			}
+
+			public void OnDependencyChanged(IReactiveSource source)
+			{
+				if (_view.IsDisposed)
+					return;
+				ReactiveScheduler.MarkViewDirty(_view);
+			}
+		}
+
 		bool didCheckForBody;
 		void CheckForBody()
 		{
 			if (didCheckForBody)
 				return;
-			if (usedEnvironmentData.Any())
-				PopulateFromEnvironment();
-			StateManager.CheckBody(this);
 			didCheckForBody = true;
 			if (Body != null)
 				return;
@@ -383,6 +466,8 @@ namespace Comet
 			if (bodyMethod != null)
 				Body = bodyMethod;
 		}
+
+		protected const string ResetPropertyString = "ResetPropertyString";
 
 		internal void BindingPropertyChanged(INotifyPropertyRead bindingObject, string property, string fullProperty, object value)
 		{
@@ -393,32 +478,17 @@ namespace Comet
 		{
 			try
 			{
-				if (!State.UpdateValue(this, (bindingObject, property), fullProperty, value, out bool bindingsHandled))
-				{
-					if (StateManager.IsBatching)
-						StateManager.AddViewNeedingReload(this);
-					else
-						Reload(false);
-				}
-				else if (!StateManager.IsBatching && !bindingsHandled)
-				{
-					// Only cascade when no bindings handled the update.
-					// When bindings exist, Binding.EvaluateAndNotify already called
-					// ViewPropertyChanged on the target view — cascading here would
-					// cause redundant reflection lookups and duplicate handler updates.
-					ViewPropertyChanged(property, value);
-				}
-				// During batching, the deferred Binding.Flush() handles ViewPropertyChanged
+				Reactive.ReactiveScheduler.MarkViewDirty(this);
 			}
 			catch (Exception ex)
 			{
 				Logger.Error(ex);
 			}
 		}
-		protected const string ResetPropertyString = "ResetPropertyString";
 
 		private bool _isBatching;
 		private readonly List<(string property, object value)> _batchedChanges = new List<(string, object)>();
+		private HashSet<string> _propertiesBeingUpdated;
 
 		/// <summary>
 		/// Begins a batch update. Property changes will be queued until BatchCommit() is called,
@@ -478,6 +548,12 @@ namespace Comet
 				return;
 			}
 
+			// Re-entrancy guard: prevent infinite recursion when SetPropertyValue
+			// triggers SetPropertyInContext → SetEnvironment → ContextPropertyChanged → ViewPropertyChanged
+			_propertiesBeingUpdated ??= new HashSet<string>();
+			if (!_propertiesBeingUpdated.Add(property))
+				return;
+
 			try
 			{
 				this.SetPropertyValue(property, value);
@@ -486,6 +562,10 @@ namespace Comet
 			{
 				Debug.WriteLine($"Error setting property:{property} : {value} on :{this}");
 				Debug.WriteLine(ex);
+			}
+			finally
+			{
+				_propertiesBeingUpdated.Remove(property);
 			}
 			var newPropName = GetHandlerPropertyName(property);
 			ViewHandler?.UpdateValue(newPropName);
@@ -502,6 +582,20 @@ namespace Comet
 		protected virtual bool PropertyChangeShouldTriggerLayout(string property) =>
 			PropertiesThatTriggerLayout.Contains(property);
 
+		/// <summary>
+		/// Attaches a <see cref="PropertySubscription{T}"/> to this view, binding it
+		/// to the specified property name. The subscription is kept alive and disposed
+		/// when the view is disposed. Used by Signal extension methods and generated controls.
+		/// </summary>
+		internal void AttachPropertySubscription<T>(PropertySubscription<T> subscription, string propertyName)
+		{
+			if (subscription == null)
+				return;
+
+			subscription.BindToView(this, propertyName);
+			_propertySubscriptions ??= new List<IDisposable>();
+			_propertySubscriptions.Add(subscription);
+		}
 
 		internal override void ContextPropertyChanged(string property, object value, bool cascades)
 		{
@@ -562,7 +656,6 @@ namespace Comet
 				var attribute = f.GetCustomAttributes(true).OfType<EnvironmentAttribute>().FirstOrDefault();
 				var key = attribute.Key ?? f.Name;
 				usedEnvironmentData.Add((f.Name, key));
-				State.AddGlobalProperty((View.Environment, key));
 			}
 		}
 		void PopulateFromEnvironment()
@@ -613,13 +706,7 @@ namespace Comet
 					value = viewThatWasReplaced.GetEnvironment(item.Key);
 				}
 				if (value != null)
-				{
-					StateManager.ListenToEnvironment(this);
-					State.AddGlobalProperty((View.Environment, key));
-					if (value is INotifyPropertyRead notify)
-						StateManager.RegisterChild(this, notify, key);
 					this.SetDeepPropertyValue(item.Field, value);
-				}
 			}
 		}
 		public bool IsDisposed => disposedValue;
@@ -631,6 +718,23 @@ namespace Comet
 
 			lock (ActiveViewsLock)
 				ActiveViews.Remove(this);
+
+
+
+			if (_bodyDependencies != null && _bodySubscriber != null)
+			{
+				foreach (var dependency in _bodyDependencies)
+					dependency.Unsubscribe(_bodySubscriber);
+				_bodyDependencies = null;
+				_bodySubscriber = null;
+			}
+
+			if (_propertySubscriptions != null)
+			{
+				foreach (var sub in _propertySubscriptions)
+					sub.Dispose();
+				_propertySubscriptions = null;
+			}
 
 			var gestures = Gestures;
 			if (gestures?.Any() ?? false)
@@ -654,13 +758,10 @@ namespace Comet
 				builtView = null;
 				body = null;
 				Context(false)?.Clear();
-				StateManager.Disposing(this);
 				VisualStateManager.ClearVisualStateGroups(this);
-				State?.Clear();
 			}
 			finally
 			{
-				State = null;
 			}
 		}
 		void OnDispose(bool disposing)
@@ -690,7 +791,7 @@ namespace Comet
 			}
 		}
 
-
+	
 		private bool measurementValid;
 		public bool MeasurementValid
 		{
@@ -866,7 +967,7 @@ namespace Comet
 			notificationView?.ResumeAnimations();
 		}
 
-		bool IView.IsEnabled => this.GetEnvironment<bool?>(nameof(IView.IsEnabled)) ?? true;
+		bool IView.IsEnabled => IsEnabled;
 
 		Rect IView.Frame
 		{
@@ -910,7 +1011,7 @@ namespace Comet
 
 		Thickness IView.Margin => this.GetMargin();
 
-		string IView.AutomationId => this.GetAutomationId();
+		string IView.AutomationId => AutomationId;
 
 		//TODO: lets update these to be actual property
 		FlowDirection IView.FlowDirection => this.GetEnvironment<FlowDirection>(nameof(IView.FlowDirection));
@@ -919,11 +1020,11 @@ namespace Comet
 
 		LayoutAlignment IView.VerticalLayoutAlignment => this.GetVerticalLayoutAlignment(this.Parent as ContainerView);
 
-		Semantics IView.Semantics => this.GetEnvironment<Semantics>(nameof(IView.Semantics));
+		Semantics IView.Semantics => Semantics;
 
 		bool ISafeAreaView.IgnoreSafeArea => this.GetIgnoreSafeArea(false);
 
-		Visibility IView.Visibility => this.GetEnvironment<Visibility?>(nameof(IView.Visibility)) ?? Visibility.Visible;
+		Visibility IView.Visibility => Visibility;
 
 		double IView.Opacity => this.GetOpacity();
 
@@ -967,17 +1068,60 @@ namespace Comet
 			Measure(widthConstraint, heightConstraint);
 		void IView.InvalidateMeasure() => InvalidateMeasurement();
 		void IView.InvalidateArrange() { }
-		void IHotReloadableView.TransferState(IView newView)
+		internal void TransferHotReloadStateTo(View newView)
 		{
-			var oldState = this.GetState();
-			if (oldState == null)
+			if (newView == null)
 				return;
-			var changes = oldState.ChangedProperties;
-			foreach (var change in changes)
+			TransferHotReloadStateToCore(newView);
+		}
+		[UnconditionalSuppressMessage("Trimming", "IL2070",
+			Justification = "Hot reload is debug-only; trimming/AOT are disabled in debug builds")]
+		protected virtual void TransferHotReloadStateToCore(View newView)
+		{
+			if (_context != null)
 			{
-				newView.SetDeepPropertyValue(change.Key, change.Value);
+				var target = newView.Context(true);
+				foreach (var pair in _context.dictionary)
+					target.dictionary[pair.Key] = pair.Value;
+			}
+
+			if (_localContext != null)
+			{
+				var target = newView.LocalContext(true);
+				foreach (var pair in _localContext.dictionary)
+					target.dictionary[pair.Key] = pair.Value;
+			}
+
+			var oldType = this.GetType();
+			var newType = newView.GetType();
+
+			static bool IsSignalType(Type type)
+			{
+				while (type != null && type != typeof(object))
+				{
+					if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Signal<>))
+						return true;
+					type = type.BaseType;
+				}
+
+				return false;
+			}
+
+			var fields = oldType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+				.Where(field => IsSignalType(field.FieldType));
+
+			foreach (var field in fields)
+			{
+				var newField = newType.GetField(field.Name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+				if (newField != null && newField.FieldType == field.FieldType)
+				{
+					var signalRef = field.GetValue(this);
+					if (signalRef != null)
+						newField.SetValue(newView, signalRef);
+				}
 			}
 		}
+		void IHotReloadableView.TransferState(IView newView) => TransferHotReloadStateTo(newView as View);
 		void IHotReloadableView.Reload() => ThreadHelper.RunOnMainThread(() => Reload(true));
 		protected int? TypeHashCode;
 		public virtual int GetContentTypeHashCode() => this.replacedView?.GetContentTypeHashCode() ?? (TypeHashCode ??= this.GetType().GetHashCode());
@@ -986,7 +1130,27 @@ namespace Comet
 		bool IView.Focus() => true;
 		void IView.Unfocus() { }
 
-		IReadOnlyList<IVisualTreeElement> IVisualTreeElement.GetVisualChildren() => Array.Empty<IVisualTreeElement>();
+		IReadOnlyList<IVisualTreeElement> IVisualTreeElement.GetVisualChildren()
+		{
+			if (BuiltView is IVisualTreeElement builtView && builtView != this)
+				return new[] { builtView };
+
+			if (this is not IContainerView container)
+				return Array.Empty<IVisualTreeElement>();
+
+			var children = container.GetChildren();
+			if (children == null || children.Count == 0)
+				return Array.Empty<IVisualTreeElement>();
+
+			var visualChildren = new List<IVisualTreeElement>(children.Count);
+			foreach (var child in children)
+			{
+				if (child is IVisualTreeElement visualChild)
+					visualChildren.Add(visualChild);
+			}
+
+			return visualChildren.Count == 0 ? Array.Empty<IVisualTreeElement>() : visualChildren;
+		}
 		IVisualTreeElement IVisualTreeElement.GetVisualParent() => this.Parent;
 
 		internal IBorderStroke Border
@@ -1002,7 +1166,7 @@ namespace Comet
 
 		bool IView.IsFocused { get; set; }
 
-		bool IView.InputTransparent => this.GetPropertyValue<bool?>() ?? false;
+		bool IView.InputTransparent => InputTransparent;
 
 		Thickness IPadding.Padding => this.GetPadding();
 	}

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using static Comet.CometControls;
 
 
 /*
@@ -21,13 +22,12 @@ struct CircleImage: View {
 
 namespace Comet.Samples.Comparisons
 {
-	public class Section4c : View
+	public class Section4c : Component
 	{
-		[Body]
-		View body() => new VStack {
-				new Image("turtlerock.jpg")
+				public override View Render() => VStack(
+				Image("turtlerock.jpg")
 					.Shadow(radius: 10)
-			};
+			);
 
 	}
 }

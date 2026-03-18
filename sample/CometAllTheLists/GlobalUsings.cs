@@ -8,3 +8,4 @@ global using Microsoft.Maui.Graphics;
 global using Microsoft.Maui.Hosting;
 global using Microsoft.Maui.Layouts;
 global using Microsoft.Maui.Primitives;
+global using static Comet.CometControls;

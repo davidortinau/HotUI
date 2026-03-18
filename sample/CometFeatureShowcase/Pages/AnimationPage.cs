@@ -1,14 +1,14 @@
 using Microsoft.Maui.Controls;
 using MauiLabel = Microsoft.Maui.Controls.Label;
 using MauiBoxView = Microsoft.Maui.Controls.BoxView;
-using CometView = Comet.View;
 
 namespace CometFeatureShowcase.Pages;
 
-public class AnimationPage : CometView
+public class AnimationPageState { }
+
+public class AnimationPage : Component<AnimationPageState>
 {
-    [Body]
-    CometView body()
+    public override Comet.View Render()
     {
         var root = new Microsoft.Maui.Controls.Grid { BackgroundColor = Color.FromArgb("#F5F5F5") };
 

@@ -29,7 +29,7 @@ internal static class CometMetadataUpdateHandler
 			// Only register types that could be Comet views
 			if (type.FullName is not null)
 			{
-				MauiHotReloadHelper.RegisterReplacedView(type.FullName, type);
+				CometHotReloadHelper.RegisterReplacedView(type.FullName, type);
 			}
 		}
 	}

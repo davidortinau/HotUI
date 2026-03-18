@@ -53,7 +53,12 @@ namespace Comet.iOS
 				ihr.ReloadHandler = this;
 				MauiHotReloadHelper.AddActiveView(ihr);
 			}
-			var newPlatformView = _view?.ToPlatform(MauiContext);
+			// Resolve views with a Body (e.g. Component<T>) to their concrete view tree
+			// before calling ToPlatform, to avoid circular CometViewHandler→CometView loop.
+			var viewToRender = _view;
+			if (viewToRender is View cometView && cometView.Body != null)
+				viewToRender = cometView.GetView();
+			var newPlatformView = viewToRender?.ToPlatform(MauiContext);
 			currentHandler = _view?.Handler;
 			if (currentPlatformView == newPlatformView)
 				return;

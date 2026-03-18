@@ -1,5 +1,7 @@
 # Comet Feature Showcase App
 
+> **Note:** This sample predates the evolved Component/Render surface. For current component-first references, see `sample/CometMauiApp`, `sample/CometBaristaNotes`, and `docs/migration-guide.md`.
+
 A comprehensive sample application demonstrating all major Comet features with a clean, modern UI.
 
 ## Features Demonstrated

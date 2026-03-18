@@ -113,6 +113,42 @@ namespace Comet.Tests
 			Assert.Equal(100, ((IView)view).MaximumHeight);
 		}
 
+		// ---- AutomationId ----
+
+		[Fact]
+		public void AutomationIdReturnsSameInstance()
+		{
+			var view = new Text("Hello");
+			var result = view.AutomationId("test-id");
+			Assert.Same(view, result);
+		}
+
+		[Fact]
+		public void AutomationIdSetsValue()
+		{
+			var view = new Text("Hello").AutomationId("my-automation-id");
+			Assert.Equal("my-automation-id", view.GetAutomationId());
+		}
+
+		[Fact]
+		public void AutomationIdChainsWithOtherExtensions()
+		{
+			var view = new Text("Hello")
+				.AutomationId("chained-id")
+				.Opacity(0.5)
+				.IsVisible(true);
+			Assert.Equal("chained-id", view.GetAutomationId());
+			Assert.Equal(0.5, ((IView)view).Opacity);
+		}
+
+		[Fact]
+		public void AutomationIdPreservesConcreteType()
+		{
+			// Verify the generic constraint preserves the concrete type
+			Text textView = new Text("Hello").AutomationId("typed-id");
+			Assert.Equal("typed-id", textView.GetAutomationId());
+		}
+
 		// ---- Opacity ----
 
 		[Fact]

@@ -1,22 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class VStackSample : View
+	public class VStackSample : Component
 	{
 		readonly State<string> _textValue = "Edit Me";
 		readonly State<double> _sliderValue = 50;
 
-		[Body]
-		View body() => new VStack()
-		{
-			new Text(_textValue),
-			new TextField(_textValue, "Name"),
-			new SecureField(_textValue, "Name"),
-			new Slider(_sliderValue),
-			new ProgressBar(_sliderValue)
-		}.FillHorizontal();
+				public override View Render() => VStack(
+			Text(() => _textValue.Value),
+			TextField(_textValue, "Name"),
+			SecureField(_textValue, "Name"),
+			Slider((Binding<double>)_sliderValue),
+			ProgressBar((Binding<double>)_sliderValue)
+		).FillHorizontal();
 	}
 
 }

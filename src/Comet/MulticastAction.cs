@@ -1,20 +1,21 @@
 using System;
+using Comet.Reactive;
 
 namespace Comet
 {
 	internal class MulticastAction<T>
 	{
 		Action<T> action;
-		Binding<T> binding;
-		public MulticastAction(Binding<T> binding, Action<T> action)
+		PropertySubscription<T> subscription;
+		public MulticastAction(PropertySubscription<T> subscription, Action<T> action)
 		{
-			this.binding = binding;
+			this.subscription = subscription;
 			this.action = action;
 		}
 
 		public void Invoke(T value)
 		{
-			binding.Set(value);
+			subscription.Set(value);
 			action?.Invoke(value);
 		}
 

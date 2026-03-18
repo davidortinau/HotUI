@@ -1,21 +1,19 @@
 ﻿using System;
 using Comet.Samples.Models;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class ListViewDetails : View
+	public class ListViewDetails : Component
 	{
 		[Environment]
 		readonly Song song;
 
-		public ListViewDetails()
-		{
-			Body = () => new VStack {
-				new Image(() => song.ArtworkUrl),
-				new Text(() => song.Title),
-				new Text(() => song.Artist),
-				new Text(() => song.Album),
-			};
-		}
+		public override View Render() => VStack(
+			Image(() => song.ArtworkUrl),
+			Text(() => song.Title),
+			Text(() => song.Artist),
+			Text(() => song.Album)
+		);
 	}
 }

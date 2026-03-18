@@ -1,14 +1,14 @@
 using Microsoft.Maui.Controls;
 using MauiLabel = Microsoft.Maui.Controls.Label;
 using MauiBorder = Microsoft.Maui.Controls.Border;
-using CometView = Comet.View;
 
 namespace CometFeatureShowcase.Pages;
 
-public class DataPage : CometView
+public class DataPageState { }
+
+public class DataPage : Component<DataPageState>
 {
-    [Body]
-    CometView body()
+    public override Comet.View Render()
     {
         var root = new Microsoft.Maui.Controls.Grid { BackgroundColor = Color.FromArgb("#F5F5F5") };
 

@@ -2,22 +2,22 @@
 
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class Question1e : View
+	public class Question1e : Component
 	{
-		[Body]
-		View body()
+				public override View Render()
 		{
-			return new ScrollView {
-					new VStack {
-						new Image("turtlerock.jpg").Frame(75, 75).Padding(4),
-						new Text("Title").HorizontalTextAlignment(TextAlignment.Center),
-						new Text("Description").HorizontalTextAlignment(TextAlignment.Center).FontSize(12).Color(Colors.Grey),
-					}.FillHorizontal()
+			return ScrollView(
+					VStack(
+						Image("turtlerock.jpg").Frame(75, 75).Padding(4),
+						Text("Title").HorizontalTextAlignment(TextAlignment.Center),
+						Text("Description").HorizontalTextAlignment(TextAlignment.Center).FontSize(12).Color(Colors.Grey)
+					).FillHorizontal()
 
-			};
+			);
 		}
 	}
 }

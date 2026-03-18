@@ -136,17 +136,8 @@ public class NavigationRegistry : INavigationRegistry
 
 	public async Task NavigateToRoute(string route, Dictionary<string, object>? parameters = null)
 	{
-		if (Shell.Current == null)
-			return;
-
-		if (parameters != null && parameters.Count > 0)
-		{
-			var query = new ShellNavigationQueryParameters(parameters);
-			await Shell.Current.GoToAsync(route, query);
-		}
-		else
-		{
-			await Shell.Current.GoToAsync(route);
-		}
+		// Navigation via route strings is not supported in pure CometApp mode.
+		// Voice command navigation will be implemented using direct view navigation.
+		await Task.CompletedTask;
 	}
 }

@@ -1,25 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class TextFieldSample2 : View
+	public class TextFieldSample2 : Component
 	{
 		readonly State<string> _textValue = "Edit Me";
 
-		[Body]
-		View body() => new VStack()
-		{
-			new TextField(_textValue, "Name"),
-			new HStack()
-			{
-				new Text("Current Value:")
+				public override View Render() => VStack(
+			TextField(_textValue, "Name"),
+			HStack(
+				Text("Current Value:")
 					.Color(Colors.Grey),
-				new Text(_textValue),
-				new Spacer()
-			},
-		}.FillHorizontal();
+				Text(() => _textValue.Value),
+				Spacer()
+			)
+		).FillHorizontal();
 	}
 
 }

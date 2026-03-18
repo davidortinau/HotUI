@@ -16,6 +16,7 @@
 
   <ItemGroup>
 	<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+	<PackageReference Include="System.Collections.Immutable" Version="9.0.4" />
   </ItemGroup>
 
   <ItemGroup>

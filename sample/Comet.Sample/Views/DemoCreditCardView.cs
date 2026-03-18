@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
@@ -28,7 +29,7 @@ namespace Comet.Samples
 		}
 	}
 
-	public class DemoCreditCardView : View
+	public class DemoCreditCardView : Component
 	{
 		[State]
 		readonly CreditCard Card;
@@ -44,16 +45,12 @@ namespace Comet.Samples
 			Card = new CreditCard();
 		}
 
-		[Body]
-		View body() => new Grid(
+				public override View Render() => Grid(
+			columns: new object[] { 20, "*", 20 },
 			rows: new object[] { "250", 20, 160, 20, 44, 20, 1, 20, 44, "*" },
-			columns: new object[] { 20, "*", 20 }
-			)
-		{
-			new Grid(
+			Grid(
+				columns: new object[] { 30, "*", 30 },
 				rows: new object[] { 30,"*",30},
-				columns: new object[] { 30, "*", 30 })
-			{
                 // cc background
                 new ShapeView(
 					new RoundedRectangle(8)
@@ -62,67 +59,62 @@ namespace Comet.Samples
 				).Cell(row:1, column:1),
 
                 // the cc details
-                new Grid(
+                Grid(
+					columns: new object[]{ 30, 120, "*", 40, 30 },
 					rows: new object[]{ 30, 30, 20, 30, 10, 20, 30, "*" },
-					columns: new object[]{ 30, 120, "*", 40, 30 }
-				)
-				{
-					new Text("CARD NUMBER")
+					Text("CARD NUMBER")
 						.FontSize(10)
 						.Color(Colors.Silver)
 						.Cell(row:2, column:1, colSpan:2),
-					new Text(Card.Number)
+					Text(Card.Number)
 						.FontSize(14)
 						.Color(Colors.Black)
 						.Cell(row:3, column:1, colSpan:2),
 
-					new Text("EXPIRATION")
+					Text("EXPIRATION")
 						.FontSize(10)
 						.Color(Colors.Silver)
 						.Cell(row:5, column:1),
-					new Text(Card.Expiration)
+					Text(Card.Expiration)
 						.FontSize(14)
 						.Color(Colors.Black)
 						.Cell(row:6, column:1),
 
-					new Text("CVV")
+					Text("CVV")
 						.FontSize(10)
 						.Color(Colors.Silver)
 						.Cell(row:5, column:2),
-					new Text(Card.CVV)
+					Text(Card.CVV)
 						.FontSize(14)
 						.Color(Colors.Black)
 						.Cell(row:6, column:2),
-					new HStack
-					{
+					HStack(
 						new ShapeView(new RoundedRectangle(4.0f).Fill(Colors.Black)).Frame(40,30)
-					}.Cell(row: 1, column: 3)
+					).Cell(row: 1, column: 3)
 
 
-				}.Cell(row:1, column:1),
+				).Cell(row:1, column:1)
 
-			}
+			)
 			.Cell(row:0, column:0, colSpan:3)
 			.Background(Color.FromArgb("#E5E9EE"))
 			.Frame(height:250),
-			new Grid(
+			Grid(
+				columns: new object[] { "2*", 20, "*" },
 				rows: new object[] { 40, 20, 40, 20, 40, 20, 44, 20, 1, 20, 44 },
-				columns: new object[] { "2*", 20, "*" })
-			{
 				EntryContainer(Card.Number, "Enter CC Number", "\uf09d").Cell(row:0, column: 0, colSpan: 3),
 				EntryContainer(Card.Expiration, "MM/YYYY", "\uf783").Cell(row:2, column: 0),
 				EntryContainer(Card.CVV, "CVV", "\uf023").Cell(row:2, column: 2),
-				new HStack
-				{
-					new Toggle(remember),
-					new Text("  Remember Me")
-				}.Cell(row:4,column:0, colSpan: 3),
-				new Button("Or Pay with PayPal").RoundedBorder(22, Colors.SlateGrey).Cell(row:6, column:0, colSpan:3).Color(Colors.SlateGrey),
+				HStack(
+					Toggle((Binding<bool>)remember),
+					Text("  Remember Me")
+				).Cell(row:4,column:0, colSpan: 3),
+				Button("Or Pay with PayPal").RoundedBorder(22, Colors.SlateGrey).Cell(row:6, column:0, colSpan:3).Color(Colors.SlateGrey),
 				HRule().Cell(row:8,column:0,colSpan:3),
-				new Button("Purchase for $200").RoundedBorder(22, Colors.SlateGrey).Background(Colors.SlateGrey).Cell(row:10,column:0,colSpan:3).Color(Colors.White)
-			}.Cell(row:2, column:1),
+				Button("Purchase for $200").RoundedBorder(22, Colors.SlateGrey).Background(Colors.SlateGrey).Cell(row:10,column:0,colSpan:3).Color(Colors.White)
+			).Cell(row:2, column:1)
 
-		};
+		);
 
 		View HRule()
 		{
@@ -135,7 +127,7 @@ namespace Comet.Samples
 
 		Text CCText(Binding<string> val)
 		{
-			return new Text(val)
+			return Text(val)
 				.Frame(height: 24)
 				.FontSize(12)
 				.Color(ccColor);
@@ -143,22 +135,21 @@ namespace Comet.Samples
 
 		Text TitleText(Binding<string> val)
 		{
-			return new Text(val)
+			return Text(val)
 				.FontSize(24)
 				.Color(titleColor);
 		}
 
 		HStack EntryContainer(Binding<String> val, string placeholder, string icon = "")
 		{
-			return new HStack(spacing: 10)
-			{
-					new Text(icon)
+			return HStack(10,
+					Text(icon)
 						.Frame(width:20)
 						.Margin(left:8, top:8)
 						.FontFamily("Font Awesome 5 Free"),
-					new TextField(val, placeholder).Margin(top:9)
+					TextField(val, new Binding<string>(() => placeholder, null)).Margin(top:9)
 
-			}.RoundedBorder(color: Colors.Grey).FillHorizontal();
+			).RoundedBorder(color: Colors.Grey).FillHorizontal();
 		}
 
 		//class CCText : Text

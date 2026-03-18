@@ -1,99 +1,149 @@
 namespace CometTaskApp;
 
-/// <summary>
-/// Detail view for a single task with edit capability.
-/// Exercises: BindingObject property binding, TextField, Picker, navigation.
-/// </summary>
-public class TaskDetailPage : View
+public class TaskDetailProps
 {
-	[State] readonly AppState _state = AppState.Instance;
-	readonly TaskItem _task;
+public string TaskId { get; set; } = "";
+}
 
-	readonly State<string> _editTitle;
-	readonly State<string> _editDescription;
-	readonly State<int> _editPriority;
-	readonly State<int> _editCategory;
+public class TaskDetailState
+{
+public string LoadedTaskId { get; set; } = "";
+public string Title { get; set; } = "";
+public string Description { get; set; } = "";
+public int Priority { get; set; }
+public int Category { get; set; }
+}
 
-	public TaskDetailPage(TaskItem task)
-	{
-		_task = task;
-		_editTitle = new State<string>(task.Title);
-		_editDescription = new State<string>(task.Description);
-		_editPriority = new State<int>((int)task.Priority);
-		_editCategory = new State<int>((int)task.Category);
-	}
+/// <summary>
+/// Detail view for a single task with typed props and edit capability.
+/// Exercises: Component props/state, TextField, Picker, typed navigation.
+/// </summary>
+public class TaskDetailPage : Component<TaskDetailState, TaskDetailProps>
+{
+[State] readonly AppState _state = AppState.Instance;
 
-	[Body]
-	View body() =>
-		new NavigationView
-		{
-			new ScrollView
-			{
-				new VStack(spacing: 16)
-				{
-					new HStack(spacing: 8)
-					{
-						new Text(_task.IsCompleted ? "✅ Completed" : "⏳ Pending")
-							.FontSize(14)
-							.Color(_task.IsCompleted ? Colors.Green : Colors.Orange),
-						new Spacer(),
-						new Text($"Created: {_task.CreatedAt:MMM dd, yyyy}")
-							.FontSize(12)
-							.Color(Colors.Gray),
-					},
+public override View Render()
+{
+var task = _state.GetTask(Props.TaskId);
+if (task == null)
+{
+return NavigationView(
+VStack(16,
+Text("Task not found")
+.FontSize(24)
+.FontWeight(FontWeight.Bold)
+.SemanticHeadingLevel(SemanticHeadingLevel.Level1),
+Text("The selected task may have been removed from the list.")
+.FontSize(14)
+.Color(Colors.Gray),
+Button("Back to tasks", () => Navigation?.Pop())
+.AutomationId("BackToTasksButton")
+)
+.Padding(16)
+)
+.Title("Task Details");
+}
 
-					new Text("Title").FontSize(12).Color(Colors.Gray),
-					new TextField(_editTitle, "Task title...")
-						.FontSize(18)
-						.SemanticDescription("Task title"),
+EnsureStateMatches(task);
 
-					new Text("Description").FontSize(12).Color(Colors.Gray),
-					new TextField(_editDescription, "Task description...")
-						.FontSize(14)
-						.SemanticDescription("Task description"),
+return NavigationView(
+ScrollView(
+VStack(16,
+HStack(8,
+Text(task.IsCompleted ? "✅ Completed" : "⏳ Pending")
+.FontSize(14)
+.Color(task.IsCompleted ? Colors.Green : Colors.Orange),
+Spacer(),
+Text($"Created: {task.CreatedAt:MMM dd, yyyy}")
+.FontSize(12)
+.Color(Colors.Gray)
+),
 
-					new Text("Priority").FontSize(12).Color(Colors.Gray),
-					new Picker(_editPriority, "Low", "Medium", "High", "Critical")
-						.SemanticDescription("Task priority"),
+Text("Title").FontSize(12).Color(Colors.Gray),
+TextField(State.Title, "Task title...")
+.FontSize(18)
+.SemanticDescription("Task title")
+.AutomationId("TaskDetailTitleField")
+.OnTextChanged(value => SetState(state => state.Title = value ?? "")),
 
-					new Text("Category").FontSize(12).Color(Colors.Gray),
-					new Picker(_editCategory, "Personal", "Work", "Shopping", "Health", "Learning", "Other")
-						.SemanticDescription("Task category"),
+Text("Description").FontSize(12).Color(Colors.Gray),
+TextField(State.Description, "Task description...")
+.FontSize(14)
+.SemanticDescription("Task description")
+.AutomationId("TaskDetailDescriptionField")
+.OnTextChanged(value => SetState(state => state.Description = value ?? "")),
 
-					new Spacer().Frame(height: 20),
+Text("Priority").FontSize(12).Color(Colors.Gray),
+Picker(State.Priority, "Low", "Medium", "High", "Critical")
+.SemanticDescription("Task priority")
+.OnSelectedIndexChanged(index => SetState(state => state.Priority = index)),
 
-					new Button("Save Changes", () =>
-					{
-						_task.Title = _editTitle.Value ?? "";
-						_task.Description = _editDescription.Value ?? "";
-						_task.Priority = (TaskPriority)_editPriority.Value;
-						_task.Category = (TaskCategory)_editCategory.Value;
-						_state.Tasks.Value = new List<TaskItem>(_state.Tasks.Value!);
-						Navigation?.Dismiss();
-					})
-					.SemanticDescription("Save task changes"),
+Text("Category").FontSize(12).Color(Colors.Gray),
+Picker(State.Category, "Personal", "Work", "Shopping", "Health", "Learning", "Other")
+.SemanticDescription("Task category")
+.OnSelectedIndexChanged(index => SetState(state => state.Category = index)),
 
-					new HStack(spacing: 12)
-					{
-						new Button(_task.IsCompleted ? "Mark Pending" : "Mark Complete", () =>
-						{
-							_state.ToggleComplete(_task.Id);
-							Navigation?.Dismiss();
-						})
-						.Color(_task.IsCompleted ? Colors.Orange : Colors.Green)
-						.SemanticDescription("Toggle task completion"),
+Spacer().Frame(height: 20),
 
-						new Button("Delete", () =>
-						{
-							_state.RemoveTask(_task.Id);
-							Navigation?.Dismiss();
-						})
-						.Color(Colors.Red)
-						.SemanticDescription("Delete this task"),
-					},
-				}
-				.Padding(16)
-			}
-		}
-		.Title("Task Details");
+Button("Save Changes", SaveChanges)
+.SemanticDescription("Save task changes")
+.AutomationId("SaveTaskButton"),
+
+HStack(12,
+Button(task.IsCompleted ? "Mark Pending" : "Mark Complete", ToggleComplete)
+.Color(task.IsCompleted ? Colors.Orange : Colors.Green)
+.SemanticDescription("Toggle task completion")
+.AutomationId("ToggleTaskCompletionButton"),
+
+Button("Delete", DeleteTask)
+.Color(Colors.Red)
+.SemanticDescription("Delete this task")
+.AutomationId("DeleteTaskButton")
+)
+)
+.Padding(16)
+)
+)
+.Title("Task Details");
+}
+
+protected override bool ShouldUpdate(TaskDetailProps oldProps, TaskDetailProps newProps) =>
+oldProps?.TaskId != newProps?.TaskId;
+
+void EnsureStateMatches(TaskItem task)
+{
+if (State.LoadedTaskId == task.Id)
+return;
+
+State.LoadedTaskId = task.Id;
+State.Title = task.Title;
+State.Description = task.Description;
+State.Priority = (int)task.Priority;
+State.Category = (int)task.Category;
+}
+
+void SaveChanges()
+{
+_state.UpdateTask(Props.TaskId, task =>
+{
+task.Title = State.Title ?? "";
+task.Description = State.Description ?? "";
+task.Priority = (TaskPriority)State.Priority;
+task.Category = (TaskCategory)State.Category;
+});
+
+Navigation?.Pop();
+}
+
+void ToggleComplete()
+{
+_state.ToggleComplete(Props.TaskId);
+Navigation?.Pop();
+}
+
+void DeleteTask()
+{
+_state.RemoveTask(Props.TaskId);
+Navigation?.Pop();
+}
 }

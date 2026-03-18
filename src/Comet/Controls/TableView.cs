@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Comet.Reactive;
 
 namespace Comet
 {
@@ -40,18 +41,18 @@ Cells.AddRange(cells);
 /// </summary>
 public class TextCell : View
 {
-private Binding<string> _text;
-public Binding<string> CellText
+private PropertySubscription<string> _text;
+public PropertySubscription<string> CellText
 {
 get => _text;
-set => this.SetBindingValue(ref _text, value);
+set => this.SetPropertySubscription(ref _text, value);
 }
 
-private Binding<string> _detail;
-public Binding<string> Detail
+private PropertySubscription<string> _detail;
+public PropertySubscription<string> Detail
 {
 get => _detail;
-set => this.SetBindingValue(ref _detail, value);
+set => this.SetPropertySubscription(ref _detail, value);
 }
 
 public Action OnTapped { get; set; }
@@ -62,18 +63,18 @@ public Action OnTapped { get; set; }
 /// </summary>
 public class SwitchCell : View
 {
-private Binding<string> _text;
-public Binding<string> CellText
+private PropertySubscription<string> _text;
+public PropertySubscription<string> CellText
 {
 get => _text;
-set => this.SetBindingValue(ref _text, value);
+set => this.SetPropertySubscription(ref _text, value);
 }
 
-private Binding<bool> _on;
-public Binding<bool> On
+private PropertySubscription<bool> _on;
+public PropertySubscription<bool> On
 {
 get => _on;
-set => this.SetBindingValue(ref _on, value);
+set => this.SetPropertySubscription(ref _on, value);
 }
 }
 
@@ -82,25 +83,25 @@ set => this.SetBindingValue(ref _on, value);
 /// </summary>
 public class EntryCell : View
 {
-private Binding<string> _label;
-public Binding<string> Label
+private PropertySubscription<string> _label;
+public PropertySubscription<string> Label
 {
 get => _label;
-set => this.SetBindingValue(ref _label, value);
+set => this.SetPropertySubscription(ref _label, value);
 }
 
-private Binding<string> _text;
-public Binding<string> CellText
+private PropertySubscription<string> _text;
+public PropertySubscription<string> CellText
 {
 get => _text;
-set => this.SetBindingValue(ref _text, value);
+set => this.SetPropertySubscription(ref _text, value);
 }
 
-private Binding<string> _placeholder;
-public Binding<string> Placeholder
+private PropertySubscription<string> _placeholder;
+public PropertySubscription<string> Placeholder
 {
 get => _placeholder;
-set => this.SetBindingValue(ref _placeholder, value);
+set => this.SetPropertySubscription(ref _placeholder, value);
 }
 }
 
@@ -109,25 +110,25 @@ set => this.SetBindingValue(ref _placeholder, value);
 /// </summary>
 public class ImageCell : View
 {
-private Binding<string> _imageSource;
-public Binding<string> ImageSource
+private PropertySubscription<string> _imageSource;
+public PropertySubscription<string> ImageSource
 {
 get => _imageSource;
-set => this.SetBindingValue(ref _imageSource, value);
+set => this.SetPropertySubscription(ref _imageSource, value);
 }
 
-private Binding<string> _text;
-public Binding<string> CellText
+private PropertySubscription<string> _text;
+public PropertySubscription<string> CellText
 {
 get => _text;
-set => this.SetBindingValue(ref _text, value);
+set => this.SetPropertySubscription(ref _text, value);
 }
 
-private Binding<string> _detail;
-public Binding<string> Detail
+private PropertySubscription<string> _detail;
+public PropertySubscription<string> Detail
 {
 get => _detail;
-set => this.SetBindingValue(ref _detail, value);
+set => this.SetPropertySubscription(ref _detail, value);
 }
 }
 

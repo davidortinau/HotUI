@@ -127,14 +127,12 @@ public {fieldType} {propertyName}
 {{
     get 
     {{
-		StateManager.OnPropertyRead(this, nameof({propertyName}));
 		this.PropertyRead?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof({propertyName})));
         return this.{fieldName};
     }}
     set
     {{
         this.{fieldName} = value;
-		StateManager.OnPropertyChanged(this, nameof({propertyName}), value);
         this.PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof({propertyName})));
     }}
 }}

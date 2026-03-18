@@ -8,7 +8,9 @@ using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
 
 namespace CometWeather.Pages;
 
-public class SettingsPage : View
+public class SettingsPageState { }
+
+public class SettingsPage : Component<SettingsPageState>
 {
     static readonly Color DarkBg     = Color.FromArgb("#081B25");
     static readonly Color CardBg     = Color.FromArgb("#0D2B3E");
@@ -22,8 +24,7 @@ public class SettingsPage : View
     string _selectedUnits = "imperial";
     string _selectedTheme = "default";
 
-    [Body]
-    View body()
+    public override View Render()
     {
         var root = new MauiGrid { BackgroundColor = DarkBg };
 

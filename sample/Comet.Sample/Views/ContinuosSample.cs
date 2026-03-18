@@ -1,21 +1,21 @@
 ﻿using System;
+using static Comet.CometControls;
+
 namespace Comet.Samples
 {
-	public class ContinuosSample : View
+	public class ContinuosSample : Component
 	{
 		readonly State<string> _strokeColor = "#000000";
 
-		[Body]
-		View body()
+				public override View Render()
 		{
 
-			return new Grid(
+			return Grid(
 				columns: new object[] { "*", "*" },
-				rows: null)
-			{
-				new TextField(_strokeColor, "Enter code here").Cell(row:0, column: 0),
-				new Button("Controls appear here").Cell(row:0, column:1)
-			};
+				rows: null,
+				TextField(_strokeColor, "Enter code here").Cell(row:0, column: 0),
+				Button("Controls appear here").Cell(row:0, column:1)
+			);
 		}
 	}
 }

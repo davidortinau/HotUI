@@ -32,14 +32,13 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
-		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.7" />
 		<PackageReference Include="Syncfusion.Maui.Gauges" Version="32.2.8" />
 		<PackageReference Include="UXDivers.Popups.Maui" Version="0.9.1" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Comet" Version="0.5.0-local" />
+		<ProjectReference Include="..\..\src\Comet\Comet.csproj" />
 	</ItemGroup>
 
 </Project>

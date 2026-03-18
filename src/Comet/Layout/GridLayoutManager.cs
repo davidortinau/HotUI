@@ -31,12 +31,16 @@ namespace Comet.Layout
 		{
 			this.grid = grid;
 			autoGrid = grid as IAutoGrid;
-			_spacing = spacing ?? 4;
+			_spacing = spacing ?? 0;
 		}
 
 		public object DefaultRowHeight { get; set; }
 
 		public object DefaultColumnWidth { get; set; }
+
+		public double ColumnSpacing { get; set; }
+
+		public double RowSpacing { get; set; }
 
 		public void Invalidate()
 		{
@@ -51,6 +55,15 @@ namespace Comet.Layout
 		{
 			var available = new Size(widthConstraint, heightConstraint);
 			var layout = grid;
+			var childCount = layout.Count;
+
+			// Invalidate stale constraints if children changed
+			if (_constraints.Count > 0 && _constraints.Count != childCount)
+				Invalidate();
+
+			if (childCount == 0)
+				return Size.Zero;
+
 			if (_constraints.Count == 0)
 			{
 				var maxRow = 0;
@@ -82,7 +95,7 @@ namespace Comet.Layout
 				_lastSize = available;
 			}
 
-			for (var index = 0; index < _constraints.Count; index++)
+			for (var index = 0; index < _constraints.Count && index < layout.Count; index++)
 			{
 				var position = _constraints[index];
 				var view = layout[index];
@@ -131,7 +144,6 @@ namespace Comet.Layout
 					view.MeasurementValid = true;
 				}
 				view.Measure(w, h);
-				//view.SetFrameFromPlatformView(new Rect(x, y, w, h));
 			}
 
 			return new Size(_width, _height);
@@ -142,13 +154,21 @@ namespace Comet.Layout
 			var layout = grid;
 			var measured = bounds.Size;
 			var size = bounds.Size;
+
+			// Invalidate stale constraints if children changed
+			if (_constraints.Count > 0 && _constraints.Count != layout.Count)
+				Invalidate();
+
+			if (layout.Count == 0)
+				return measured;
+
 			if (_gridX == null || !_lastSize.Equals(size))
 			{
 				ComputeGrid(size.Width, size.Height);
 				_lastSize = size;
 			}
 
-			for (var index = 0; index < _constraints.Count; index++)
+			for (var index = 0; index < _constraints.Count && index < layout.Count; index++)
 			{
 				var position = _constraints[index];
 				var view = layout[index];
@@ -308,7 +328,7 @@ namespace Comet.Layout
 				}
 			}
 
-			var availableWidth = width - takenX;
+			var availableWidth = width - takenX - (ColumnSpacing * (calculatedColumns.Count > 0 ? columns - 1 : Math.Max(0, columns - 1)));
 			var columnFactor = calculatedColumnFactors.Sum(f => f);
 			var columnWidth = availableWidth / columnFactor;
 			var factorIndex = 0;
@@ -343,7 +363,7 @@ namespace Comet.Layout
 				}
 			}
 
-			var availableHeight = height - takenY;
+			var availableHeight = height - takenY - (RowSpacing * (calculatedRows.Count > 0 ? rows - 1 : Math.Max(0, rows - 1)));
 			var rowFactor = calculatedRowFactors.Sum(f => f);
 			var rowHeight = availableHeight / rowFactor;
 			factorIndex = 0;
@@ -356,18 +376,18 @@ namespace Comet.Layout
 			for (var c = 0; c < columns; c++)
 			{
 				_gridX[c] = x;
-				x += _widths[c];
+				x += _widths[c] + (c < columns - 1 ? ColumnSpacing : 0);
 			}
 
 			double y = 0;
 			for (var r = 0; r < rows; r++)
 			{
 				_gridY[r] = y;
-				y += _heights[r];
+				y += _heights[r] + (r < rows - 1 ? RowSpacing : 0);
 			}
 
-			_width = _widths.Sum();
-			_height = _heights.Sum();
+			_width = _widths.Sum() + ColumnSpacing * Math.Max(0, columns - 1);
+			_height = _heights.Sum() + RowSpacing * Math.Max(0, rows - 1);
 		}
 
 		private double GetFactor(object value)

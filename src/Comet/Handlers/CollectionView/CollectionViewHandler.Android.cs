@@ -17,21 +17,21 @@ namespace Comet.Handlers
 		public static void MapListViewProperty(IElementHandler handler, IListView virtualView)
 		{
 			var cvHandler = (CollectionViewHandler)handler;
-			cvHandler._mauiCollectionView = CreateAndConfigureMauiCollectionView(virtualView);
-			cvHandler.EmbedMauiCollectionView();
+			cvHandler._mauiItemsView = CreateAndConfigureMauiItemsView(virtualView);
+			cvHandler.EmbedMauiItemsView();
 		}
 
 #nullable enable
 		public static void MapReloadData(CollectionViewHandler handler, IListView virtualView, object? value)
 #nullable restore
 		{
-			if (handler._mauiCollectionView != null)
-				RefreshItemsSource(handler._mauiCollectionView, virtualView);
+			if (handler._mauiItemsView != null)
+				RefreshItemsSource(handler._mauiItemsView, virtualView);
 		}
 
-		void EmbedMauiCollectionView()
+		void EmbedMauiItemsView()
 		{
-			if (_mauiCollectionView == null || MauiContext == null)
+			if (_mauiItemsView == null || MauiContext == null)
 				return;
 
 			if (_hostedPlatformView != null)
@@ -39,11 +39,11 @@ namespace Comet.Handlers
 
 			try
 			{
-				_hostedPlatformView = _mauiCollectionView.ToPlatform(MauiContext);
+				_hostedPlatformView = _mauiItemsView.ToPlatform(MauiContext);
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine($"[CollectionViewHandler] EmbedMauiCollectionView failed: {ex.Message}");
+				Console.WriteLine($"[CollectionViewHandler] EmbedMauiItemsView failed: {ex.Message}");
 				return;
 			}
 
@@ -63,13 +63,13 @@ namespace Comet.Handlers
 				platformView.RemoveView(_hostedPlatformView);
 				_hostedPlatformView = null;
 			}
-			if (_mauiCollectionView?.Handler is IElementHandler hostedHandler)
+			if (_mauiItemsView?.Handler is IElementHandler hostedHandler)
 			{
 				hostedHandler.DisconnectHandler();
 				if (hostedHandler is IDisposable disposable)
 					disposable.Dispose();
 			}
-			_mauiCollectionView = null;
+			_mauiItemsView = null;
 			base.DisconnectHandler(platformView);
 		}
 

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 /*
  
@@ -19,7 +20,7 @@ struct ContentView: View {
 
 namespace Comet.Samples.Comparisons
 {
-	public class RideSample : View
+	public class RideSample : Component
 	{
 		public RideSample()
 		{
@@ -30,14 +31,13 @@ namespace Comet.Samples.Comparisons
 		[State]
 		readonly Comet comet;
 
-		[Body]
-		View body()
-			=> new VStack {
-				new Text(()=> $"({comet.Rides}) rides taken:{comet.CometTrain}")
+				public override View Render()
+			=> VStack(
+				Text(()=> $"({comet.Rides}) rides taken:{comet.CometTrain}")
 					.Frame(width:300)
 					.LineBreakMode(LineBreakMode.CharacterWrap),
 
-				new Button("Ride the Comet! ☄️", ()=>{
+				Button("Ride the Comet! ☄️", ()=>{
 					comet.Rides++;
 				})
 					.Frame(height:44)
@@ -45,8 +45,8 @@ namespace Comet.Samples.Comparisons
 					.Color(Colors.White)
 					.Background(Colors.Green)
 				.RoundedBorder(color:Colors.Blue)
-				.Shadow(Colors.Grey,4,2,2),
-			};
+				.Shadow(Colors.Grey,4,2,2)
+			);
 
 		public class Comet : BindingObject
 		{

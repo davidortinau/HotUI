@@ -65,6 +65,47 @@ namespace Comet
 			return view;
 		}
 
+		// Grid convenience extensions (MAUI-familiar naming)
+		public static T GridRow<T>(this T view, int row) where T : View
+		{
+			var existing = view.GetLayoutConstraints() as GridConstraints;
+			if (existing != null)
+				existing.Row = row;
+			else
+				view.LayoutConstraints(new GridConstraints(row, 0));
+			return view;
+		}
+
+		public static T GridColumn<T>(this T view, int column) where T : View
+		{
+			var existing = view.GetLayoutConstraints() as GridConstraints;
+			if (existing != null)
+				existing.Column = column;
+			else
+				view.LayoutConstraints(new GridConstraints(0, column));
+			return view;
+		}
+
+		public static T GridRowSpan<T>(this T view, int rowSpan) where T : View
+		{
+			var existing = view.GetLayoutConstraints() as GridConstraints;
+			if (existing != null)
+				existing.RowSpan = rowSpan;
+			else
+				view.LayoutConstraints(new GridConstraints(0, 0, rowSpan, 1));
+			return view;
+		}
+
+		public static T GridColumnSpan<T>(this T view, int colSpan) where T : View
+		{
+			var existing = view.GetLayoutConstraints() as GridConstraints;
+			if (existing != null)
+				existing.ColumnSpan = colSpan;
+			else
+				view.LayoutConstraints(new GridConstraints(0, 0, 1, colSpan));
+			return view;
+		}
+
 		public static T NextRow<T>(this T view, int count = 1) where T : View
 		{
 			view.SetEnvironment(nameof(NextRow), count, false);
@@ -83,7 +124,7 @@ namespace Comet
 
 		public static void SetFrameFromPlatformView(
 			this View view,
-			Rect frame, LayoutAlignment defaultHorizontalAlignment = LayoutAlignment.Center, LayoutAlignment defaultVerticalAlignment = LayoutAlignment.Center)
+			Rect frame, LayoutAlignment defaultHorizontalAlignment = LayoutAlignment.Fill, LayoutAlignment defaultVerticalAlignment = LayoutAlignment.Fill)
 		{
 			if (view == null)
 				return;
@@ -324,9 +365,11 @@ namespace Comet
 
 		public static T Padding<T>(this T view, Thickness padding, bool cascades = false) where T : View
 		{
-			view.SetEnvironment(EnvironmentKeys.Layout.Padding, padding, cascades);
+			view.SetEnvironment(EnvironmentKeys.Layout.Padding, (object)padding, cascades);
 			return view;
 		}
+
+		public static T Padding<T>(this T view, Func<Thickness> padding, bool cascades = false) where T : View => view.Padding(padding(), cascades);
 
 		public static Thickness GetPadding(this View view, Thickness? defaultValue = null)
 		{

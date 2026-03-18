@@ -1,16 +1,15 @@
 ﻿using System;
+using static Comet.CometControls;
+
 namespace Comet.Samples
 {
-	public class VirtualListViewSample : View
+	public class VirtualListViewSample : Component
 	{
-		public VirtualListViewSample()
+		public override View Render() => new ListView<int>
 		{
-			Body = () => new ListView<int>
-			{
-				Count = () => 10,
-				ItemFor = (i) => i,
-				ViewFor = (i) => new Text(i.ToString()),
-			};
-		}
+			Count = () => 10,
+			ItemFor = (i) => i,
+			ViewFor = (i) => Text(i.ToString()),
+		};
 	}
 }

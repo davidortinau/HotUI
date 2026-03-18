@@ -16,10 +16,6 @@ namespace Comet.Internal
 
 			if (obj is T t)
 				return t;
-			if (obj is Binding<T> bt)
-				return bt.CurrentValue;
-			if (obj is Binding b && b.Value is T bv)
-				return bv;
 			try
 			{
 				return (T)Convert.ChangeType(obj, typeof(T));
@@ -48,7 +44,6 @@ namespace Comet.Internal
 				return (Func<View>)Delegate.CreateDelegate(typeof(Func<View>), view, bodyMethod.Name);
 			return null;
 		}
-		public static BindingState InternalGetState(this View view) => view.GetState();
 		public static void ResetGlobalEnvironment(this View view) => View.Environment.Clear();
 
 		//public static void DisposeAllViews(this View view) => View.ActiveViews.Clear();

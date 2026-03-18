@@ -3,10 +3,11 @@ using System.Collections.Generic;
 
 using Comet.Samples.Models;
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class ListViewSample1 : View
+	public class ListViewSample1 : Component
 	{
 		//This should come from a database or something
 		List<Song> Songs = new List<Song> {
@@ -24,19 +25,16 @@ namespace Comet.Samples
 			}
 		};
 
-		[Body]
-		View body() => new ListView<Song>(Songs)
+				public override View Render() => new ListView<Song>(Songs)
 		{
-			ViewFor = (song) => new HStack
-			{
-				new Image (song.ArtworkUrl).Frame(52, 52).Margin(4),
-				new VStack(LayoutAlignment.Start, spacing:2)
-				{
-					new Text (song.Title).FontSize(17),
-					new Text (song.Artist).Color(Colors.Grey),
-					new Text (song.Album).Color(Colors.Grey),
-				}.FontSize(12)
-			}.Frame(height: 60).Alignment(Alignment.Leading),
+			ViewFor = (song) => HStack(
+				Image(song.ArtworkUrl).Frame(52, 52).Margin(4),
+				VStack(LayoutAlignment.Start, 2,
+					Text(song.Title).FontSize(17),
+					Text(song.Artist).Color(Colors.Grey),
+					Text(song.Album).Color(Colors.Grey)
+				).FontSize(12)
+			).Frame(height: 60).Alignment(Alignment.Leading),
 		}.OnSelectedNavigate((song) => new ListViewDetails().SetEnvironment("song",song));
 	}
 }

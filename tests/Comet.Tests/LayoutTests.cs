@@ -11,7 +11,7 @@ namespace Comet.Tests
 	{
 		public class TextInVStackTestView : View
 		{
-			public readonly State<string> text = "Test";
+			public readonly Reactive<string> text = "Test";
 
 			[Body]
 			View body() => new VStack()
@@ -39,7 +39,7 @@ namespace Comet.Tests
 
 		public class TextFieldInVStackTestView : View
 		{
-			public readonly State<string> text = "Test";
+			public readonly Reactive<string> text = "Test";
 
 			[Body]
 			View body() => new VStack()
@@ -67,7 +67,7 @@ namespace Comet.Tests
 
 		public class SecureFieldInVStackTestView : View
 		{
-			public readonly State<string> text = "Test";
+			public readonly Reactive<string> text = "Test";
 
 			[Body]
 			View body() => new VStack()
@@ -98,7 +98,7 @@ namespace Comet.Tests
 			[Body]
 			View body() => new VStack()
 			{
-				new Slider(0).Tag("slider"),
+				new Slider(0d).Tag("slider"),
 			}.FillHorizontal()
 			.FitVertical()
 			.Padding(new Thickness())
@@ -124,7 +124,7 @@ namespace Comet.Tests
 			[Body]
 			View body() => new VStack()
 			{
-				new ProgressBar(0).Tag("progressbar"),
+				new ProgressBar(0d).Tag("progressbar"),
 			}.FillHorizontal()
 			.FitVertical()
 			.Padding(new Thickness())

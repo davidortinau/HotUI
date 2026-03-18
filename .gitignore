@@ -405,3 +405,6 @@ ASALocalRun/
 .localhistory/
 Resource.designer.cs
 *.blob
+# Squad: ignore generated logs
+.squad/orchestration-log/
+.squad/log/

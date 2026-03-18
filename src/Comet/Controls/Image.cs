@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Comet.Graphics;
+using Comet.Reactive;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 
@@ -12,34 +13,40 @@ namespace Comet
 		{
 			[nameof(ImageSource)] = nameof(IImageSourcePart.Source),
 		};
-		public Image(Binding<IImageSource> imageSource = null)
+		public Image(IImageSource imageSource = null)
 		{
-			ImageSource = imageSource;
+			ImageSource = imageSource != null ? new PropertySubscription<IImageSource>(imageSource) : null;
 		}
 
-		public Image(Binding<string> source)
+		public Image(string source)
 		{
-			StringSource = source;
+			StringSource = new PropertySubscription<string>(source);
 		}
 
-		public Image(Func<IImageSource> bitmap) : this((Binding<IImageSource>)bitmap) { }
+		public Image(Func<IImageSource> bitmap)
+		{
+			ImageSource = PropertySubscription<IImageSource>.FromFunc(bitmap);
+		}
 
-		public Image(Func<string> source) : this((Binding<string>)source) { }
+		public Image(Func<string> source)
+		{
+			StringSource = PropertySubscription<string>.FromFunc(source);
+		}
 
-		private Binding<IImageSource> _imageSource;
-		public Binding<IImageSource> ImageSource
+		private PropertySubscription<IImageSource> _imageSource;
+		public PropertySubscription<IImageSource> ImageSource
 		{
 			get => _imageSource;
-			private set => this.SetBindingValue(ref _imageSource, value);
+			private set => this.SetPropertySubscription(ref _imageSource, value);
 		}
 
-		private Binding<string> _source;
-		public Binding<string> StringSource
+		private PropertySubscription<string> _source;
+		public PropertySubscription<string> StringSource
 		{
 			get => _source;
 			protected set
 			{
-				this.SetBindingValue(ref _source, value);
+				this.SetPropertySubscription(ref _source, value);
 				CreateImageSource(_source.CurrentValue);
 			}
 		}
@@ -58,7 +65,7 @@ namespace Comet
 		{
 			try
 			{
-				_imageSource ??= new Binding<IImageSource>();
+				_imageSource ??= new PropertySubscription<IImageSource>(default(IImageSource));
 				_imageSource.Set((ImageSource)source);
 				ViewHandler?.UpdateValue(nameof(IImageSourcePart.Source));
 			}

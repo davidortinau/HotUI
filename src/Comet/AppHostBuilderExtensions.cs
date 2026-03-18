@@ -1,14 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using Comet.Handlers;
+using Comet.Styles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Maui;
 using Microsoft.Maui.Animations;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
+using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Hosting;
+using System.Runtime.CompilerServices;
+using Microsoft.Maui.Platform;
 
 #if WINDOWS
 using Microsoft.Maui.Graphics.Win2D;
@@ -18,6 +22,25 @@ namespace Comet
 {
 	public static class AppHostBuilderExtensions
 	{
+		// Weak tables to track event subscriptions per platform view, preventing
+		// duplicate handlers when mappers re-fire during SetVirtualView/Reload.
+#if __IOS__ || MACCATALYST
+		static readonly ConditionalWeakTable<UIKit.UITextField, EventHandler> _pickerEditingDidEndHandlers = new();
+		static readonly ConditionalWeakTable<UIKit.UITextField, EventHandler> _entryEditingChangedHandlers = new();
+		static readonly ConditionalWeakTable<UIKit.UITextView, EventHandler> _editorChangedHandlers = new();
+		static readonly ConditionalWeakTable<UIKit.UISearchBar, EventHandler<UIKit.UISearchBarTextChangedEventArgs>> _searchBarTextChangedHandlers = new();
+		static readonly ConditionalWeakTable<UIKit.UISlider, EventHandler> _sliderValueChangedHandlers = new();
+		static readonly ConditionalWeakTable<UIKit.UISwitch, EventHandler> _switchValueChangedHandlers = new();
+		static readonly ConditionalWeakTable<UIKit.UIButton, EventHandler> _checkBoxCheckedHandlers = new();
+#elif ANDROID
+		static readonly ConditionalWeakTable<object, object> _pickerTextChangedHandlers = new();
+		static readonly ConditionalWeakTable<object, object> _entryTextChangedHandlers = new();
+		static readonly ConditionalWeakTable<object, object> _editorTextChangedHandlers = new();
+		static readonly ConditionalWeakTable<object, object> _searchBarTextChangedHandlers = new();
+		static readonly ConditionalWeakTable<object, object> _sliderValueChangedHandlers = new();
+		static readonly ConditionalWeakTable<object, object> _switchValueChangedHandlers = new();
+		static readonly ConditionalWeakTable<object, object> _checkBoxCheckedHandlers = new();
+#endif
 		static void AddHandlers(this IMauiHandlersCollection collection, Dictionary<Type, Type> handlers) => handlers.ForEach(x => collection.AddHandler(x.Key, x.Value));
 		public static MauiAppBuilder UseCometApp<TApp>(this MauiAppBuilder builder)
 			where TApp : class, IApplication
@@ -35,9 +58,755 @@ namespace Comet
 			var style = new Styles.Style();
 			style.Apply();
 
+			// Initialize the token-based theme system with Material 3 defaults.
+			// This must happen after legacy style.Apply() so the old environment
+			// keys are set first, then the new ThemeManager overlays token values.
+			var defaultTheme = Defaults.Light;
+			defaultTheme.SetControlStyle<Button, ButtonConfiguration>(ButtonStyles.Filled);
+			ThemeManager.SetTheme(defaultTheme);
+
+			// Register style resolution mappers for controls BEFORE the
+			// property-specific mappers so resolved values are available.
+			RegisterStyleResolutionMappers();
+
 			ViewHandler.ViewMapper.AppendToMapping(nameof(IGestureView.Gestures), CometViewHandler.AddGestures);
 			ViewHandler.ViewCommandMapper.AppendToMapping(Gesture.AddGestureProperty, CometViewHandler.AddGesture);
 			ViewHandler.ViewCommandMapper.AppendToMapping(Gesture.RemoveGestureProperty, CometViewHandler.RemoveGesture);
+			ViewHandler.ViewMapper.AppendToMapping(nameof(IView.AutomationId), (handler, view) =>
+			{
+				if (view is View cometView)
+					ApplyInspectionMetadata(handler, cometView);
+			});
+			ViewHandler.ViewMapper.AppendToMapping(nameof(IView.Visibility), (handler, view) =>
+			{
+				if (view is View cometView)
+					ApplyInspectionMetadata(handler, cometView);
+			});
+			ViewHandler.ViewMapper.AppendToMapping(nameof(IView.IsEnabled), (handler, view) =>
+			{
+				if (view is View cometView)
+					ApplyInspectionMetadata(handler, cometView);
+			});
+			ViewHandler.ViewMapper.AppendToMapping(nameof(IView.InputTransparent), (handler, view) =>
+			{
+				if (view is View cometView)
+					ApplyInspectionMetadata(handler, cometView);
+			});
+			ViewHandler.ViewMapper.AppendToMapping(nameof(IView.Semantics), (handler, view) =>
+			{
+				if (view is View cometView)
+					ApplyInspectionMetadata(handler, cometView);
+			});
+
+			// Apply shadow to any view that has it set via environment
+			ViewHandler.ViewMapper.AppendToMapping("CometShadow", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var shadow = cometView.GetEnvironment<Comet.Graphics.Shadow>(EnvironmentKeys.View.Shadow);
+				if (shadow == null)
+					return;
+#if __IOS__ || MACCATALYST
+				var platformView = handler.PlatformView as UIKit.UIView;
+				if (platformView == null)
+					return;
+				var layer = platformView.Layer;
+				layer.ShadowOpacity = shadow.Opacity;
+				layer.ShadowRadius = shadow.Radius;
+				layer.ShadowOffset = new CoreGraphics.CGSize(shadow.Offset.X, shadow.Offset.Y);
+				if (shadow.Paint is SolidPaint sp && sp.Color != null)
+					layer.ShadowColor = sp.Color.ToPlatform().CGColor;
+				else
+					layer.ShadowColor = UIKit.UIColor.Black.CGColor;
+				layer.MasksToBounds = false;
+#elif ANDROID
+				var platformView = handler.PlatformView as global::Android.Views.View;
+				if (platformView == null)
+					return;
+				var density = platformView.Context?.Resources?.DisplayMetrics?.Density ?? 1;
+				platformView.Elevation = shadow.Radius * density;
+#endif
+			});
+
+			// Apply border visual styling to Border's platform view via handler mapper
+			LayoutHandler.Mapper.AppendToMapping("CometBorderStyling", (handler, view) =>
+			{
+				if (view is not Border border)
+					return;
+				var borderStroke = (IBorderStroke)border;
+				var platformView = handler.PlatformView;
+				if (platformView == null)
+					return;
+#if __IOS__ || MACCATALYST
+				var layer = platformView.Layer;
+				if (borderStroke.Shape is RoundedRectangle rr)
+				{
+					layer.CornerRadius = rr.CornerRadius;
+				}
+				else if (borderStroke.Shape != null)
+				{
+					layer.CornerRadius = 0;
+				}
+				layer.MasksToBounds = true;
+				if (borderStroke.Stroke is SolidPaint sp && sp.Color != null)
+				{
+					layer.BorderColor = sp.Color.ToPlatform().CGColor;
+					layer.BorderWidth = (float)borderStroke.StrokeThickness;
+				}
+				else
+				{
+					layer.BorderWidth = 0;
+				}
+				var bg = border.GetBackground();
+				if (bg is SolidPaint bgPaint && bgPaint.Color != null)
+				{
+					layer.BackgroundColor = bgPaint.Color.ToPlatform().CGColor;
+				}
+#elif ANDROID
+				var context = platformView.Context;
+				if (context != null)
+				{
+					var drawable = new global::Android.Graphics.Drawables.GradientDrawable();
+					if (borderStroke.Shape is RoundedRectangle rr)
+						drawable.SetCornerRadius((float)(rr.CornerRadius * context.Resources.DisplayMetrics.Density));
+					if (borderStroke.Stroke is SolidPaint sp && sp.Color != null)
+						drawable.SetStroke((int)(borderStroke.StrokeThickness * context.Resources.DisplayMetrics.Density), sp.Color.ToPlatform());
+					var bg = border.GetBackground();
+					if (bg is SolidPaint bgPaint && bgPaint.Color != null)
+						drawable.SetColor(bgPaint.Color.ToPlatform());
+					platformView.Background = drawable;
+				}
+#endif
+			});
+
+			// Apply PlaceholderColor to TextField/SecureField via handler mapper
+			EntryHandler.Mapper.AppendToMapping("CometPlaceholderColor", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var color = cometView.GetEnvironment<Color>(EnvironmentKeys.Entry.PlaceholderColor);
+				if (color == null)
+					return;
+				var entry = handler.PlatformView;
+				if (entry == null)
+					return;
+#if __IOS__ || MACCATALYST
+				entry.AttributedPlaceholder = new Foundation.NSAttributedString(
+					entry.Placeholder ?? "",
+					new UIKit.UIStringAttributes { ForegroundColor = color.ToPlatform() });
+#elif ANDROID
+				entry.SetHintTextColor(new global::Android.Content.Res.ColorStateList(
+					new[] { Array.Empty<int>() },
+					new[] { (int)color.ToPlatform() }));
+#endif
+			});
+
+			// Apply Keyboard type to TextField via handler mapper
+			EntryHandler.Mapper.AppendToMapping("CometKeyboard", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var keyboard = cometView.GetEnvironment<Microsoft.Maui.Keyboard>(EnvironmentKeys.Entry.Keyboard);
+				if (keyboard == null)
+					return;
+				var entry = handler.PlatformView;
+				if (entry == null)
+					return;
+#if __IOS__ || MACCATALYST
+				entry.ApplyKeyboard(keyboard);
+#elif ANDROID
+				// Android keyboard handled via MAUI's IEntry.Keyboard interface
+				if (view is IEntry entryView)
+					EntryHandler.MapKeyboard(handler, entryView);
+#endif
+			});
+
+			// Apply ReturnType to TextField via handler mapper
+			EntryHandler.Mapper.AppendToMapping("CometReturnType", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var returnType = cometView.GetEnvironment<ReturnType?>(EnvironmentKeys.Entry.ReturnType);
+				if (returnType == null)
+					return;
+				var entry = handler.PlatformView;
+				if (entry == null)
+					return;
+#if __IOS__ || MACCATALYST
+				entry.ReturnKeyType = returnType.Value switch
+				{
+					ReturnType.Go => UIKit.UIReturnKeyType.Go,
+					ReturnType.Next => UIKit.UIReturnKeyType.Next,
+					ReturnType.Search => UIKit.UIReturnKeyType.Search,
+					ReturnType.Send => UIKit.UIReturnKeyType.Send,
+					ReturnType.Done => UIKit.UIReturnKeyType.Done,
+					_ => UIKit.UIReturnKeyType.Default,
+				};
+#endif
+			});
+
+			// Apply OnColor/ThumbColor to Toggle/Switch via handler mapper
+			SwitchHandler.Mapper.AppendToMapping("CometSwitchColors", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var platformView = handler.PlatformView;
+				if (platformView == null)
+					return;
+#if __IOS__ || MACCATALYST
+				var onColor = cometView.GetEnvironment<Color>(EnvironmentKeys.Switch.OnColor);
+				if (onColor != null)
+					platformView.OnTintColor = onColor.ToPlatform();
+				var thumbColor = cometView.GetEnvironment<Color>(EnvironmentKeys.Switch.ThumbColor);
+				if (thumbColor != null)
+					platformView.ThumbTintColor = thumbColor.ToPlatform();
+#elif ANDROID
+				var onColor = cometView.GetEnvironment<Color>(EnvironmentKeys.Switch.OnColor);
+				if (onColor != null)
+					platformView.TrackTintList = new global::Android.Content.Res.ColorStateList(
+						new[] { new[] { global::Android.Resource.Attribute.StateChecked } },
+						new[] { (int)onColor.ToPlatform() });
+				var thumbColor = cometView.GetEnvironment<Color>(EnvironmentKeys.Switch.ThumbColor);
+				if (thumbColor != null)
+					platformView.ThumbTintList = new global::Android.Content.Res.ColorStateList(
+						new[] { Array.Empty<int>() },
+						new[] { (int)thumbColor.ToPlatform() });
+#endif
+			});
+
+			// Apply Slider track/thumb colors via handler mapper
+			SliderHandler.Mapper.AppendToMapping("CometSliderColors", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var platformView = handler.PlatformView;
+				if (platformView == null)
+					return;
+#if __IOS__ || MACCATALYST
+				var minTrackColor = cometView.GetEnvironment<Color>(EnvironmentKeys.Slider.ProgressColor);
+				if (minTrackColor != null)
+					platformView.MinimumTrackTintColor = minTrackColor.ToPlatform();
+				var maxTrackColor = cometView.GetEnvironment<Color>(EnvironmentKeys.Slider.TrackColor);
+				if (maxTrackColor != null)
+					platformView.MaximumTrackTintColor = maxTrackColor.ToPlatform();
+				var thumbColor = cometView.GetEnvironment<Color>(EnvironmentKeys.Slider.ThumbColor);
+				if (thumbColor != null)
+					platformView.ThumbTintColor = thumbColor.ToPlatform();
+#elif ANDROID
+				var minTrackColor = cometView.GetEnvironment<Color>(EnvironmentKeys.Slider.ProgressColor);
+				if (minTrackColor != null && platformView.ProgressTintList != null)
+					platformView.ProgressTintList = global::Android.Content.Res.ColorStateList.ValueOf(
+						new global::Android.Graphics.Color((int)minTrackColor.ToPlatform()));
+				var thumbColor = cometView.GetEnvironment<Color>(EnvironmentKeys.Slider.ThumbColor);
+				if (thumbColor != null)
+					platformView.ThumbTintList = global::Android.Content.Res.ColorStateList.ValueOf(
+						new global::Android.Graphics.Color((int)thumbColor.ToPlatform()));
+#endif
+			});
+
+			// Apply OnValueChanged callback to Slider via handler mapper
+			SliderHandler.Mapper.AppendToMapping("CometSliderValueChanged", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var callback = cometView.GetEnvironment<Action<double>>(EnvironmentKeys.Slider.ValueChanged);
+				if (callback == null)
+					return;
+				var slider = handler.PlatformView;
+				if (slider == null)
+					return;
+#if __IOS__ || MACCATALYST
+				if (_sliderValueChangedHandlers.TryGetValue(slider, out var oldHandler))
+				{
+					slider.ValueChanged -= oldHandler;
+					_sliderValueChangedHandlers.Remove(slider);
+				}
+				EventHandler newHandler = (s, e) =>
+				{
+					try { callback(slider.Value); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] Slider ValueChanged callback failed: {ex.Message}"); }
+				};
+				_sliderValueChangedHandlers.AddOrUpdate(slider, newHandler);
+				slider.ValueChanged += newHandler;
+#elif ANDROID
+				if (_sliderValueChangedHandlers.TryGetValue(slider, out var oldObj))
+				{
+					_sliderValueChangedHandlers.Remove(slider);
+				}
+				EventHandler<global::Android.Widget.SeekBar.ProgressChangedEventArgs> newAndroidHandler = (s, e) =>
+				{
+					try
+					{
+						if (e.FromUser && view is ISlider iSlider)
+							callback(iSlider.Value);
+					}
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] Slider ValueChanged callback failed: {ex.Message}"); }
+				};
+				_sliderValueChangedHandlers.AddOrUpdate(slider, newAndroidHandler);
+				slider.ProgressChanged += newAndroidHandler;
+#endif
+			});
+
+			// Prevent native slider value snapping during active drag gesture
+			SliderHandler.Mapper.ModifyMapping(nameof(IRange.Value), (handler, view, existingAction) =>
+			{
+#if __IOS__ || MACCATALYST
+				if (handler.PlatformView is UIKit.UISlider uiSlider && uiSlider.Tracking)
+					return;
+#endif
+				existingAction?.Invoke(handler, view);
+			});
+
+			// Apply OnToggled callback to Switch via handler mapper
+			SwitchHandler.Mapper.AppendToMapping("CometSwitchToggled", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var callback = cometView.GetEnvironment<Action<bool>>(EnvironmentKeys.Switch.Toggled);
+				if (callback == null)
+					return;
+				var platformView = handler.PlatformView;
+				if (platformView == null)
+					return;
+#if __IOS__ || MACCATALYST
+				if (_switchValueChangedHandlers.TryGetValue(platformView, out var oldSwitchHandler))
+				{
+					platformView.ValueChanged -= oldSwitchHandler;
+					_switchValueChangedHandlers.Remove(platformView);
+				}
+				EventHandler newSwitchHandler = (s, e) =>
+				{
+					try { callback(platformView.On); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] Switch Toggled callback failed: {ex.Message}"); }
+				};
+				_switchValueChangedHandlers.AddOrUpdate(platformView, newSwitchHandler);
+				platformView.ValueChanged += newSwitchHandler;
+#elif ANDROID
+				if (_switchValueChangedHandlers.TryGetValue(platformView, out var oldSwitchObj))
+				{
+					_switchValueChangedHandlers.Remove(platformView);
+				}
+				EventHandler<global::Android.Widget.CompoundButton.CheckedChangeEventArgs> newSwitchAndroidHandler = (s, e) =>
+				{
+					try { callback(e.IsChecked); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] Switch Toggled callback failed: {ex.Message}"); }
+				};
+				_switchValueChangedHandlers.AddOrUpdate(platformView, newSwitchAndroidHandler);
+				platformView.CheckedChange += newSwitchAndroidHandler;
+#endif
+			});
+
+			// Apply OnCheckedChanged callback to CheckBox via handler mapper
+			CheckBoxHandler.Mapper.AppendToMapping("CometCheckBoxCheckedChanged", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var callback = cometView.GetEnvironment<Action<bool>>(EnvironmentKeys.CheckBox.IsCheckedChanged);
+				if (callback == null)
+					return;
+				var platformView = handler.PlatformView;
+				if (platformView == null)
+					return;
+#if __IOS__ || MACCATALYST
+				if (_checkBoxCheckedHandlers.TryGetValue(platformView, out var oldCheckHandler))
+				{
+					platformView.CheckedChanged -= oldCheckHandler;
+					_checkBoxCheckedHandlers.Remove(platformView);
+				}
+				EventHandler newCheckHandler = (s, e) =>
+				{
+					try { callback(platformView.IsChecked); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] CheckBox CheckedChanged callback failed: {ex.Message}"); }
+				};
+				_checkBoxCheckedHandlers.AddOrUpdate(platformView, newCheckHandler);
+				platformView.CheckedChanged += newCheckHandler;
+#elif ANDROID
+				if (_checkBoxCheckedHandlers.TryGetValue(platformView, out var oldCheckObj))
+				{
+					_checkBoxCheckedHandlers.Remove(platformView);
+				}
+				EventHandler<global::Android.Widget.CompoundButton.CheckedChangeEventArgs> newCheckAndroidHandler = (s, e) =>
+				{
+					try { callback(e.IsChecked); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] CheckBox CheckedChanged callback failed: {ex.Message}"); }
+				};
+				_checkBoxCheckedHandlers.AddOrUpdate(platformView, newCheckAndroidHandler);
+				platformView.CheckedChange += newCheckAndroidHandler;
+#endif
+			});
+
+			// Apply OnValueChanged callback to Stepper via handler mapper
+			StepperHandler.Mapper.AppendToMapping("CometStepperValueChanged", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var callback = cometView.GetEnvironment<Action<double>>(EnvironmentKeys.Stepper.ValueChanged);
+				if (callback == null)
+					return;
+				var platformView = handler.PlatformView;
+				if (platformView == null)
+					return;
+#if __IOS__ || MACCATALYST
+				platformView.ValueChanged += (s, e) =>
+				{
+					try { callback(platformView.Value); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] Stepper ValueChanged callback failed: {ex.Message}"); }
+				};
+#elif ANDROID
+				// Android MauiStepper is a custom LinearLayout without a direct ValueChanged event
+				// TODO: Wire up button click events on the MauiStepper's internal +/- buttons
+#endif
+			});
+
+			// Apply OnSelectedIndexChanged callback to Picker via handler mapper
+			PickerHandler.Mapper.AppendToMapping("CometPickerSelectedIndexChanged", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var callback = cometView.GetEnvironment<Action<int>>(EnvironmentKeys.Picker.SelectedIndexChanged);
+				if (callback == null)
+					return;
+				var picker = handler.PlatformView;
+				if (picker == null)
+					return;
+#if __IOS__ || MACCATALYST
+				// Remove previous subscription to prevent duplicates on re-map
+				if (_pickerEditingDidEndHandlers.TryGetValue(picker, out var oldHandler))
+				{
+					picker.EditingDidEnd -= oldHandler;
+					_pickerEditingDidEndHandlers.Remove(picker);
+				}
+				EventHandler newHandler = (s, e) =>
+				{
+					try
+					{
+						if (view is IPicker iPicker)
+							callback(iPicker.SelectedIndex);
+					}
+					catch (Exception ex)
+					{
+						System.Diagnostics.Debug.WriteLine($"[Comet] Picker SelectedIndexChanged callback failed: {ex.Message}");
+					}
+				};
+				_pickerEditingDidEndHandlers.AddOrUpdate(picker, newHandler);
+				picker.EditingDidEnd += newHandler;
+#elif ANDROID
+				picker.AfterTextChanged += (s, e) =>
+				{
+					try
+					{
+						if (view is IPicker iPicker)
+							callback(iPicker.SelectedIndex);
+					}
+					catch (Exception ex)
+					{
+						System.Diagnostics.Debug.WriteLine($"[Comet] Picker SelectedIndexChanged callback failed: {ex.Message}");
+					}
+				};
+#endif
+			});
+
+			// Apply Aspect to Image via handler mapper
+			ImageHandler.Mapper.AppendToMapping("CometImageAspect", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var aspect = cometView.GetEnvironment<Microsoft.Maui.Aspect?>(EnvironmentKeys.Image.Aspect);
+				if (aspect == null)
+					return;
+				var platformView = handler.PlatformView;
+				if (platformView == null)
+					return;
+#if __IOS__ || MACCATALYST
+				platformView.ContentMode = aspect.Value switch
+				{
+					Microsoft.Maui.Aspect.AspectFit => UIKit.UIViewContentMode.ScaleAspectFit,
+					Microsoft.Maui.Aspect.AspectFill => UIKit.UIViewContentMode.ScaleAspectFill,
+					Microsoft.Maui.Aspect.Fill => UIKit.UIViewContentMode.ScaleToFill,
+					_ => UIKit.UIViewContentMode.ScaleAspectFit
+				};
+#elif ANDROID
+				platformView.SetScaleType(aspect.Value switch
+				{
+					Microsoft.Maui.Aspect.AspectFit => global::Android.Widget.ImageView.ScaleType.FitCenter,
+					Microsoft.Maui.Aspect.AspectFill => global::Android.Widget.ImageView.ScaleType.CenterCrop,
+					Microsoft.Maui.Aspect.Fill => global::Android.Widget.ImageView.ScaleType.FitXy,
+					_ => global::Android.Widget.ImageView.ScaleType.FitCenter
+				});
+#endif
+			});
+
+			// Apply PlaceholderColor and Keyboard to TextEditor (Editor) via handler mapper
+			EditorHandler.Mapper.AppendToMapping("CometEditorPlaceholderColor", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var color = cometView.GetEnvironment<Color>(EnvironmentKeys.Entry.PlaceholderColor);
+				if (color == null)
+					return;
+				var editor = handler.PlatformView;
+				if (editor == null)
+					return;
+#if __IOS__ || MACCATALYST
+				// iOS UITextView doesn't have a built-in placeholder; MAUI handles it
+				// through the EditorHandler. We can set the placeholder color via attributed string.
+#elif ANDROID
+				editor.SetHintTextColor(new global::Android.Content.Res.ColorStateList(
+					new[] { Array.Empty<int>() },
+					new[] { (int)color.ToPlatform() }));
+#endif
+			});
+
+			EditorHandler.Mapper.AppendToMapping("CometEditorKeyboard", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var keyboard = cometView.GetEnvironment<Microsoft.Maui.Keyboard>(EnvironmentKeys.Entry.Keyboard);
+				if (keyboard == null)
+					return;
+				var editor = handler.PlatformView;
+				if (editor == null)
+					return;
+#if __IOS__ || MACCATALYST
+				editor.ApplyKeyboard(keyboard);
+#elif ANDROID
+				if (view is IEditor editorView)
+					EditorHandler.MapKeyboard(handler, editorView);
+#endif
+			});
+
+			// Apply ProgressBar track/progress colors via handler mapper
+			ProgressBarHandler.Mapper.AppendToMapping("CometProgressBarColors", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var platformView = handler.PlatformView;
+				if (platformView == null)
+					return;
+#if __IOS__ || MACCATALYST
+				var progressColor = cometView.GetEnvironment<Color>(EnvironmentKeys.ProgressBar.ProgressColor);
+				if (progressColor != null)
+					platformView.ProgressTintColor = progressColor.ToPlatform();
+				var trackColor = cometView.GetEnvironment<Color>(EnvironmentKeys.ProgressBar.TrackColor);
+				if (trackColor != null)
+					platformView.TrackTintColor = trackColor.ToPlatform();
+#elif ANDROID
+				var progressColor = cometView.GetEnvironment<Color>(EnvironmentKeys.ProgressBar.ProgressColor);
+				if (progressColor != null)
+					platformView.ProgressTintList = global::Android.Content.Res.ColorStateList.ValueOf(
+						new global::Android.Graphics.Color((int)progressColor.ToPlatform()));
+				var trackColor = cometView.GetEnvironment<Color>(EnvironmentKeys.ProgressBar.TrackColor);
+				if (trackColor != null)
+					platformView.ProgressBackgroundTintList = global::Android.Content.Res.ColorStateList.ValueOf(
+						new global::Android.Graphics.Color((int)trackColor.ToPlatform()));
+#endif
+			});
+
+			// Apply DatePicker format via handler mapper
+			DatePickerHandler.Mapper.AppendToMapping("CometDatePickerFormat", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var format = cometView.GetEnvironment<string>(EnvironmentKeys.DatePicker.Format);
+				if (string.IsNullOrEmpty(format))
+					return;
+				if (view is IDatePicker datePicker)
+				{
+					// Format is handled by MAUI's IDatePicker.Format property
+					// The environment value is read by the generated DatePicker class
+				}
+			});
+
+			// Apply DatePicker text color via handler mapper
+			DatePickerHandler.Mapper.AppendToMapping("CometDatePickerTextColor", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var color = cometView.GetEnvironment<Color>(EnvironmentKeys.DatePicker.TextColor);
+				if (color == null)
+					return;
+				var platformView = handler.PlatformView;
+				if (platformView == null)
+					return;
+#if __IOS__ || MACCATALYST
+				// UIDatePicker uses tintColor for text color on iOS 15+
+				platformView.TintColor = color.ToPlatform();
+#elif ANDROID
+				platformView.SetTextColor(color.ToPlatform());
+#endif
+			});
+
+			// Apply Button CornerRadius/BorderWidth/BorderColor via handler mapper
+			ButtonHandler.Mapper.AppendToMapping("CometButtonStyling", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var platformView = handler.PlatformView;
+				if (platformView == null)
+					return;
+#if __IOS__ || MACCATALYST
+				var cornerRadius = cometView.GetEnvironment<int?>(EnvironmentKeys.Button.CornerRadius);
+				if (cornerRadius != null)
+					platformView.Layer.CornerRadius = cornerRadius.Value;
+				var borderWidth = cometView.GetEnvironment<double?>(EnvironmentKeys.Button.BorderWidth);
+				if (borderWidth != null)
+					platformView.Layer.BorderWidth = (float)borderWidth.Value;
+				var borderColor = cometView.GetEnvironment<Color>(EnvironmentKeys.Button.BorderColor);
+				if (borderColor != null)
+					platformView.Layer.BorderColor = borderColor.ToPlatform().CGColor;
+				if (cornerRadius != null || borderWidth != null)
+					platformView.ClipsToBounds = true;
+#elif ANDROID
+				var cornerRadius = cometView.GetEnvironment<int?>(EnvironmentKeys.Button.CornerRadius);
+				var borderWidth = cometView.GetEnvironment<double?>(EnvironmentKeys.Button.BorderWidth);
+				var borderColor = cometView.GetEnvironment<Color>(EnvironmentKeys.Button.BorderColor);
+				if (cornerRadius != null || borderWidth != null || borderColor != null)
+				{
+					var context = platformView.Context;
+					if (context != null)
+					{
+						var drawable = new global::Android.Graphics.Drawables.GradientDrawable();
+						if (cornerRadius != null)
+							drawable.SetCornerRadius((float)(cornerRadius.Value * context.Resources.DisplayMetrics.Density));
+						if (borderWidth != null && borderColor != null)
+							drawable.SetStroke((int)(borderWidth.Value * context.Resources.DisplayMetrics.Density), borderColor.ToPlatform());
+						else if (borderWidth != null)
+							drawable.SetStroke((int)(borderWidth.Value * context.Resources.DisplayMetrics.Density), global::Android.Graphics.Color.Transparent);
+						var bg = cometView.GetBackground();
+						if (bg is SolidPaint bgPaint && bgPaint.Color != null)
+							drawable.SetColor(bgPaint.Color.ToPlatform());
+						platformView.Background = drawable;
+					}
+				}
+#endif
+			});
+
+			// Apply OnTextChanged callback to Entry via handler mapper
+			EntryHandler.Mapper.AppendToMapping("CometEntryTextChanged", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var callback = cometView.GetEnvironment<Action<string>>(EnvironmentKeys.Entry.TextChanged);
+				if (callback == null)
+					return;
+				var entry = handler.PlatformView;
+				if (entry == null)
+					return;
+#if __IOS__ || MACCATALYST
+				// Remove previous subscription to prevent duplicates on re-map
+				if (_entryEditingChangedHandlers.TryGetValue(entry, out var oldHandler))
+				{
+					entry.EditingChanged -= oldHandler;
+					_entryEditingChangedHandlers.Remove(entry);
+				}
+				EventHandler newHandler = (s, e) =>
+				{
+					try { callback(entry.Text ?? string.Empty); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] Entry TextChanged callback failed: {ex.Message}"); }
+				};
+				_entryEditingChangedHandlers.AddOrUpdate(entry, newHandler);
+				entry.EditingChanged += newHandler;
+#elif ANDROID
+				entry.AfterTextChanged += (s, e) =>
+				{
+					try { callback(entry.Text ?? string.Empty); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] Entry TextChanged callback failed: {ex.Message}"); }
+				};
+#endif
+			});
+
+			// Apply OnTextChanged callback to Editor via handler mapper
+			EditorHandler.Mapper.AppendToMapping("CometEditorTextChanged", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var callback = cometView.GetEnvironment<Action<string>>(EnvironmentKeys.Entry.TextChanged);
+				if (callback == null)
+					return;
+				var editor = handler.PlatformView;
+				if (editor == null)
+					return;
+#if __IOS__ || MACCATALYST
+				// Remove previous subscription to prevent duplicates on re-map
+				if (_editorChangedHandlers.TryGetValue(editor, out var oldHandler))
+				{
+					editor.Changed -= oldHandler;
+					_editorChangedHandlers.Remove(editor);
+				}
+				EventHandler newHandler = (s, e) =>
+				{
+					try { callback(editor.Text ?? string.Empty); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] Editor TextChanged callback failed: {ex.Message}"); }
+				};
+				_editorChangedHandlers.AddOrUpdate(editor, newHandler);
+				editor.Changed += newHandler;
+#elif ANDROID
+				editor.AfterTextChanged += (s, e) =>
+				{
+					try { callback(editor.Text ?? string.Empty); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] Editor TextChanged callback failed: {ex.Message}"); }
+				};
+#endif
+			});
+
+			// Apply OnTextChanged callback to SearchBar via handler mapper
+			SearchBarHandler.Mapper.AppendToMapping("CometSearchBarTextChanged", (handler, view) =>
+			{
+				if (view is not View cometView)
+					return;
+				var callback = cometView.GetEnvironment<Action<string>>(EnvironmentKeys.Entry.TextChanged);
+				if (callback == null)
+					return;
+				var searchBar = handler.PlatformView;
+				if (searchBar == null)
+					return;
+#if __IOS__ || MACCATALYST
+				if (_searchBarTextChangedHandlers.TryGetValue(searchBar, out var oldHandler))
+				{
+					searchBar.TextChanged -= oldHandler;
+					_searchBarTextChangedHandlers.Remove(searchBar);
+				}
+				EventHandler<UIKit.UISearchBarTextChangedEventArgs> newHandler = (s, e) =>
+				{
+					try { callback(e.SearchText ?? string.Empty); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] SearchBar TextChanged callback failed: {ex.Message}"); }
+				};
+				_searchBarTextChangedHandlers.AddOrUpdate(searchBar, newHandler);
+				searchBar.TextChanged += newHandler;
+#elif ANDROID
+				if (_searchBarTextChangedHandlers.TryGetValue(searchBar, out var oldObj))
+				{
+					_searchBarTextChangedHandlers.Remove(searchBar);
+				}
+				EventHandler<global::AndroidX.AppCompat.Widget.SearchView.QueryTextChangeEventArgs> newAndroidHandler = (s, e) =>
+				{
+					try { callback(e.NewText ?? string.Empty); }
+					catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Comet] SearchBar TextChanged callback failed: {ex.Message}"); }
+				};
+				_searchBarTextChangedHandlers.AddOrUpdate(searchBar, newAndroidHandler);
+				searchBar.QueryTextChange += newAndroidHandler;
+#endif
+			});
+
+			// WebView Source mapper: load URL via platform delegate
+			WebViewHandler.Mapper.AppendToMapping(nameof(IWebView.Source), (handler, view) =>
+			{
+				if (view is IWebView webView)
+				{
+					var src = webView.Source;
+					if (src is CometUrlWebViewSource urlSrc && !string.IsNullOrEmpty(urlSrc.Url))
+					{
+						if (handler.PlatformView is IWebViewDelegate del)
+							del.LoadUrl(urlSrc.Url);
+					}
+					else if (src is CometHtmlWebViewSource htmlSrc && !string.IsNullOrEmpty(htmlSrc.Html))
+					{
+						if (handler.PlatformView is IWebViewDelegate del2)
+							del2.LoadHtml(htmlSrc.Html, null);
+					}
+				}
+			});
+
 			Lerp.Lerps[typeof(FrameConstraints)] = new Lerp
 			{
 				Calculate = (s, e, progress) => {
@@ -52,8 +821,9 @@ namespace Comet
 				{ typeof(AbsoluteLayout), typeof(LayoutHandler) },
 				{ typeof(FlexLayout), typeof(LayoutHandler) },
 				{ typeof(ActivityIndicator), typeof(ActivityIndicatorHandler) },
-				{ typeof(Border), typeof(ContentViewHandler) },
+				{ typeof(Border), typeof(LayoutHandler) },
 			{ typeof(MauiViewHost), typeof(Handlers.MauiViewHostHandler) },
+			{ typeof(NativeHost), typeof(Handlers.NativeHostHandler) },
 				{ typeof(Button), typeof(ButtonHandler) },
 				{ typeof(CheckBox), typeof(CheckBoxHandler) },
 				{ typeof(CometWindow), typeof(WindowHandler) },
@@ -66,7 +836,7 @@ namespace Comet
 				{ typeof(IndicatorView), typeof(IndicatorViewHandler) },
 				{ typeof(Picker), typeof(PickerHandler) },
 				{ typeof(ProgressBar), typeof(ProgressBarHandler) },
-				{ typeof(RadioButton), typeof(Microsoft.Maui.Handlers.RadioButtonHandler) },
+				{ typeof(RadioButton), typeof(Handlers.RadioButtonHandler) },
 				{ typeof(RadioGroup), typeof(LayoutHandler) },
 				{ typeof(RefreshView), typeof(RefreshViewHandler) },
 				{ typeof(SearchBar), typeof(SearchBarHandler) },
@@ -110,6 +880,24 @@ namespace Comet
 				{typeof(MenuFlyoutSubItem), typeof(Microsoft.Maui.Handlers.MenuFlyoutSubItemHandler)},
 				{typeof(MenuFlyoutSeparator), typeof(Microsoft.Maui.Handlers.MenuFlyoutSeparatorHandler)},
 			}));
+
+			// MAUI 10 moved MaxLines/LineBreakMode off ILabel to the concrete Label class.
+			// Comet's Text (View, not Label) can't provide them, so UILabel defaults to
+			// numberOfLines=1 and truncation. Fix by customizing the LabelHandler mapper.
+			LabelHandler.Mapper.AppendToMapping("CometTextWordWrap", (handler, view) =>
+			{
+				if (view is Text)
+				{
+#if __IOS__ || MACCATALYST
+					handler.PlatformView.Lines = 0;
+					handler.PlatformView.LineBreakMode = UIKit.UILineBreakMode.WordWrap;
+#elif WINDOWS
+					handler.PlatformView.TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap;
+#elif __ANDROID__
+					handler.PlatformView.SetMaxLines(int.MaxValue);
+#endif
+				}
+			});
 
 			// Register standard MAUI Controls handlers for MauiViewHost embedding.
 			// These enable Microsoft.Maui.Controls types (Label, Entry, Border, etc.)
@@ -159,6 +947,9 @@ namespace Comet
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.NavigationPage, Microsoft.Maui.Handlers.NavigationViewHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.TabbedPage, Microsoft.Maui.Handlers.TabbedViewHandler>();
 				handlersCollection.TryAddHandler<Microsoft.Maui.Controls.FlyoutPage, Microsoft.Maui.Handlers.FlyoutViewHandler>();
+				// Phase 8: Comet TabbedPage/FlyoutPage deferred
+				//handlersCollection.TryAddHandler<Comet.TabbedPage, Microsoft.Maui.Handlers.TabbedViewHandler>();
+				//handlersCollection.TryAddHandler<Comet.FlyoutPage, Microsoft.Maui.Handlers.FlyoutViewHandler>();
 			});
 
 
@@ -167,6 +958,194 @@ namespace Comet
 			return builder;
 		}
 
+		static void ApplyInspectionMetadata(IViewHandler handler, View view)
+		{
+			if (handler?.PlatformView == null || view == null)
+				return;
 
+			var automationId = view.AutomationId;
+			var isEnabled = view.IsEnabled;
+			var isVisible = view.IsVisible;
+			var inputTransparent = view.InputTransparent;
+			var hasGestures = view is IGestureView gv && gv.Gestures?.Count > 0;
+
+			// Use explicit AutomationId if set, otherwise fall back to View.Id
+			// so every Comet view gets a stable platform identifier for
+			// automation tools (MauiDevFlow, Appium, accessibility inspectors).
+			var platformId = !string.IsNullOrWhiteSpace(automationId)
+				? automationId
+				: view.Id;
+
+#if __IOS__ || MACCATALYST
+			if (handler.PlatformView is UIKit.UIView platformView)
+			{
+				if (!string.IsNullOrWhiteSpace(platformId))
+					platformView.AccessibilityIdentifier = platformId;
+
+				if (!string.IsNullOrWhiteSpace(automationId) || hasGestures)
+					platformView.IsAccessibilityElement = true;
+
+				platformView.Hidden = !isVisible;
+				platformView.UserInteractionEnabled = isEnabled && !inputTransparent;
+				if (hasGestures)
+					platformView.UserInteractionEnabled = true;
+			}
+#elif ANDROID
+			if (handler.PlatformView is global::Android.Views.View platformView)
+			{
+				if (!string.IsNullOrWhiteSpace(platformId))
+					platformView.ContentDescription = platformId;
+
+				platformView.Enabled = isEnabled;
+				platformView.Visibility = isVisible
+					? global::Android.Views.ViewStates.Visible
+					: global::Android.Views.ViewStates.Gone;
+				platformView.Clickable = !inputTransparent || hasGestures;
+			}
+#endif
+		}
+
+
+		/// <summary>
+		/// Registers handler mapper entries for IControlStyle resolution on Button,
+		/// Toggle, TextField, and Slider. These resolve the active control style
+		/// from the environment (scoped or theme-level) and apply it as fallback
+		/// values via the type-scoped global environment, which has lower priority
+		/// than explicit properties set on the view itself.
+		/// </summary>
+		static void RegisterStyleResolutionMappers()
+		{
+			// Button style resolution
+			ButtonHandler.Mapper.AppendToMapping("CometButtonStyleResolution", (handler, view) =>
+			{
+				if (view is not Button button)
+					return;
+
+				var resolved = button.ResolveCurrentStyle(new ButtonConfiguration
+				{
+					TargetView = button,
+					IsEnabled = button.GetEnvironment<bool?>(nameof(IView.IsEnabled)) ?? true,
+					Label = ((IText)button).Text,
+				});
+
+				if (resolved == null || resolved == ViewModifier.Empty)
+					return;
+
+				ApplyModifierAsTypeScopedDefaults(button, typeof(Button), resolved);
+			});
+
+			// Toggle style resolution
+			SwitchHandler.Mapper.AppendToMapping("CometToggleStyleResolution", (handler, view) =>
+			{
+				if (view is not Toggle toggle)
+					return;
+
+				var resolved = toggle.ResolveCurrentStyle(new ToggleConfiguration
+				{
+					TargetView = toggle,
+					IsOn = ((ISwitch)toggle).IsOn,
+					IsEnabled = toggle.GetEnvironment<bool?>(nameof(IView.IsEnabled)) ?? true,
+				});
+
+				if (resolved == null || resolved == ViewModifier.Empty)
+					return;
+
+				ApplyModifierAsTypeScopedDefaults(toggle, typeof(Toggle), resolved);
+			});
+
+			// TextField style resolution
+			EntryHandler.Mapper.AppendToMapping("CometTextFieldStyleResolution", (handler, view) =>
+			{
+				if (view is not TextField textField)
+					return;
+
+				var resolved = textField.ResolveCurrentStyle(new TextFieldConfiguration
+				{
+					TargetView = textField,
+					IsEnabled = textField.GetEnvironment<bool?>(nameof(IView.IsEnabled)) ?? true,
+					Placeholder = ((IPlaceholder)textField).Placeholder,
+				});
+
+				if (resolved == null || resolved == ViewModifier.Empty)
+					return;
+
+				ApplyModifierAsTypeScopedDefaults(textField, typeof(TextField), resolved);
+			});
+
+			// Slider style resolution
+			SliderHandler.Mapper.AppendToMapping("CometSliderStyleResolution", (handler, view) =>
+			{
+				if (view is not Slider slider)
+					return;
+
+				var resolved = slider.ResolveCurrentStyle(new SliderConfiguration
+				{
+					TargetView = slider,
+					Value = ((ISlider)slider).Value,
+					Minimum = ((IRange)slider).Minimum,
+					Maximum = ((IRange)slider).Maximum,
+					IsEnabled = slider.GetEnvironment<bool?>(nameof(IView.IsEnabled)) ?? true,
+				});
+
+				if (resolved == null || resolved == ViewModifier.Empty)
+					return;
+
+				ApplyModifierAsTypeScopedDefaults(slider, typeof(Slider), resolved);
+			});
+		}
+
+		/// <summary>
+		/// Applies a resolved ViewModifier's values as type-scoped global environment
+		/// defaults. This ensures explicit user properties (local scope) win over
+		/// style-resolved properties (global type-scoped scope).
+		///
+		/// Works by applying the modifier to a scratch view, then extracting the
+		/// environment values it set and pushing them to the global type-scoped store.
+		/// </summary>
+		static void ApplyModifierAsTypeScopedDefaults(View realView, Type controlType, ViewModifier modifier)
+		{
+			// Apply the modifier directly to the view. The modifier calls fluent
+			// methods which call SetEnvironment with cascades=true, writing to
+			// the view's Context dictionary.
+			//
+			// To preserve priority (explicit > style), we instead push values to
+			// the type-scoped global environment which sits below local values
+			// in the lookup chain (see ContextualObject.GetValue).
+			//
+			// Strategy: snapshot the view's context keys before applying, apply
+			// the modifier, detect new keys, move new values to global type-scoped,
+			// and revert changes on the view's context.
+			var contextBefore = new Dictionary<string, object>();
+			if (realView._context != null)
+			{
+				foreach (var kvp in realView._context.dictionary)
+					contextBefore[kvp.Key] = kvp.Value;
+			}
+
+			// Use MonitorChanges to capture what the modifier would write without
+			// actually persisting to the view's environment. This avoids firing
+			// property-changed notifications for style-default values.
+			ContextualObject.MonitorChanges();
+			try
+			{
+				modifier.Apply(realView);
+			}
+			finally
+			{
+				var changes = ContextualObject.StopMonitoringChanges();
+				// Push each changed property to the type-scoped global environment
+				// as a fallback. The view's own values (explicit user properties)
+				// take priority in the lookup chain.
+				foreach (var entry in changes)
+				{
+					var key = entry.Key.property;
+					var newValue = entry.Value.newValue;
+					if (newValue != null)
+					{
+						View.SetGlobalEnvironment(controlType, key, newValue);
+					}
+				}
+			}
+		}
 	}
 }

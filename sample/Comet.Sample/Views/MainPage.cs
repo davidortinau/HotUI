@@ -4,10 +4,11 @@ using Comet.Samples.Comparisons;
 using Comet.Samples.LiveStreamIssues;
 using Microsoft.Maui;
 using Microsoft.Maui.HotReload;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class MainPage : View
+	public class MainPage : Component
 	{
 		List<MenuItem> pages = new List<MenuItem>
 		{
@@ -103,19 +104,16 @@ namespace Comet.Samples
 				pages.AddRange(additionalPage);
 
 			this.Title("UI Samples");
-
-			Body = () => new NavigationView{
-					new ListView<MenuItem>(pages)
-					{
-						ViewFor = (page) => new HStack()
-						{
-							new Text(page.Title),
-							new Spacer()
-						}.Frame(height: 44).Margin(left: 10),
-						//ViewFor = (page) => new Text(page.Title).FillHorizontal().TextAlignment(TextAlignment.Left).Frame(height:44).Margin(left:10),
-					}.OnSelectedNavigate(page => page.Page().Title(page.Title))
-			};
-
 		}
+
+		public override View Render() => NavigationView(
+			new ListView<MenuItem>(pages)
+			{
+				ViewFor = (page) => HStack(
+					Text(page.Title),
+					Spacer()
+				).Frame(height: 44).Margin(left: 10),
+			}.OnSelectedNavigate(page => page.Page().Title(page.Title))
+		);
 	}
 }

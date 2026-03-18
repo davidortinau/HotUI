@@ -125,6 +125,9 @@ public static class MauiProgram
 		var builder = MauiApp.CreateBuilder();
 		builder.UseMauiApp<ShellMauiApp>();
 		builder.UseCometHandlers();
+#if DEBUG
+		builder.EnableSampleRuntimeDebugging();
+#endif
 		return builder.Build();
 	}
 }

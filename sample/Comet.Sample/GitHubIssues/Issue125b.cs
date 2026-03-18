@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class Issue125b : View
+	public class Issue125b : Component
 	{
 		private class TodoItem
 		{
@@ -23,16 +24,14 @@ namespace Comet.Samples
 		};
 
 
-		[Body]
-		View body() => new NavigationView{
+				public override View Render() => NavigationView(
 			new ListView<TodoItem>(items){
-				ViewFor = (item)=>new HStack
-					{
-						new Text(item.Name).Alignment( Alignment.Leading),
-						new Spacer(),
-						new Toggle(item.Done).Alignment(Alignment.Center)
-					}.Margin(6).FillHorizontal()
-			}.Title("Tasky"),
-		};
+				ViewFor = (item)=>HStack(
+						Text(item.Name).Alignment( Alignment.Leading),
+						Spacer(),
+						Toggle(item.Done).Alignment(Alignment.Center)
+					).Margin(6).FillHorizontal()
+			}.Title("Tasky")
+		);
 	}
 }

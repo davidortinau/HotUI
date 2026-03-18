@@ -9,11 +9,13 @@ using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
 
 namespace CometProjectManager.Pages;
 
+public class ProjectListPageState { }
+
 /// <summary>
 /// Project list — matches the template's ProjectListPage exactly.
 /// Uses MauiViewHost for the entire content to ensure pixel-perfect match.
 /// </summary>
-public class ProjectListPage : View
+public class ProjectListPage : Component<ProjectListPageState>
 {
 [State] readonly DataStore _store = DataStore.Instance;
 readonly Action? _onMenuTap;
@@ -25,18 +27,14 @@ static readonly Color LightSecondaryBg = Color.FromArgb("#E0E0E0");
 static readonly Color DarkOnLightBg = Color.FromArgb("#0D0D0D");
 static readonly Color LightBg = Color.FromArgb("#F2F2F2");
 
-[Body]
-View body()
+public override View Render()
 {
 var projects = _store.Projects.Value ?? new List<Project>();
 
-// Build entire page with MAUI Controls for pixel-perfect match
 var rootGrid = new MauiGrid { BackgroundColor = LightBg };
 
-// ScrollView > VerticalStackLayout of project cards
 var stack = new Microsoft.Maui.Controls.VerticalStackLayout
 {
-// LayoutPadding=15, LayoutSpacing=5 (phone values)
 Padding = new Thickness(15),
 Spacing = 5,
 };
@@ -92,10 +90,9 @@ rootGrid.Add(fab);
 
 if (!_wrapInNav) return new MauiViewHost(rootGrid);
 
-var nav = new NavigationView
-{
-new MauiViewHost(rootGrid),
-};
+var nav = NavigationView(
+new MauiViewHost(rootGrid)
+);
 if (_onMenuTap != null) { nav.LeadingBarAction = _onMenuTap; }
 return nav.Title("Projects").Background(LightBg);
 }

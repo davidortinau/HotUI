@@ -9,11 +9,11 @@ namespace Comet.Tests
 {
 	public class StateManagementTests : TestBase
 	{
-		// Test that State<T> properly notifies on value change
+		// Test that Reactive<T> properly notifies on value change
 		[Fact]
-		public void StateNotifiesOnValueChange()
+		public void ReactiveNotifiesOnValueChange()
 		{
-			var state = new State<int>(0);
+			var state = new Reactive<int>(0);
 			int notifyCount = 0;
 
 			state.ValueChanged = (val) => notifyCount++;
@@ -23,11 +23,11 @@ namespace Comet.Tests
 			Assert.True(notifyCount > 0);
 		}
 
-		// Test that State<T> implicit conversions work
+		// Test that Reactive<T> implicit conversions work
 		[Fact]
-		public void StateImplicitConversions()
+		public void ReactiveImplicitConversions()
 		{
-			State<int> state = 42;
+			Reactive<int> state = 42;
 			int value = state;
 
 			Assert.Equal(42, value);
@@ -53,7 +53,7 @@ namespace Comet.Tests
 			Assert.True(buildCount > initialCount);
 		}
 
-		// Test nested state binding with BindingObject
+		// Test nested state binding with model
 		[Fact]
 		public void NestedStateBindingWorks()
 		{
@@ -137,27 +137,27 @@ namespace Comet.Tests
 			Assert.IsType<VStack>(view.BuiltView);
 		}
 
-		// Test BindingObject property change notification
+		// Test Reactive<T> PropertyRead fires on read
 		[Fact]
-		public void BindingObjectNotifiesPropertyChange()
+		public void ReactiveNotifiesPropertyRead()
 		{
-			var obj = new TestBindingObject();
+			var reactive = new Reactive<string>("test");
 			bool notified = false;
 
-			((INotifyPropertyRead)obj).PropertyRead += (sender, args) =>
+			reactive.PropertyRead += (sender, args) =>
 			{
 				notified = true;
 			};
 
-			var _ = obj.Name;
+			var _ = reactive.Value;
 			Assert.True(notified);
 		}
 
-		// Test State<T> with null value
+		// Test Reactive<T> with null value
 		[Fact]
-		public void StateHandlesNullValue()
+		public void ReactiveHandlesNullValue()
 		{
-			var state = new State<string>(null);
+			var state = new Reactive<string>(null);
 			Assert.Null(state.Value);
 
 			state.Value = "hello";
@@ -167,11 +167,11 @@ namespace Comet.Tests
 			Assert.Null(state.Value);
 		}
 
-		// Test State<T> with collection types
+		// Test Reactive<T> with collection types
 		[Fact]
-		public void StateWithCollectionType()
+		public void ReactiveWithCollectionType()
 		{
-			var state = new State<List<string>>(new List<string> { "a", "b", "c" });
+			var state = new Reactive<List<string>>(new List<string> { "a", "b", "c" });
 			Assert.Equal(3, state.Value.Count);
 
 			state.Value.Add("d");
@@ -211,54 +211,54 @@ namespace Comet.Tests
 			Assert.Equal(2, textBuildCount);
 		}
 
-		// Test State<T> ToString returns value string
+		// Test Reactive<T> ToString returns value string
 		[Fact]
-		public void StateToStringReturnsValueString()
+		public void ReactiveToStringReturnsValueString()
 		{
-			var state = new State<int>(42);
+			var state = new Reactive<int>(42);
 			Assert.Equal("42", state.ToString());
 
-			var strState = new State<string>("hello");
+			var strState = new Reactive<string>("hello");
 			Assert.Equal("hello", strState.ToString());
 		}
 
-		// Test BindingObject property set triggers PropertyChanged
+		// Test Reactive<T> PropertyChanged fires on set
 		[Fact]
-		public void BindingObjectPropertySetTriggersPropertyChanged()
+		public void ReactivePropertySetTriggersPropertyChanged()
 		{
-			var obj = new TestBindingObject();
+			var reactive = new Reactive<string>();
 			string changedProp = null;
 
-			obj.PropertyChanged += (sender, args) =>
+			reactive.PropertyChanged += (sender, args) =>
 			{
 				changedProp = args.PropertyName;
 			};
 
-			obj.Name = "NewName";
-			Assert.Equal(nameof(TestBindingObject.Name), changedProp);
+			reactive.Value = "NewName";
+			Assert.Equal("Value", changedProp);
 		}
 
 		// Helper classes
 		class TestStateView : View
 		{
-			public readonly State<int> count = new State<int>(0);
+			public readonly Reactive<int> count = new Reactive<int>(0);
 		}
 
 		class TestNestedView : View
 		{
-			public readonly State<PersonModel> person = new State<PersonModel>(new PersonModel { Name = "Test", Age = 25 });
+			public readonly Reactive<PersonModel> person = new Reactive<PersonModel>(new PersonModel { Name = "Test", Age = 25 });
 		}
 
 		class TestMultiStateView : View
 		{
-			public readonly State<string> firstName = new State<string>("Jane");
-			public readonly State<string> lastName = new State<string>("Smith");
+			public readonly Reactive<string> firstName = new Reactive<string>("Jane");
+			public readonly Reactive<string> lastName = new Reactive<string>("Smith");
 		}
 
 		class TestConditionalView : View
 		{
-			public readonly State<bool> showDetails = new State<bool>(false);
-			public readonly State<string> detail = new State<string>("Detail text");
+			public readonly Reactive<bool> showDetails = new Reactive<bool>(false);
+			public readonly Reactive<string> detail = new Reactive<string>("Detail text");
 		}
 
 		class PersonModel
@@ -267,33 +267,14 @@ namespace Comet.Tests
 			public int Age { get; set; }
 		}
 
-		class TestBindingObject : BindingObject
-		{
-			public string Name
-			{
-				get => GetProperty<string>();
-				set => SetProperty(value);
-			}
-		}
-
-		// Threading tests for StateManager
+		// Threading tests for Reactive<T>
 
 		[Fact]
-		public void ConcurrentPropertyChangesDoNotThrow()
+		public void ConcurrentReactiveChangesDoNotThrow()
 		{
-			var obj = new TestBindingObject();
+			var reactive = new Reactive<string>();
 			var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
 
-			// Create views that actually bind to the object via body evaluation
-			var views = new List<BoundView>();
-			for (int i = 0; i < 5; i++)
-			{
-				var view = new BoundView(obj);
-				var _ = view.Body?.Invoke(); // Force body evaluation to create StateManager subscriptions
-				views.Add(view);
-			}
-
-			// Hammer property changes from multiple threads
 			var tasks = new List<System.Threading.Tasks.Task>();
 			for (int t = 0; t < 10; t++)
 			{
@@ -304,7 +285,7 @@ namespace Comet.Tests
 					{
 						for (int i = 0; i < 100; i++)
 						{
-							obj.Name = $"Thread{threadId}_Iteration{i}";
+							reactive.Value = $"Thread{threadId}_Iteration{i}";
 						}
 					}
 					catch (Exception ex)
@@ -319,9 +300,9 @@ namespace Comet.Tests
 		}
 
 		[Fact]
-		public void StateValueCanBeReadFromMultipleThreads()
+		public void ReactiveValueCanBeReadFromMultipleThreads()
 		{
-			var state = new State<int>(0);
+			var state = new Reactive<int>(0);
 			var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
 			var values = new System.Collections.Concurrent.ConcurrentBag<int>();
 
@@ -351,20 +332,20 @@ namespace Comet.Tests
 		}
 
 		[Fact]
-		public void DisposeWhilePropertyChangingDoNotThrow()
+		public void DisposeWhileChangingDoesNotThrow()
 		{
-			var obj = new TestBindingObject();
+			var reactive = new Reactive<string>();
 			var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
 
 			var tasks = new List<System.Threading.Tasks.Task>();
 
-			// Thread 1: rapidly change properties
+			// Thread 1: rapidly change value
 			tasks.Add(System.Threading.Tasks.Task.Run(() =>
 			{
 				try
 				{
 					for (int i = 0; i < 200; i++)
-						obj.Name = $"Value{i}";
+						reactive.Value = $"Value{i}";
 				}
 				catch (Exception ex)
 				{
@@ -372,15 +353,16 @@ namespace Comet.Tests
 				}
 			}));
 
-			// Thread 2: create bound views, build them, then dispose
+			// Thread 2: create views that read the reactive, then dispose
 			tasks.Add(System.Threading.Tasks.Task.Run(() =>
 			{
 				try
 				{
 					for (int i = 0; i < 50; i++)
 					{
-						var view = new BoundView(obj);
-						var _ = view.Body?.Invoke(); // Force body evaluation and subscriptions
+						var view = new View();
+						view.Body = () => new Text(() => $"Name: {reactive.Value}");
+						var _ = view.Body?.Invoke();
 						view.Dispose();
 					}
 				}
@@ -394,19 +376,9 @@ namespace Comet.Tests
 			Assert.Empty(exceptions);
 		}
 
-		class BoundView : View
-		{
-			readonly TestBindingObject _obj;
-
-			public BoundView(TestBindingObject obj) => _obj = obj;
-
-			[Body]
-			View body() => new Text(() => $"Name: {_obj.Name}");
-		}
-
 		class CounterView : View
 		{
-			[State] readonly State<int> count = new State<int>(0);
+			[State] readonly Reactive<int> count = new Reactive<int>(0);
 
 			[Body]
 			View body() => new Text(() => $"Count: {count.Value}");

@@ -1,74 +1,70 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class SkiaSample3WithScrollView : View
+	public class SkiaSample3WithScrollView : Component
 	{
 		readonly State<double> _strokeSize = 2;
 		readonly State<Color> _strokeColor = Colors.Black;
 
-		[Body]
-		View body() => new VStack()
-		{
-			new VStack()
-			{
-				new HStack()
-				{
-					new Text("Stroke Width:"),
-					new Slider(_strokeSize, 1, 10).FillHorizontal()
-				},
-				new HStack()
-				{
-					new Text("Stroke Color!:"),
-				},
-				new ScrollView(Orientation.Horizontal)
-				{
-					new HStack(spacing:8)
-					{
-						new Button("Black", () =>
+				public override View Render() => VStack(
+			VStack(
+				HStack(
+					Text("Stroke Width:"),
+					Slider(_strokeSize,
+						new Binding<double>(() => 1d, null),
+						new Binding<double>(() => 10d, null)).FillHorizontal()
+				),
+				HStack(
+					Text("Stroke Color!:")
+				),
+				ScrollView(Orientation.Horizontal,
+					HStack(8,
+						Button("Black", () =>
 						{
 							_strokeColor.Value = Colors.Black;
 						}),
-						new Button("Blue", () =>
+						Button("Blue", () =>
 						{
 							_strokeColor.Value = Colors.Blue;
 						}),
-						new Button("Red", () =>
+						Button("Red", () =>
 						{
 							_strokeColor.Value = Colors.Red;
 						}),
-						new Button("Green", () =>
+						Button("Green", () =>
 						{
 							_strokeColor.Value = Colors.Green;
 						}),
-						new Button("Orange", () =>
+						Button("Orange", () =>
 						{
 							_strokeColor.Value = Colors.Orange;
 						}),
-						new Button("Yellow", () =>
+						Button("Yellow", () =>
 						{
 							_strokeColor.Value = Colors.Yellow;
 						}),
-						new Button("Brown", () =>
+						Button("Brown", () =>
 						{
 							_strokeColor.Value = Colors.Brown;
 						}),
-						new Button("Salmon", () =>
+						Button("Salmon", () =>
 						{
 							_strokeColor.Value = Colors.Salmon;
 						}),
-						new Button("Magenta", () =>
+						Button("Magenta", () =>
 						{
 							_strokeColor.Value = Colors.Magenta;
 						})
-					},
-				},
+					)
+				),
 				new BindableFingerPaint(
 					strokeSize:_strokeSize,
 					strokeColor:_strokeColor).Frame(height:400).FillHorizontal().Border(new Rectangle().Stroke(Colors.White,2))
-			},
-		};
+			)
+		);
 	}
 }

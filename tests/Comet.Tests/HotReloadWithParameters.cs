@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using Comet.HotReload;
 using Comet.Internal;
 using Microsoft.Maui.HotReload;
 using Xunit;
@@ -56,7 +57,7 @@ namespace Comet.Tests
 			var orgText = orgView.GetView() as Text;
 			Assert.Equal(MyOrgView.TextValue, orgText.Value);
 
-			MauiHotReloadHelper.RegisterReplacedView(typeof(MyOrgView).FullName, typeof(MyNewView));
+			CometHotReloadHelper.RegisterReplacedView(typeof(MyOrgView).FullName, typeof(MyNewView));
 			var newText = orgView.GetView() as Text;
 
 			Assert.Equal(MyOrgView.TextValue, newText.Value);
@@ -70,7 +71,7 @@ namespace Comet.Tests
 			var orgText = orgView.GetView() as Text;
 			Assert.Equal(MyOrgView1.TextValue, orgText.Value);
 
-			MauiHotReloadHelper.RegisterReplacedView(typeof(MyOrgView1).FullName, typeof(MyNewView));
+			CometHotReloadHelper.RegisterReplacedView(typeof(MyOrgView1).FullName, typeof(MyNewView));
 			var newText = orgView.GetView() as Text;
 
 			Assert.Equal(MyOrgView1.TextValue, newText.Value);

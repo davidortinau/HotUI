@@ -4,12 +4,19 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Maui.Devices;
 using Comet.Internal;
+using Comet.Reactive;
 
 namespace Comet
 {
 	public abstract class ContextualObject
 	{
 		internal static readonly EnvironmentData Environment = new EnvironmentData();
+		/// <summary>
+		/// Shared reactive environment used by the new ReactiveScope-based tracking system.
+		/// Environment reads during body evaluation are tracked here so that changes to
+		/// those keys automatically trigger view rebuilds via <see cref="ReactiveScheduler"/>.
+		/// </summary>
+		internal static readonly ReactiveEnvironment ReactiveEnv = new ReactiveEnvironment();
 		internal EnvironmentData _context;
 		internal EnvironmentData Context(bool shouldCreate) => _context ?? (shouldCreate ? (_context = new EnvironmentData(this)) : null);
 
@@ -232,32 +239,6 @@ namespace Comet
 			return contextualObject;
 		}
 
-		public static T SetEnvironment<T,TValue>(this T view, Type type, string key, Binding<TValue> binding, bool cascades = true, ControlState state = ControlState.Default)
-			where T : View
-		{
-			binding.BindToProperty(view, key);
-			key = ContextualObject.GetControlStateKey(state, key);
-			var typedKey = ContextualObject.GetTypedKey(type, key);
-			view.SetValue(typedKey, binding, cascades);
-			//TODO: Verify this is needed 
-			ThreadHelper.RunOnMainThread(() => {
-				view.ContextPropertyChanged(typedKey, binding, cascades);
-			});
-			return view;
-		}
-
-		public static T SetEnvironment<T, TValue>(this T view, string key, Binding<TValue> binding, bool cascades = true, ControlState state = ControlState.Default)
-			where T : View
-		{
-			binding?.BindToProperty(view, key);
-			key = ContextualObject.GetControlStateKey(state, key);
-			if (!view.SetValue(key, binding, cascades))
-				return view;
-			ThreadHelper.RunOnMainThread(() => {
-				view.ContextPropertyChanged(key, binding, cascades);
-			});
-			return view;
-		}
 		public static T SetEnvironment<T>(this T contextualObject, string key, object value, bool cascades = true, ControlState state = ControlState.Default)
 			where T : ContextualObject
 		{
@@ -306,6 +287,23 @@ namespace Comet
 
 		public static object GetEnvironment(this View view, string key, bool cascades = true) => view.GetValue(key, view, view.Parent, ContextualObject.GetTypedStyleId(view, key), ContextualObject.GetTypedKey(view, key), cascades);
 		public static object GetEnvironment(this View view, Type type, string key, bool cascades = true) => view.GetValue(key, view, view.Parent, ContextualObject.GetTypedStyleId(view, key), ContextualObject.GetTypedKey(type ?? view.GetType(), key), cascades);
+
+		/// <summary>
+		/// Presence-detecting environment lookup. Required for value-type tokens
+		/// (e.g., Token&lt;double&gt;) where default(T) is a valid override value.
+		/// Returns true if the key was found, false otherwise.
+		/// </summary>
+		public static bool TryGetEnvironment<T>(this View view, string key, out T value, bool cascades = true)
+		{
+			var raw = view.GetEnvironment(key, cascades);
+			if (raw is T typed)
+			{
+				value = typed;
+				return true;
+			}
+			value = default;
+			return raw != null;
+		}
 
 
 		public static Dictionary<string, object> DebugGetEnvironment(this View view)

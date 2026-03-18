@@ -2,21 +2,19 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class MaterialSample : View
+	public class MaterialSample : Component
 	{
-		[Body]
-		View body() => new VStack
-		{
-			new HStack
-			{
-				new Button("Contained Button").StyleAsContained(),
-				new Button("Outlined Button").StyleAsOutlined(),
-				new Button("Text Button").StyleAsText(),
-			}
-		};
+				public override View Render() => VStack(
+			HStack(
+				Button("Contained Button").StyleAsContained(),
+				Button("Outlined Button").StyleAsOutlined(),
+				Button("Text Button").StyleAsText()
+			)
+		);
 
 	}
 }

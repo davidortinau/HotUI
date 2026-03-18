@@ -21,25 +21,19 @@
         "type": "parameter",
         "description": "Overrides the $(ApplicationId) in the project",
         "datatype": "string",
-        "replaces": "com.companyname.CometApp1"
-      },
-      "microsoftExtensionsVersion": {
-        "type": "parameter",
-        "dataType": "string",
-        "replaces": "MICROSOFT_EXTENSIONS_VERSION",
-        "defaultValue": "6.0.0-preview.4.*"
+        "replaces": "com.companyname.cometapp1"
       },
       "mauiVersion": {
         "type": "parameter",
         "dataType": "string",
         "replaces": "MAUI_VERSION",
-        "defaultValue": "6.0.100-preview.4.*"
+        "defaultValue": "10.0.41"
       },
       "cometVersion": {
         "type": "parameter",
         "dataType": "string",
         "replaces": "COMET_VERSION",
-        "defaultValue": "0.3.45-beta"
+        "defaultValue": "0.4.0"
       }
     },
     "defaultName": "CometApp1"

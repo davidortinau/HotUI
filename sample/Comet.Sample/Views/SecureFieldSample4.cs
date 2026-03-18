@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using static Comet.CometControls;
 
 /*
 
@@ -17,15 +18,13 @@ struct ContentView : View {
 */
 namespace Comet.Samples
 {
-	public class SecureFieldSample4 : View
+	public class SecureFieldSample4 : Component
 	{
 		readonly State<string> password = "";
 
-		[Body]
-		View body() => new VStack()
-		{
-			new SecureField(password, "Enter a password"),
-			new Text(password)
-		}.FillHorizontal();
+				public override View Render() => VStack(
+			SecureField(password, "Enter a password"),
+			Text(() => password.Value)
+		).FillHorizontal();
 	}
 }

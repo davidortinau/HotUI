@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Net;
+using Comet.Reactive;
 using Microsoft.Maui;
 
 namespace Comet
 {
-	class CometHtmlWebViewSource : IWebViewSource
+	internal class CometHtmlWebViewSource : IWebViewSource
 	{
 		public string Html { get; set; }
 		public void Load(IWebViewDelegate webViewDelegate) => webViewDelegate.LoadHtml(Html, null);
 	}
 
-	class CometUrlWebViewSource : IWebViewSource
+	internal class CometUrlWebViewSource : IWebViewSource
 	{
 		public string Url { get; set; }
 		public void Load(IWebViewDelegate webViewDelegate) => webViewDelegate.LoadUrl(Url);
@@ -18,18 +19,18 @@ namespace Comet
 
 	public class WebView : View, IWebView
 	{
-		Binding<string> html;
-		public Binding<string> Html
+		PropertySubscription<string> html;
+		public PropertySubscription<string> Html
 		{
 			get => html;
-			set => this.SetBindingValue(ref html, value);
+			set => this.SetPropertySubscription(ref html, value);
 		}
 
-		Binding<string> source;
-		public Binding<string> Source
+		PropertySubscription<string> source;
+		public PropertySubscription<string> Source
 		{
 			get => source;
-			set => this.SetBindingValue(ref source, value);
+			set => this.SetPropertySubscription(ref source, value);
 		}
 
 		public Action<string> OnNavigated { get; set; }
@@ -64,7 +65,7 @@ namespace Comet
 		bool IWebView.Navigating(WebNavigationEvent evnt, string url)
 		{
 			OnNavigating?.Invoke(url);
-			return true;
+			return false; // false = allow navigation (true would cancel it)
 		}
 
 		void IWebView.Navigated(WebNavigationEvent evnt, string url, WebNavigationResult result)

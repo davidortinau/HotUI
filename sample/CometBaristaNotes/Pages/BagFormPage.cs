@@ -1,24 +1,21 @@
-using Comet;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Graphics;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
 
-using MauiLabel = Microsoft.Maui.Controls.Label;
-using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
-
 namespace CometBaristaNotes.Pages;
 
-public class BagFormPage : Comet.View
+public class BagFormPageState
+{
+	public string RoastDate { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
+	public string Notes { get; set; } = "";
+	public string Error { get; set; } = "";
+	public string BeanName { get; set; } = "";
+	public bool IsLoaded { get; set; }
+}
+
+public class BagFormPage : Component<BagFormPageState>
 {
 	readonly int _beanId;
-
-	[State] readonly State<string> _roastDate = new(DateTime.Now.ToString("yyyy-MM-dd"));
-	[State] readonly State<string> _notes = new("");
-	[State] readonly State<string> _error = new("");
-	[State] readonly State<string> _beanName = new("");
-	[State] readonly State<bool> _isLoaded = new(false);
 
 	public BagFormPage(int beanId = 0) { _beanId = beanId; }
 
@@ -28,26 +25,26 @@ public class BagFormPage : Comet.View
 		if (store != null)
 		{
 			var bean = store.GetBean(_beanId);
-			_beanName.Value = bean?.Name ?? "Unknown Bean";
+			SetState(s => s.BeanName = bean?.Name ?? "Unknown Bean");
 		}
-		_isLoaded.Value = true;
+		SetState(s => s.IsLoaded = true);
 	}
 
 	void Save()
 	{
-		if (!DateTime.TryParse(_roastDate.Value, out var roastDate))
+		if (!DateTime.TryParse(State.RoastDate, out var roastDate))
 		{
-			_error.Value = "Please enter a valid date (yyyy-MM-dd)";
+			SetState(s => s.Error = "Please enter a valid date (yyyy-MM-dd)");
 			return;
 		}
 
 		if (roastDate.Date > DateTime.Now.Date)
 		{
-			_error.Value = "Roast date cannot be in the future";
+			SetState(s => s.Error = "Roast date cannot be in the future");
 			return;
 		}
 
-		_error.Value = "";
+		SetState(s => s.Error = "");
 
 		var store = InMemoryDataStore.Instance;
 		if (store == null) return;
@@ -56,36 +53,32 @@ public class BagFormPage : Comet.View
 		{
 			BeanId = _beanId,
 			RoastDate = roastDate,
-			Notes = string.IsNullOrWhiteSpace(_notes.Value) ? null : _notes.Value,
+			Notes = string.IsNullOrWhiteSpace(State.Notes) ? null : State.Notes,
 		});
 
-		Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+		Navigation?.Pop();
 	}
 
-	[Body]
-	Comet.View body()
+	public override View Render()
 	{
-		if (!_isLoaded.Value)
+		if (!State.IsLoaded)
 			LoadBeanName();
 
-		var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, Padding = new Thickness(Theme.SpacingM) };
+		var errorView = !string.IsNullOrEmpty(State.Error)
+			? Text(State.Error).Color(Theme.Error).FontFamily(Theme.FontRegular).FontSize(14)
+			: null;
 
-		stack.Add(FormHelpers.MakeSectionHeader("ADD BAG"));
-		stack.Add(FormHelpers.MakeReadOnlyField("Bean", _beanName.Value));
-		stack.Add(FormHelpers.MakeFormEntry("Roast Date", _roastDate.Value, "yyyy-MM-dd", v => _roastDate.Value = v));
-		stack.Add(FormHelpers.MakeFormEntryWithLimit("Notes (optional)", _notes.Value, "e.g., From Trader Joe's, Gift from friend", 500, v => _notes.Value = v));
-
-		if (!string.IsNullOrEmpty(_error.Value))
-			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontFamily = Theme.FontRegular, FontSize = 14 });
-
-		stack.Add(FormHelpers.MakePrimaryButton("Add Bag", Save));
-
-		var scrollView = new MauiScrollView
-		{
-			Content = stack,
-			BackgroundColor = Theme.Background,
-		};
-
-		return new MauiViewHost(scrollView);
+		return ScrollView(
+			VStack(Theme.SpacingS,
+				FormHelpers.MakeSectionHeader("ADD BAG"),
+				FormHelpers.MakeReadOnlyField("Bean", State.BeanName),
+				FormHelpers.MakeFormEntry("Roast Date", State.RoastDate, "yyyy-MM-dd", v => SetState(s => s.RoastDate = v)),
+				FormHelpers.MakeFormEntryWithLimit("Notes (optional)", State.Notes, "e.g., From Trader Joe's, Gift from friend", 500, v => SetState(s => s.Notes = v)),
+				errorView,
+				FormHelpers.MakePrimaryButton("Add Bag", Save)
+			)
+			.Padding(new Thickness(Theme.SpacingM))
+		)
+		.Background(Theme.Background);
 	}
 }

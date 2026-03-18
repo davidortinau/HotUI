@@ -114,6 +114,10 @@ public static class MauiProgram
             fonts.AddFont("fa-solid-900.ttf", "FASolid");
         });
 
+#if DEBUG
+        builder.EnableSampleRuntimeDebugging();
+#endif
+
         return builder.Build();
     }
 }

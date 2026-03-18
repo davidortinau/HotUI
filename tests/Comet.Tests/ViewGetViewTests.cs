@@ -96,6 +96,27 @@ namespace Comet.Tests
 			Assert.Same(viewB, host.CometView);
 		}
 
+		[Fact]
+		public void CometHost_VisualChildren_PreferPresentedContent()
+		{
+			var host = new CometHost(new TestPageWithBody());
+
+			var child = Assert.Single(((IVisualTreeElement)host).GetVisualChildren());
+
+			Assert.IsType<Text>(child);
+		}
+
+		[Fact]
+		public void CometHost_VisualChildren_FallBackToCometView()
+		{
+			var inner = new Text("Test");
+			var host = new CometHost(inner);
+
+			var child = Assert.Single(((IVisualTreeElement)host).GetVisualChildren());
+
+			Assert.Same(inner, child);
+		}
+
 		// Test page that returns Text as body
 		class TestPageWithBody : View
 		{

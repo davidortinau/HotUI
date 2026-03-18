@@ -9,88 +9,100 @@ public class Message
 	public bool IsUnread { get; set; }
 }
 
-public class InboxPage : View
+public class InboxPageState
 {
-	readonly State<List<Message>> inbox;
-	readonly State<string> selectedMessage;
-
-	public InboxPage()
+	public string SelectedMessage { get; set; } = "";
+	public List<Message> Inbox { get; set; } = new List<Message>
 	{
-		selectedMessage = new State<string>("");
-		inbox = new State<List<Message>>(new List<Message>
-		{
-			new() { From = "Alice Johnson", Subject = "Project Update", Preview = "Here's the latest status on the Q2 project...", Date = DateTime.Now.AddHours(-2), IsUnread = true },
-			new() { From = "Bob Smith", Subject = "Meeting Tomorrow", Preview = "Let me know if you're available at 2pm...", Date = DateTime.Now.AddHours(-5), IsUnread = true },
-			new() { From = "Carol Davis", Subject = "Expense Report", Preview = "Please review the attached expense report...", Date = DateTime.Now.AddHours(-8), IsUnread = false },
-			new() { From = "David Wilson", Subject = "Feedback on Design", Preview = "Great work on the mockups! A few suggestions...", Date = DateTime.Now.AddHours(-12), IsUnread = false },
-			new() { From = "Eve Martinez", Subject = "Team Lunch Friday", Preview = "Are you interested in team lunch this Friday?...", Date = DateTime.Now.AddDays(-1), IsUnread = false },
-			new() { From = "Frank Brown", Subject = "Code Review", Preview = "Please review PR #1234 when you have time...", Date = DateTime.Now.AddDays(-1), IsUnread = false },
-		});
-	}
+		new() { From = "Alice Johnson", Subject = "Project Update", Preview = "Here's the latest status on the Q2 project...", Date = DateTime.Now.AddHours(-2), IsUnread = true },
+		new() { From = "Bob Smith", Subject = "Meeting Tomorrow", Preview = "Let me know if you're available at 2pm...", Date = DateTime.Now.AddHours(-5), IsUnread = true },
+		new() { From = "Carol Davis", Subject = "Expense Report", Preview = "Please review the attached expense report...", Date = DateTime.Now.AddHours(-8), IsUnread = false },
+		new() { From = "David Wilson", Subject = "Feedback on Design", Preview = "Great work on the mockups! A few suggestions...", Date = DateTime.Now.AddHours(-12), IsUnread = false },
+		new() { From = "Eve Martinez", Subject = "Team Lunch Friday", Preview = "Are you interested in team lunch this Friday?...", Date = DateTime.Now.AddDays(-1), IsUnread = false },
+		new() { From = "Frank Brown", Subject = "Code Review", Preview = "Please review PR #1234 when you have time...", Date = DateTime.Now.AddDays(-1), IsUnread = false },
+	};
+}
 
-	[Body]
-	View body()
+public class InboxPage : Component<InboxPageState>
+{
+	public override View Render()
 	{
-		return new VStack
-		{
-			new Text("📧 Inbox")
+		return VStack(
+			Text("📧 Inbox")
 				.FontSize(24)
 				.FontWeight(FontWeight.Bold)
 				.Padding(16),
-			
-			new Text(() => $"Selected: {selectedMessage.Value}")
+
+			Text(() => $"Selected: {State.SelectedMessage}")
 				.FontSize(12)
 				.Color(Colors.Gray)
 				.Padding(8),
-			
-			new ListView<Message>(() => inbox.Value)
+
+			new CollectionView<Message>(() => State.Inbox)
 			{
 				ViewFor = msg => RenderMessageItem(msg),
 				ItemSelected = selection =>
 				{
-					selectedMessage.Value = ((Message)selection.item).From;
+					var tappedMessage = (Message)selection.item;
+					SetState(s =>
+					{
+						s.SelectedMessage = tappedMessage.From;
+						if (tappedMessage.IsUnread)
+						{
+							tappedMessage.IsUnread = false;
+							s.Inbox = new List<Message>(s.Inbox);
+						}
+					});
 				},
-				Header = new Text($"Messages ({inbox.Value.Count})")
+				Header = Text($"Messages ({State.Inbox.Count})")
 					.FontSize(14)
 					.Padding(12)
 					.Background(new SolidPaint(Colors.LightGray)),
-			}.Padding(8),
-		};
+			}.Padding(8)
+		);
 	}
 
 	View RenderMessageItem(Message msg)
 	{
-		return new VStack(spacing: 2)
-		{
-			new HStack(spacing: 8)
-			{
-				new VStack(spacing: 4)
-				{
-					new HStack(spacing: 6)
-					{
-						new Text(msg.From)
+		return VStack(spacing: 2,
+			HStack(spacing: 8,
+				VStack(spacing: 4,
+					HStack(spacing: 6,
+						Text(msg.From)
 							.FontSize(14)
 							.FontWeight(FontWeight.Bold),
 						msg.IsUnread ? new ShapeView(new Circle())
 							.Frame(width: 8, height: 8)
 							.Background(new SolidPaint(Colors.Blue))
-							: new Text("")
-					},
-					new Text(msg.Subject)
+							: (View)Text("")
+					),
+					Text(msg.Subject)
 						.FontSize(12)
 						.Color(Colors.Gray),
-					new Text(msg.Preview)
+					Text(msg.Preview)
 						.FontSize(11)
-						.Color(Colors.DarkGray),
-				},
-				new Spacer(),
-				new Text(FormatDate(msg.Date))
+						.Color(Colors.DarkGray)
+				),
+				Spacer(),
+				Text(FormatDate(msg.Date))
 					.FontSize(10)
-					.Color(Colors.Gray),
-			},
-		}
+					.Color(Colors.Gray)
+			)
+		)
 		.Padding(12)
-		.Background(new SolidPaint(msg.IsUnread ? Color.FromArgb("#F0F8FF") : Colors.White));
+		.Background(new SolidPaint(msg.IsUnread ? Color.FromArgb("#F0F8FF") : Colors.White))
+		.OnTap(_ =>
+		{
+			SetState(s =>
+			{
+				s.SelectedMessage = msg.From;
+				if (msg.IsUnread)
+				{
+					msg.IsUnread = false;
+					s.Inbox = new List<Message>(s.Inbox);
+				}
+			});
+		});
 	}
 
 	string FormatDate(DateTime date)

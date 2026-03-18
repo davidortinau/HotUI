@@ -1,20 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class BasicNavigationTestView : View
+	public class BasicNavigationTestView : Component
 	{
-		[Body]
-		View body() => new NavigationView
-		{
-			new VStack()
-			{
-				new Button("Navigate!",()=>{
+				public override View Render() => NavigationView(
+			VStack(
+				Button("Navigate!",()=>{
 					Navigation.Navigate(new BasicTestView());
 				})
-			}
-		};
+			)
+		);
 	}
 
 

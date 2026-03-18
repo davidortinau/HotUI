@@ -16,7 +16,42 @@ Watch this video to get a preview of the developer experience:
 
 When you're ready to take a ride on the Comet, head over to the wiki and follow the [Getting Started](https://github.com/Clancey/Comet/wiki/Getting-Started) guide.
 
+## Evolved MVU Surface
+
+Comet now ships an evolved, component-first MVU surface alongside the classic `[Body]` API. The project name, package name, and namespaces stay **Comet** — you migrate the API surface, not the brand.
+
+``` cs
+public class CounterPage : Component<CounterState>
+{
+public override View Render() =>
+new VStack
+{
+new Text($"Count: {State.Count}"),
+new Button("Increment", () => SetState(s => s.Count++)),
+};
+}
+```
+
+Use the evolved surface when you want:
+
+- `Component<TState>` for local state managed with `SetState(...)`
+- `Component<TState, TProps>` for typed props passed during navigation
+- `Reactive<T>` for lightweight reactive values outside component state classes
+- typed navigation through `Navigation.Navigate<TView>(props)` or `CometShell.GoToAsync<TView>(props)`
+
+Reference implementations:
+
+- [Comet Counter sample](sample/CometMauiApp/README.md)
+- [Barista Notes coffee sample](sample/CometBaristaNotes/README.md)
+- [Comet TaskApp sample](sample/CometTaskApp)
+- [Comet AllTheLists sample](sample/CometAllTheLists)
+- [Migration guide](docs/migration-guide.md)
+
+For sample-grade tab layouts today, prefer `TabView` + `NavigationView` tabs while `TabbedPage` handler wiring remains unfinished.
+
 ## Key Concepts
+
+### Classic `[Body]` surface (still supported)
 
 Comet is based on the MVU architecture:
 
@@ -42,6 +77,46 @@ public class MyPage : View {
 }
 ```
 
+## Navigation
+
+Comet now includes a fluent Shell wrapper plus typed navigation helpers so you can keep route names out of call sites:
+
+``` cs
+CometShell.RegisterRoute<ProjectDetailPage>("project-detail");
+
+var shell = new CometShell()
+    .AddItem("Projects", item => item
+        .WithRoute("//projects")
+        .AddSection("Browse", section => section
+            .AddContent<ProjectListPage>("List")));
+
+await new Button("Open").GoToAsync<ProjectDetailPage>(new { id = 42 });
+```
+
+If the destination is a `Component<TState, TProps>`, typed navigation will apply a matching props object before the view is presented.
+
+Inside a `NavigationView`, you can use the same typed-parameter pattern without route strings:
+
+``` cs
+Navigation.Navigate<ProjectDetailPage>(new ProjectDetailProps { Id = 42 });
+```
+
+## Interop
+
+Comet now ships a three-way host bridge:
+
+- `MauiViewHost` embeds a MAUI `IView` inside a Comet view tree.
+- `NativeHost` embeds a raw platform view and lets you synchronize native properties from Comet state.
+- `CometHost` embeds a Comet `View` inside MAUI pages and controls.
+
+``` cs
+var host = new NativeHost(ctx => CreateNativeLabel(ctx))
+    .Sync("Text", "Hello native", (native, text) => UpdateNativeLabel(native, text))
+    .Frame(height: 44);
+```
+
+Use the `NativeHost` factory to return the raw platform view you want to host (`UIView`, `Android.Views.View`, or `FrameworkElement`).
+
 ## Hot Reload
 
 Using Hot Reload is the fastest way to develop your user interface.
@@ -61,7 +136,7 @@ Comet.Reload.Init();
 
 ## State
 
-As of right now there are two supported ways to add state.
+As of right now there are two supported families of state APIs. The evolved surface uses `Component<TState>` / `Component<TState, TProps>` with `SetState(...)`; the classic surface below uses `State<T>` and `[State]`.
 
 ### 1. Simple data types like int, bool?
 

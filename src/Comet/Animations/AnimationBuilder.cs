@@ -149,24 +149,18 @@ namespace Comet
 namespace Comet.Animations
 {
 	/// <summary>
-	/// Animation helper methods for common patterns using StateBuilder.
+	/// Animation helper methods for common patterns.
 	/// </summary>
 	public static class AnimationHelpers
 	{
 		/// <summary>Create a fade-in animation.</summary>
 		public static async void AnimateFadeIn(this View view, Action onComplete = null)
 		{
-			using (new StateBuilder(view))
-			{
-				view.Opacity(0);
-			}
+			view.Opacity(0);
 			await System.Threading.Tasks.Task.Delay(50);
 			Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(() =>
 			{
-				using (new StateBuilder(view))
-				{
-					view.Opacity(1);
-				}
+				view.Opacity(1);
 				onComplete?.Invoke();
 			});
 		}
@@ -174,17 +168,11 @@ namespace Comet.Animations
 		/// <summary>Create a fade-out animation.</summary>
 		public static async void AnimateFadeOut(this View view, Action onComplete = null)
 		{
-			using (new StateBuilder(view))
-			{
-				view.Opacity(1);
-			}
+			view.Opacity(1);
 			await System.Threading.Tasks.Task.Delay(50);
 			Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(() =>
 			{
-				using (new StateBuilder(view))
-				{
-					view.Opacity(0);
-				}
+				view.Opacity(0);
 				onComplete?.Invoke();
 			});
 		}
@@ -194,16 +182,10 @@ namespace Comet.Animations
 		{
 			for (int i = 0; i < count; i++)
 			{
-				using (new StateBuilder(view))
-				{
-					view.Opacity(0.5);
-				}
+				view.Opacity(0.5);
 				await System.Threading.Tasks.Task.Delay(200);
 
-				using (new StateBuilder(view))
-				{
-					view.Opacity(1);
-				}
+				view.Opacity(1);
 				await System.Threading.Tasks.Task.Delay(200);
 			}
 		}

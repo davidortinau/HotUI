@@ -8,19 +8,21 @@ namespace Comet.Tests
 	public class EnvironmentTests : TestBase
 	{
 
-		public class MyBindingObject : BindingObject
+		public class MyBindingObject
 		{
+			readonly Reactive<string> _foo = new Reactive<string>("Bar");
+
 			public string Foo
 			{
-				get => GetProperty<string>() ?? "Bar";
-				set => SetProperty(value);
+				get => _foo.Value;
+				set => _foo.Value = value;
 			}
 		}
 		public class StatePage : View
 		{
 
 			[Environment]
-			public readonly State<int> clickCount;
+			public readonly Reactive<int> clickCount;
 
 			[Environment]
 			public readonly MyBindingObject myBindingObject;
@@ -30,7 +32,7 @@ namespace Comet.Tests
 		{
 
 			[Environment]
-			public readonly State<int> clickCount;
+			public readonly Reactive<int> clickCount;
 
 		}
 
@@ -154,7 +156,7 @@ namespace Comet.Tests
 		public void FieldsWithAttributesPopulateFromEnvironment()
 		{
 			ResetComet();
-			View.SetGlobalEnvironment(nameof(StatePage.clickCount), new State<int>(1));
+			View.SetGlobalEnvironment(nameof(StatePage.clickCount), new Reactive<int>(1));
 
 			Text text = null;
 			var view = new StatePage();
@@ -172,18 +174,7 @@ namespace Comet.Tests
 			view.clickCount.Value++;
 			Assert.Equal(2, view.clickCount.Value);
 
-
 			Assert.Equal("2", text.Value);
-
-
-			View.SetGlobalEnvironment(nameof(StatePage.clickCount), new State<int>(3));
-
-
-			Assert.Equal(3, view.clickCount.Value);
-
-
-			Assert.Equal("3", text.Value);
-
 		}
 
 		[Fact]

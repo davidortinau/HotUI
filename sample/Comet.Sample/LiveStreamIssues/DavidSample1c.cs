@@ -1,20 +1,18 @@
 ﻿
 
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 namespace Comet.Samples.LiveStreamIssues
 {
-	public class DavidSample1c : View
+	public class DavidSample1c : Component
 	{
-		[Body]
-		View body() =>
-			new VStack(LayoutAlignment.Center)
-			{
-				new HStack
-				{
+				public override View Render() =>
+			VStack(LayoutAlignment.Center,
+				HStack(
 					new ShapeView(new Circle().Stroke(Colors.Black, 2f))
 						.Frame(44,44)
-				}
-			};
+				)
+			);
 	}
 }

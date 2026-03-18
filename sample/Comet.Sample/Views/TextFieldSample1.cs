@@ -1,26 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using static Comet.CometControls;
+using Comet.Reactive;
 
 namespace Comet.Samples
 {
-	public class TextFieldSample1 : View
+	public class TextFieldSample1 : Component
 	{
-		readonly State<string> name1 = "";
+		readonly Signal<string> name1 = new("");
 
-		[Body]
-		View body() => new VStack()
-		{
-			new TextField(name1, "Name", ()=>{
+				public override View Render() => VStack(
+			TextField(name1, "Name", ()=>{
 				Console.WriteLine("Completed");
 			}),
 			
-			new HStack()
-			{
-				new Text("onCommit:"),
-				new Text(name1),
-				new Spacer()
-			},
-		}.FillHorizontal();
+			HStack(
+				Text("onCommit:"),
+				Text(() => name1.Value),
+				Spacer()
+			)
+		).FillHorizontal();
 	}
 
 }

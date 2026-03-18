@@ -58,6 +58,7 @@ namespace Comet
 			public const string StyleId = "StyleId";
 			public const string AutomationId = nameof(AutomationId);
 			public const string Opacity = nameof(Microsoft.Maui.IView.Opacity);
+			public const string Key = "View.Key";
 		}
 
 		public static class Shape
@@ -104,11 +105,96 @@ namespace Comet
 			public const string TrackColor = "SliderTrackColor";
 			public const string ProgressColor = "SliderProgressColor";
 			public const string ThumbColor = "SliderThumbColor";
+			public const string ValueChanged = "SliderValueChanged";
 		}
 		public static class ProgressBar
 		{
 			public const string TrackColor = "ProgressBarTrackColor";
 			public const string ProgressColor = "ProgressBarProgressColor";
+		}
+		public static class Entry
+		{
+			public const string PlaceholderColor = "EntryPlaceholderColor";
+			public const string CursorColor = "EntryCursorColor";
+			public const string Keyboard = "EntryKeyboard";
+			public const string ReturnType = "EntryReturnType";
+			public const string IsPassword = "EntryIsPassword";
+			public const string TextChanged = "EntryTextChanged";
+		}
+		public static class Switch
+		{
+			public const string OnColor = "SwitchOnColor";
+			public const string ThumbColor = "SwitchThumbColor";
+			public const string Toggled = "SwitchToggled";
+		}
+		public static class CheckBox
+		{
+			public const string IsCheckedChanged = "CheckBoxIsCheckedChanged";
+		}
+		public static class Stepper
+		{
+			public const string ValueChanged = "StepperValueChanged";
+		}
+		public static class Picker
+		{
+			public const string SelectedIndexChanged = "PickerSelectedIndexChanged";
+		}
+		public static class Image
+		{
+			public const string Aspect = "ImageAspect";
+		}
+		public static class DatePicker
+		{
+			public const string Format = "DatePickerFormat";
+			public const string TextColor = "DatePickerTextColor";
+		}
+		public static class Editor
+		{
+			public const string PlaceholderColor = "EditorPlaceholderColor";
+			public const string Placeholder = "EditorPlaceholder";
+		}
+		public static class Button
+		{
+			public const string CornerRadius = "ButtonCornerRadius";
+			public const string BorderWidth = "ButtonBorderWidth";
+			public const string BorderColor = "ButtonBorderColor";
+		}
+
+		public static class ThemeColor
+		{
+			public const string Primary = "Theme.Primary";
+			public const string OnPrimary = "Theme.OnPrimary";
+			public const string PrimaryContainer = "Theme.PrimaryContainer";
+			public const string OnPrimaryContainer = "Theme.OnPrimaryContainer";
+
+			public const string Secondary = "Theme.Secondary";
+			public const string OnSecondary = "Theme.OnSecondary";
+			public const string SecondaryContainer = "Theme.SecondaryContainer";
+			public const string OnSecondaryContainer = "Theme.OnSecondaryContainer";
+
+			public const string Tertiary = "Theme.Tertiary";
+			public const string OnTertiary = "Theme.OnTertiary";
+			public const string TertiaryContainer = "Theme.TertiaryContainer";
+			public const string OnTertiaryContainer = "Theme.OnTertiaryContainer";
+
+			public const string Error = "Theme.Error";
+			public const string OnError = "Theme.OnError";
+			public const string ErrorContainer = "Theme.ErrorContainer";
+			public const string OnErrorContainer = "Theme.OnErrorContainer";
+
+			public const string Background = "Theme.Background";
+			public const string OnBackground = "Theme.OnBackground";
+			public const string Surface = "Theme.Surface";
+			public const string OnSurface = "Theme.OnSurface";
+			public const string SurfaceVariant = "Theme.SurfaceVariant";
+			public const string OnSurfaceVariant = "Theme.OnSurfaceVariant";
+
+			public const string Outline = "Theme.Outline";
+			public const string OutlineVariant = "Theme.OutlineVariant";
+
+			public const string InverseSurface = "Theme.InverseSurface";
+			public const string InverseOnSurface = "Theme.InverseOnSurface";
+			public const string InversePrimary = "Theme.InversePrimary";
 		}
 	}
 
@@ -124,8 +210,25 @@ namespace Comet
 		public string Key { get; }
 	}
 
-	class EnvironmentData : BindingObject
+	class EnvironmentData
 	{
+		internal Dictionary<string, object> dictionary = new Dictionary<string, object>();
+
+		static readonly Dictionary<string, System.ComponentModel.PropertyChangedEventArgs> _argsCache
+			= new Dictionary<string, System.ComponentModel.PropertyChangedEventArgs>();
+
+		static System.ComponentModel.PropertyChangedEventArgs GetCachedArgs(string propertyName)
+		{
+			if (!_argsCache.TryGetValue(propertyName, out var args))
+			{
+				args = new System.ComponentModel.PropertyChangedEventArgs(propertyName);
+				_argsCache[propertyName] = args;
+			}
+			return args;
+		}
+
+		public event System.ComponentModel.PropertyChangedEventHandler PropertyRead;
+		public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
 
 		public EnvironmentData()
 		{
@@ -144,25 +247,13 @@ namespace Comet
 			private set => _viewRef = new WeakReference(value);
 		}
 
-		//protected ICollection<string> GetAllKeys ()
-		//{
-		//	//This is the global Environment
-		//	if (View?.Parent == null)
-		//		return dictionary.Keys;
-
-		//	//TODO: we need a fancy way of collapsing this. This may be too slow
-		//	var keys = new HashSet<string> ();
-		//	var localKeys = dictionary?.Keys;
-		//	if (localKeys != null)
-		//		foreach (var k in localKeys)
-		//			keys.Add (k);
-
-		//	var parentKeys = View?.Parent?.Context?.GetAllKeys () ?? View.Environment.GetAllKeys ();
-		//	if (parentKeys != null)
-		//		foreach (var k in parentKeys)
-		//			keys.Add (k);
-		//	return keys;
-		//}
+		internal (bool hasValue, object value) GetValueInternal(string propertyName)
+		{
+			if (string.IsNullOrWhiteSpace(propertyName))
+				return (false, null);
+			var hasValue = dictionary.TryGetValue(propertyName, out var val);
+			return (hasValue, val);
+		}
 
 		public T GetValue<T>(string key)
 		{
@@ -189,18 +280,32 @@ namespace Comet
 				return null;
 			}
 		}
-		protected override void CallPropertyRead(string propertyName)
-		{
-			if (View != null)
-				StateManager.OnPropertyRead(View.Environment, propertyName);
-			else if (isStatic)
-			{
 
-				StateManager.OnPropertyRead(View.Environment, propertyName);
-				// Property reads on the static environment are broadcast via View.Environment
-				// to all views registered through StateManager.ListenToEnvironment
+		protected bool SetProperty(object value, string propertyName)
+		{
+			if (dictionary.TryGetValue(propertyName, out object val))
+			{
+				if (Equals(val, value))
+					return false;
 			}
-			base.CallPropertyRead(propertyName);
+
+			dictionary[propertyName] = value;
+			CallPropertyChanged(propertyName, value);
+			return true;
+		}
+
+		protected void CallPropertyRead(string propertyName)
+		{
+			// Track environment reads in the reactive system so that body evaluations
+			// running inside a ReactiveScope automatically discover environment dependencies.
+			ContextualObject.ReactiveEnv.TrackRead(propertyName);
+
+			PropertyRead?.Invoke(this, GetCachedArgs(propertyName));
+		}
+
+		protected void CallPropertyChanged(string propertyName, object value)
+		{
+			PropertyChanged?.Invoke(this, GetCachedArgs(propertyName));
 		}
 
 		public bool SetValue(string key, object value, bool cascades)
@@ -210,22 +315,23 @@ namespace Comet
 				return false;
 			if (!cascades)
 				return true;
-			if (View != null)
-			{
-				if (!StateManager.IsBuilding)
-					StateManager.OnPropertyChanged(View.Environment, key, value);
-			}
-			else if (isStatic)
-			{
-				StateManager.OnPropertyChanged(View.Environment, key, value);
-				// Property changes on the static environment are broadcast via View.Environment
-				// to all views registered through StateManager.ListenToEnvironment
-			}
+
+			// Notify the reactive system so views tracking this environment key
+			// via ReactiveScope are automatically scheduled for rebuild.
+			ContextualObject.ReactiveEnv.SetValue(key, value);
+
 			return true;
 		}
 		internal void Clear()
 		{
 			dictionary.Clear();
+		}
+
+		internal bool SetPropertyInternal(object value, [System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")
+		{
+			dictionary[propertyName] = value;
+			CallPropertyChanged(propertyName, value);
+			return true;
 		}
 	}
 }

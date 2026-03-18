@@ -6,17 +6,20 @@ namespace Comet.Tests
 {
 	public class StateBindingTests : TestBase
 	{
-		public class MyDataModel : BindingObject
+		public class MyDataModel
 		{
+			readonly Reactive<int> _childCount = new Reactive<int>(10);
+			readonly Reactive<int> _parentCount = new Reactive<int>(10);
+
 			public int ChildCount
 			{
-				get => GetProperty<int>(10);
-				set => SetProperty(value);
+				get => _childCount.Value;
+				set => _childCount.Value = value;
 			}
 			public int ParentCount
 			{
-				get => GetProperty<int>(10);
-				set => SetProperty(value);
+				get => _parentCount.Value;
+				set => _parentCount.Value = value;
 			}
 		}
 
@@ -32,53 +35,6 @@ namespace Comet.Tests
 			public readonly MyDataModel model;
 		}
 
-
-		[Fact(Skip = "Needs Fixing")]
-		public void GlobalBindingsOnlyRefreshTheViewThatHasTheGlobal()
-		{
-			int parentBodyBuildCount = 0;
-			int childBodyBuildCount = 0;
-
-			ParentView parentView = null;
-			parentView = new ParentView
-			{
-				Body = () => {
-					Console.WriteLine(parentView.model.ParentCount);
-					parentBodyBuildCount++;
-					return new ChildView()
-					{
-						Body = () => {
-							Console.WriteLine(parentView.model.ChildCount);
-							childBodyBuildCount++;
-							return new Text(childBodyBuildCount.ToString());
-						}
-					}.SetEnvironment("model", parentView.model);
-				}
-			};
-
-			InitializeHandlers(parentView);
-			Assert.False(StateManager.IsBuilding);
-			var parentGlobalState = parentView.InternalGetState().GlobalProperties;
-			Assert.Single(parentGlobalState);
-
-
-			var childGlobalState = parentView.BuiltView.InternalGetState().GlobalProperties.Count;
-			Assert.Equal(1, parentBodyBuildCount);
-			Assert.Equal(1, childBodyBuildCount);
-
-			parentView.model.ParentCount++;
-			Assert.False(StateManager.IsBuilding);
-
-			Assert.Equal(2, parentBodyBuildCount);
-			Assert.Equal(2, childBodyBuildCount);
-			parentView.model.ChildCount++;
-			Assert.False(StateManager.IsBuilding);
-
-			Assert.Equal(2, parentBodyBuildCount);
-			Assert.Equal(3, childBodyBuildCount);
-
-
-		}
 
 		[Fact]
 		public void BuildingChildren()

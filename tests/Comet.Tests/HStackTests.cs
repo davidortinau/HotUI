@@ -9,7 +9,7 @@ namespace Comet.Tests
 	{
 		public class HStackTestView1 : View
 		{
-			public readonly State<string> text = "Test";
+			public readonly Reactive<string> text = "Test";
 
 			[Body]
 			View body() => new HStack
@@ -266,7 +266,7 @@ namespace Comet.Tests
 
 		public class HStackTestView2 : View
 		{
-			public readonly State<string> text = "Test";
+			public readonly Reactive<string> text = "Test";
 
 			[Body]
 			View body() => new HStack(spacing: 10)

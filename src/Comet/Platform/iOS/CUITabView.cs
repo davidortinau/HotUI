@@ -33,9 +33,11 @@ namespace Comet.iOS
 				var title = pair.Item1.GetEnvironment<string>(EnvironmentKeys.TabView.Title);
 				var imagePath = pair.Item1.GetEnvironment<string>(EnvironmentKeys.TabView.Image);
 				UIImage image = null;
-				//TODO fix this do it so we can load from any source type;
 				if (!string.IsNullOrWhiteSpace(imagePath))
-					image = UIImage.FromBundle(imagePath);
+				{
+					// Try SF Symbols first, then fall back to bundle
+					image = UIImage.GetSystemImage(imagePath) ?? UIImage.FromBundle(imagePath);
+				}
 				pair.Item2.TabBarItem = new UITabBarItem()
 				{
 					Title = title ?? "",

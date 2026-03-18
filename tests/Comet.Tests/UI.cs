@@ -29,6 +29,7 @@ namespace Comet.Tests
 				handlers.AddHandler<Image, GenericViewHandler>();
 				handlers.AddHandler<HStack, GenericViewHandler>();
 				handlers.AddHandler<ListView, GenericViewHandler>();
+				handlers.AddHandler<NativeHost, GenericViewHandler>();
 				handlers.AddHandler<Text, TextHandler>();
 				handlers.AddHandler<TextField, TextFieldHandler>();
 				handlers.AddHandler<ProgressBar, ProgressBarHandler>();

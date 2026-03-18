@@ -1,0 +1,353 @@
+═══════════════════════════════════════════════════════════════════════════════
+MAUIDEVFLOW TREE WALKER ARCHITECTURE & COMET EXTENSION POINTS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. PROJECT STRUCTURE
+───────────────────
+
+┌─ MauiDevFlow.Agent.Core (NuGet: Redth.MauiDevFlow.Agent.Core)
+│  ├─ VisualTreeWalker (1,337 lines)              [CORE TREE WALKER]
+│  ├─ ElementInfo (117 lines)                      [NODE REPRESENTATION]
+│  ├─ DevFlowAgentService (3,360 lines)           [HTTP API SERVER]
+│  └─ Css/
+│     ├─ CssSelectorEngine (85 lines)             [QUERY ENGINE]
+│     ├─ ElementInfoOps (249 lines)               [SELECTOR ADAPTER]
+│     └─ SelectorPreprocessor (41 lines)
+│
+├─ MauiDevFlow.Agent (Platform implementations)
+│  ├─ PlatformAgentService : DevFlowAgentService  [PLATFORM SERVICE]
+│  ├─ PlatformVisualTreeWalker : VisualTreeWalker [PLATFORM WALKER]
+│  └─ DevFlowAgentService.cs                       [BASE AGENT]
+│
+└─ MauiDevFlow.Agent.Gtk (GTK implementation)
+   └─ GtkVisualTreeWalker : VisualTreeWalker       [GTK WALKER]
+
+
+2. TREE WALKER INTERFACE DEPENDENCIES
+──────────────────────────────────────
+
+Application (Root)
+    │
+    └─ IVisualTreeElement.GetVisualChildren()     ◄── Primary Traversal Interface
+         │
+         ├─ Window
+         │   └─ Page (has NavigationBar title, ToolbarItems)
+         │       ├─ Shell                          (Flyout, Tabs)
+         │       ├─ NavigationPage                 (Back Button)
+         │       ├─ FlyoutPage                     (Flyout Toggle)
+         │       ├─ TabbedPage                     (Tab Bar Items)
+         │       └─ [VisualElement children]
+         │           ├─ Label, Button, Entry...
+         │           └─ [nested children]
+         │
+         └─ [Synthetic Elements] (NOT in IVisualTreeElement but injected)
+             ├─ NavBarTitle
+             ├─ BackButton
+             ├─ ToolbarItem
+             ├─ FlyoutButton, FlyoutItem
+             ├─ ShellTab
+             ├─ SearchHandler
+             └─ TabbedPageTab
+
+
+3. ID GENERATION STRATEGY
+─────────────────────────
+
+┌─ Element.Id (Guid.ToString("N")[..12])           ◄── Primary
+├─ AutomationId (from VisualElement)               ◄── Preferred if present
+└─ Platform stamp (EnsurePlatformStableId)         ◄── Fallback
+
+Collision handling: suffix with truncated GUID or platform ID
+
+
+4. NODE EXTRACTION: ElementInfo PROPERTIES
+────────────────────────────────────────────
+
+┌─ Identity
+│  ├─ Id                  (stable ID)
+│  ├─ ParentId
+│  ├─ AutomationId
+│  └─ Type/FullType       (element.GetType().Name/FullName)
+│
+├─ Visibility & State
+│  ├─ IsVisible
+│  ├─ IsEnabled
+│  ├─ IsFocused
+│  └─ Opacity
+│
+├─ Content
+│  ├─ Text                (Label.Text, Button.Text, BaseShellItem.Title)
+│  └─ Value               (Switch.IsToggled, Slider.Value, etc.)
+│
+├─ Positioning
+│  ├─ Bounds              (Frame.X/Y/Width/Height - logical)
+│  └─ WindowBounds        (Platform native absolute coords)
+│
+├─ Interaction
+│  ├─ Gestures[]          ([tap, swipe, pan, drag, drop, pinch])
+│  └─ StyleClass[]        (CSS classes)
+│
+├─ Platform Integration
+│  ├─ NativeType          (Handler?.PlatformView?.GetType().FullName)
+│  └─ NativeProperties{}  (Platform-specific data)
+│
+└─ Hierarchy
+   └─ Children[]          (Recursive nested elements)
+
+
+5. SYNTHETIC ELEMENTS ARCHITECTURE
+───────────────────────────────────
+
+Marker Types (inner classes in VisualTreeWalker):
+  ├─ NavBarTitleMarker        { Title, Page }
+  ├─ BackButtonMarker         { Navigation, Title }
+  ├─ SearchHandlerMarker      { Handler }
+  ├─ FlyoutButtonMarker       { Shell }           ☰ button
+  ├─ ShellFlyoutItemMarker    { Item, Shell }
+  ├─ ShellTabMarker           { Section, Shell }
+  ├─ FlyoutToggleMarker       { FlyoutPage }
+  └─ TabbedPageTabMarker      { Page, TabbedPage }
+
+Injection Points in WalkElement():
+  ├─ Page → ToolbarItems, NavBarTitle, BackButton, SearchHandler
+  ├─ Shell → FlyoutButton, FlyoutItems, Tabs
+  ├─ NavigationPage → NavBar title + back button
+  ├─ FlyoutPage → Flyout toggle
+  └─ TabbedPage → Tab bar
+
+
+6. VIRTUAL METHODS FOR EXTENSION
+─────────────────────────────────
+
+VisualTreeWalker (Base class in Agent.Core):
+  ├─ PopulateNativeInfo(ElementInfo info, VisualElement ve)
+  │   └─ Add platform-specific native view properties
+  │
+  ├─ PopulateSyntheticNativeInfo(ElementInfo info, object marker)
+  │   └─ Add platform-specific synthetic element properties
+  │
+  ├─ ResolveWindowBounds(VisualElement ve) → BoundsInfo?
+  │   └─ Calculate platform-native absolute coordinates
+  │
+  ├─ ResolveSyntheticBounds(object marker) → BoundsInfo?
+  │   └─ Calculate bounds for synthetic elements
+  │
+  └─ EnsurePlatformStableId(object platformObj) → string?
+      └─ Stamp stable IDs on platform objects
+
+DevFlowAgentService (Base class in Agent.Core):
+  ├─ CreateTreeWalker() → VisualTreeWalker     ◄── OVERRIDE for Comet
+  │   └─ Return custom walker (e.g., CometAwareVisualTreeWalker)
+  │
+  ├─ CreateProfilerCollector() → IProfilerCollector
+  ├─ PlatformName
+  ├─ DeviceTypeName
+  ├─ IdiomName
+  ├─ GetWindowDisplayDensity(IWindow?)
+  ├─ GetNativeWindowSize(IWindow)
+  ├─ HandleScreenshot(HttpRequest)
+  ├─ CaptureScreenshotAsync(VisualElement)
+  ├─ CaptureElementScreenshotAsync(VisualElement)
+  ├─ CaptureFullScreenAsync()
+  ├─ TryNativeTap(VisualElement)
+  ├─ TryNativeResize(IWindow, int, int)
+  └─ TryNativeScroll(VisualElement, double, double)
+
+
+7. MAIN WALKER METHODS (PUBLIC API)
+───────────────────────────────────
+
+List<ElementInfo> WalkTree(Application app, int maxDepth = 0, int? windowIndex = null)
+  └─ Returns: Full tree with hierarchy
+
+ElementInfo? WalkElement(IVisualTreeElement element, string? parentId, int depth, int maxDepth)
+  └─ Returns: Single element with children (recursive)
+
+List<ElementInfo> Query(Application app, string? type, string? automationId, string? text)
+  └─ Returns: Flat list (no children) matching criteria
+
+List<ElementInfo> QueryCss(Application app, string selector)
+  └─ Returns: CSS selector results (flat, via Fizzler)
+
+object? GetElementById(string id, Application? app)
+  └─ Returns: IVisualTreeElement or Marker object for interaction
+
+string? GetIdForElement(IVisualTreeElement element)
+  └─ Reverse lookup: ID from element
+
+List<VisualElement> HitTestByBounds(double x, double y, Application app, int? windowIndex)
+  └─ Returns: Elements at point
+
+
+8. CSS SELECTOR SUPPORT
+───────────────────────
+
+CssSelectorEngine.Query(List<ElementInfo> tree, string selector)
+  ├─ Uses Fizzler library for parsing
+  ├─ ElementInfoOps implements IElementOps<ElementInfo>
+  │   └─ Adapts CSS selectors to ElementInfo properties
+  │
+  └─ Supported selectors:
+      ├─ Type: Button, Label, Entry
+      ├─ Attribute: [automationId="foo"], [text*="search"]
+      ├─ Class: .myStyleClass
+      ├─ Pseudo-class: :visible, :hidden, :enabled, :disabled, :focused
+      ├─ Combinators: > (child), (descendant), + (adjacent), ~ (sibling)
+      └─ Custom MAUI: [__maui-visible], [__maui-focused]
+
+
+9. PLATFORM IMPLEMENTATIONS
+────────────────────────────
+
+PlatformVisualTreeWalker (MauiDevFlow.Agent)
+  ├─ iOS/Mac Catalyst:
+  │   ├─ ResolveWindowBounds: UIView.ConvertRectToView()
+  │   └─ PopulateNativeInfo: UIView accessibility, UIControl state
+  │
+  ├─ Android:
+  │   ├─ ResolveWindowBounds: View.GetLocationOnScreen()
+  │   └─ PopulateNativeInfo: View properties, clickable
+  │
+  ├─ Windows:
+  │   ├─ ResolveWindowBounds: FrameworkElement bounds
+  │   └─ PopulateNativeInfo: UIAutomation properties
+  │
+  └─ macOS:
+      ├─ ResolveWindowBounds: NSView bounds
+      └─ PopulateNativeInfo: NSControl state, accessibility
+
+GtkVisualTreeWalker (MauiDevFlow.Agent.Gtk)
+  ├─ ResolveWindowBounds: Widget.ComputeBounds()
+  └─ PopulateNativeInfo: GTK widget properties
+
+
+10. EXTENSION POINTS FOR COMET INTEGRATION
+─────────────────────────────────────────
+
+OPTION A: Subclass VisualTreeWalker (Lightweight, Recommended)
+┌──────────────────────────────────────────────────┐
+│ public class CometAwareVisualTreeWalker          │
+│   : VisualTreeWalker                             │
+│ {                                                │
+│   protected override void PopulateNativeInfo()   │
+│   {                                              │
+│     base.PopulateNativeInfo(info, ve);           │
+│     // Add Comet-specific properties             │
+│     if (ve is CometButton btn)                   │
+│       info.NativeProperties["cometCommand"]...   │
+│   }                                              │
+│                                                  │
+│   protected override void                        │
+│   PopulateSyntheticNativeInfo()                  │
+│   {                                              │
+│     // Extend synthetic elements                 │
+│   }                                              │
+│ }                                                │
+│                                                  │
+│ public class CometAgentService                   │
+│   : PlatformAgentService                         │
+│ {                                                │
+│   protected override VisualTreeWalker            │
+│   CreateTreeWalker() =>                          │
+│     new CometAwareVisualTreeWalker();            │
+│ }                                                │
+└──────────────────────────────────────────────────┘
+
+OPTION B: Add Comet Marker Types
+┌──────────────────────────────────────┐
+│ public class CometComponentMarker    │
+│ {                                    │
+│   public object CometComponent { }   │
+│   public VisualElement Host { }      │
+│   public string Role { }             │
+│ }                                    │
+│                                      │
+│ // Inject during WalkElement()       │
+│ if (element is CometBindable cb) {   │
+│   AddCometComponentSynthetic(...);   │
+│ }                                    │
+└──────────────────────────────────────┘
+
+OPTION C: Extend ElementInfo.NativeProperties
+┌─────────────────────────────────────────────┐
+│ // In PopulateNativeInfo override:          │
+│ if (ve is CometControl cc) {                │
+│   info.NativeProperties["cometType"] = ... │
+│   info.NativeProperties["cometRole"] = ... │
+│   info.NativeProperties["cometBinding"] = ..│
+│ }                                          │
+└─────────────────────────────────────────────┘
+
+OPTION D: IVisualTreeElement Adapter (Advanced)
+┌──────────────────────────────────────────────────┐
+│ public class CometComponentAdapter               │
+│   : IVisualTreeElement                           │
+│ {                                                │
+│   public IEnumerable<IVisualTreeElement>         │
+│   GetVisualChildren()                            │
+│   {                                              │
+│     // Expose Comet component hierarchy          │
+│   }                                              │
+│ }                                                │
+│                                                  │
+│ // Wrap Comet components and inject into tree   │
+└──────────────────────────────────────────────────┘
+
+
+11. DEPENDENCY INJECTION INTEGRATION
+─────────────────────────────────────
+
+Current: MauiAppBuilder.AddMauiDevFlowAgent(...)
+  └─ Registers PlatformAgentService in DI
+  └─ Wires up lifecycle events
+  └─ Creates HTTP server on port 8000+ (or broker-assigned)
+
+For Comet: Override CreateTreeWalker()
+  └─ PlatformAgentService subclass
+  └─ Return CometAwareVisualTreeWalker
+  └─ Add to DI container instead
+
+
+12. KEY FILES & LOCATIONS
+──────────────────────────
+
+Core Walker:
+  /src/MauiDevFlow.Agent.Core/VisualTreeWalker.cs       (1,337 lines)
+
+Data Model:
+  /src/MauiDevFlow.Agent.Core/ElementInfo.cs             (117 lines)
+
+API Server:
+  /src/MauiDevFlow.Agent.Core/DevFlowAgentService.cs    (3,360 lines)
+
+Platform Implementations:
+  /src/MauiDevFlow.Agent/VisualTreeWalker.cs             (623 lines - PlatformVisualTreeWalker)
+  /src/MauiDevFlow.Agent/DevFlowAgentService.cs           (Platform service registration)
+  /src/MauiDevFlow.Agent.Gtk/GtkVisualTreeWalker.cs      (130 lines)
+
+CSS Selectors:
+  /src/MauiDevFlow.Agent.Core/Css/CssSelectorEngine.cs  (85 lines)
+  /src/MauiDevFlow.Agent.Core/Css/ElementInfoOps.cs     (249 lines)
+
+DI & Extensions:
+  /src/MauiDevFlow.Agent/AgentServiceExtensions.cs       (252 lines)
+
+
+13. MARKER TYPES REFERENCE
+──────────────────────────
+
+Each marker preserves reference to MAUI object for stable identity:
+  NavBarTitleMarker       ← m.Page
+  BackButtonMarker        ← m.Navigation (INavigation)
+  SearchHandlerMarker     ← m.Handler (SearchHandler)
+  FlyoutButtonMarker      ← m.Shell
+  ShellFlyoutItemMarker   ← m.Item (ShellItem)
+  ShellTabMarker          ← m.Section (ShellSection)
+  FlyoutToggleMarker      ← m.FlyoutPage
+  TabbedPageTabMarker     ← m.Page (Tab page)
+
+GetSyntheticText() → Extracts display text from marker
+GetSyntheticTypeName() → Returns display type name
+BuildSyntheticElementInfo() → Creates ElementInfo for marker
+
+═══════════════════════════════════════════════════════════════════════════════

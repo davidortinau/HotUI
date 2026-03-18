@@ -19,24 +19,24 @@ namespace Comet
 
 		}
 
-		public static T FontSize<T>(this T view, Binding<double> value) where T : View
-			=> view.SetEnvironment(EnvironmentKeys.Fonts.Size, value, true);
+		public static T FontSize<T>(this T view, double value) where T : View
+			=> view.SetEnvironment(EnvironmentKeys.Fonts.Size, (object)value, true);
 		public static T FontSize<T>(this T view, Func<double> value) where T : View
-			=> view.FontSize((Binding<double>)value);
+			=> view.FontSize(value());
 
-		public static T FontWeight<T>(this T view, Binding<FontWeight> value) where T : View
-			=> view.SetEnvironment(EnvironmentKeys.Fonts.Weight, value, true);
+		public static T FontWeight<T>(this T view, FontWeight value) where T : View
+			=> view.SetEnvironment(EnvironmentKeys.Fonts.Weight, (object)value, true);
 		public static T FontWeight<T>(this T view, Func<FontWeight> value) where T : View
-			=> view.FontWeight((Binding<FontWeight>)value);
+			=> view.FontWeight(value());
 
-		public static T FontFamily<T>(this T view, Binding<string> value) where T : View
-			=> view.SetEnvironment(EnvironmentKeys.Fonts.Family, value, true, ControlState.Default);
+		public static T FontFamily<T>(this T view, string value) where T : View
+			=> view.SetEnvironment(EnvironmentKeys.Fonts.Family, (object)value, true, ControlState.Default);
 		public static T FontFamily<T>(this T view, Func<string> value) where T : View
-			=> view.FontFamily((Binding<string>)value);
+			=> view.FontFamily(value());
 
-		public static T FontSlant<T>(this T view, Binding<FontSlant> value) where T : View
-			=> view.SetEnvironment(EnvironmentKeys.Fonts.Slant, value, true, ControlState.Default);
+		public static T FontSlant<T>(this T view, FontSlant value) where T : View
+			=> view.SetEnvironment(EnvironmentKeys.Fonts.Slant, (object)value, true, ControlState.Default);
 		public static T FontSlant<T>(this T view, Func<FontSlant> value) where T : View
-			 => view.FontSlant((Binding<FontSlant>)value);
+			 => view.FontSlant(value());
 	}
 }

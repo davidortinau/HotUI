@@ -14,11 +14,13 @@ using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
 
 namespace CometProjectManager.Pages;
 
+public class ManageMetaPageState { }
+
 /// <summary>
 /// Manage Meta page — matches the template's ManageMetaPage exactly.
 /// Uses MauiViewHost for the entire content to ensure pixel-perfect match.
 /// </summary>
-public class ManageMetaPage : View
+public class ManageMetaPage : Component<ManageMetaPageState>
 {
 [State] readonly DataStore _store = DataStore.Instance;
 readonly Action? _onMenuTap;
@@ -77,8 +79,8 @@ BackgroundColor = Colors.Transparent,
 };
 deleteBtn.Clicked += (s, e) =>
 {
-	_store.DeleteCategory(cat.ID);
-	_ = AppNavigation.ShowToastAsync("Category deleted");
+_store.DeleteCategory(cat.ID);
+_ = AppNavigation.ShowToastAsync("Category deleted");
 };
 
 var grid = new MauiGrid
@@ -153,8 +155,8 @@ BackgroundColor = Colors.Transparent,
 };
 deleteBtn.Clicked += (s, e) =>
 {
-	_store.DeleteTag(tag.ID);
-	_ = AppNavigation.ShowToastAsync("Tag deleted");
+_store.DeleteTag(tag.ID);
+_ = AppNavigation.ShowToastAsync("Tag deleted");
 };
 
 var grid = new MauiGrid
@@ -182,16 +184,13 @@ grid.Add(deleteBtn);
 return grid;
 }
 
-[Body]
-View body()
+public override View Render()
 {
 var categories = _store.Categories.Value ?? new List<Category>();
 var tags = _store.Tags.Value ?? new List<Tag>();
 
-// Build entire page with MAUI Controls for pixel-perfect match
 var contentStack = new Microsoft.Maui.Controls.VerticalStackLayout
 {
-// LayoutSpacing=5, LayoutPadding=15 (phone values)
 Spacing = 5,
 Padding = new Thickness(15),
 };
@@ -230,8 +229,8 @@ HeightRequest = 44,
 };
 saveCatBtn.Clicked += (s, e) =>
 {
-	_store.SaveCategories(categories);
-	_ = AppNavigation.ShowToastAsync("Categories saved");
+_store.SaveCategories(categories);
+_ = AppNavigation.ShowToastAsync("Categories saved");
 };
 MauiGrid.SetColumn(saveCatBtn, 0);
 catButtonGrid.Add(saveCatBtn);
@@ -248,12 +247,12 @@ Size = 20,
 };
 addCatBtn.Clicked += (s, e) =>
 {
-	_store.AddCategory(new Category
-	{
-		Title = "New Category",
-		ColorHex = "#808080"
-	});
-	_ = AppNavigation.ShowToastAsync("Category added");
+_store.AddCategory(new Category
+{
+Title = "New Category",
+ColorHex = "#808080"
+});
+_ = AppNavigation.ShowToastAsync("Category added");
 };
 MauiGrid.SetColumn(addCatBtn, 1);
 catButtonGrid.Add(addCatBtn);
@@ -294,8 +293,8 @@ HeightRequest = 44,
 };
 saveTagBtn.Clicked += (s, e) =>
 {
-	_store.SaveTags(tags);
-	_ = AppNavigation.ShowToastAsync("Tags saved");
+_store.SaveTags(tags);
+_ = AppNavigation.ShowToastAsync("Tags saved");
 };
 MauiGrid.SetColumn(saveTagBtn, 0);
 tagButtonGrid.Add(saveTagBtn);
@@ -312,42 +311,41 @@ Size = 20,
 };
 addTagBtn.Clicked += (s, e) =>
 {
-	_store.AddTag(new Tag
-	{
-		Title = "New Tag",
-		ColorHex = "#808080"
-	});
-	_ = AppNavigation.ShowToastAsync("Tag added");
+_store.AddTag(new Tag
+{
+Title = "New Tag",
+ColorHex = "#808080"
+});
+_ = AppNavigation.ShowToastAsync("Tag added");
 };
 MauiGrid.SetColumn(addTagBtn, 1);
 tagButtonGrid.Add(addTagBtn);
 
 contentStack.Add(tagButtonGrid);
 
-// Reset button — re-seeds all data (matches MAUI reference)
+// Reset button
 var resetBtn = new MauiButton
 {
-	Text = "Reset Data",
-	HeightRequest = 44,
-	BackgroundColor = Color.FromArgb("#FF3300"),
-	TextColor = Colors.White,
-	Margin = new Thickness(0, 20, 0, 0),
+Text = "Reset Data",
+HeightRequest = 44,
+BackgroundColor = Color.FromArgb("#FF3300"),
+TextColor = Colors.White,
+Margin = new Thickness(0, 20, 0, 0),
 };
 resetBtn.Clicked += (s, e) =>
 {
-	_store.ResetData();
-	_ = AppNavigation.ShowToastAsync("Data reset");
-	if (AppNavigation.IsShellMode && Microsoft.Maui.Controls.Shell.Current != null)
-		_ = Microsoft.Maui.Controls.Shell.Current.GoToAsync("//dashboard");
+_store.ResetData();
+_ = AppNavigation.ShowToastAsync("Data reset");
+if (AppNavigation.IsShellMode && Microsoft.Maui.Controls.Shell.Current != null)
+_ = Microsoft.Maui.Controls.Shell.Current.GoToAsync("//dashboard");
 };
 contentStack.Add(resetBtn);
 
 if (!_wrapInNav) return new MauiViewHost(new MauiScrollView { Content = contentStack, BackgroundColor = LightBg });
 
-var nav = new NavigationView
-{
-new MauiViewHost(new MauiScrollView { Content = contentStack, BackgroundColor = LightBg }),
-};
+var nav = NavigationView(
+new MauiViewHost(new MauiScrollView { Content = contentStack, BackgroundColor = LightBg })
+);
 if (_onMenuTap != null) { nav.LeadingBarAction = _onMenuTap; }
 return nav.Title("Categories and Tags").Background(LightBg);
 }

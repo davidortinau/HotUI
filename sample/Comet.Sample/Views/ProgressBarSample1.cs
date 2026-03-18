@@ -1,28 +1,28 @@
-﻿using System.Threading;
+using System.Threading;
+using static Comet.CometControls;
+using Comet.Reactive;
 
 namespace Comet.Samples
 {
-	public class ProgressBarSample1 : View
+	public class ProgressBarSample1 : Component
 	{
-		readonly State<double> percentage = new State<double>(.1);
+		readonly Signal<double> percentage = new(.1);
 		private readonly Timer _timer;
 
 		public ProgressBarSample1()
 		{
 			_timer = new Timer(state => {
-				var p = (State<double>)state;
+				var p = (Signal<double>)state;
 				var current = p.Value;
 				var value = current < 1 ? current + .001f : 0;
 				p.Value = value;
 			}, percentage, 100, 100);
 		}
 
-		[Body]
-		View body() => new VStack()
-		{
-			new ProgressBar(percentage),
-			new Text(()=>$"{percentage.Value.ToString("P2")}"),
-		};
+				public override View Render() => VStack(
+			ProgressBar(percentage),
+			Text(()=>$"{percentage.Value.ToString("P2")}")
+		);
 
 		protected override void Dispose(bool disposing)
 		{

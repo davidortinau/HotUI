@@ -41,12 +41,31 @@ namespace Comet
 			return view;
 		}
 
+		public static T Key<T>(this T view, string key) where T : View
+		{
+			view.SetEnvironment(EnvironmentKeys.View.Key, key, cascades: false);
+			return view;
+		}
+
+		public static string GetKey(this View view)
+		{
+			return view?.GetEnvironment<string>(EnvironmentKeys.View.Key, cascades: false);
+		}
+
 		public static ListView<T> OnSelected<T>(this ListView<T> listview, Action<T> selected)
 		{
 			listview.ItemSelected = (o) => {
 				selected?.Invoke((T)o.item);
 			};
 			return listview;
+		}
+
+		public static CollectionView<T> OnSelected<T>(this CollectionView<T> collectionView, Action<T> selected)
+		{
+			collectionView.ItemSelected = (o) => {
+				selected?.Invoke((T)o.item);
+			};
+			return collectionView;
 		}
 
 		public static List<FieldInfo> GetFieldsWithAttribute(this object obj, Type attribute)
@@ -56,15 +75,15 @@ namespace Comet
 			return fields;
 		}
 
-		public static T Title<T>(this T view, Binding<string> title, bool cascades = true) where T : View =>
-			view.SetEnvironment(EnvironmentKeys.View.Title, title, cascades, ControlState.Default);
+		public static T Title<T>(this T view, string title, bool cascades = true) where T : View =>
+			view.SetEnvironment(EnvironmentKeys.View.Title, (object)title, cascades, ControlState.Default);
 		public static T Title<T>(this T view, Func<string> title, bool cascades = true) where T : View =>
-			view.Title((Binding<string>)title, cascades);
+			view.Title(title(), cascades);
 
-		public static T Enabled<T>(this T view, Binding<bool> enabled, bool cascades = true) where T : View =>
-			view.SetEnvironment(nameof(IView.IsEnabled), enabled, cascades, ControlState.Default);
+		public static T Enabled<T>(this T view, bool enabled, bool cascades = true) where T : View =>
+			view.SetEnvironment(nameof(IView.IsEnabled), (object)enabled, cascades, ControlState.Default);
 		public static T Enabled<T>(this T view, Func<bool> enabled, bool cascades = true) where T : View =>
-			view.Enabled((Binding<bool>)enabled, cascades);
+			view.Enabled(enabled(), cascades);
 
 		public static string GetTitle(this View view)
 		{
@@ -119,7 +138,7 @@ namespace Comet
 		}
 
 
-		public static void SetResult<T>(this View view, State<T> value)
+		public static void SetResult<T>(this View view, Reactive<T> value)
 		{
 			var resultView = view.FindParentOfType<ResultView<T>>();
 			resultView.SetResult(value.Value);
@@ -137,9 +156,18 @@ namespace Comet
 		}
 
 		public static string GetAutomationId(this View view)
-			=> view.GetEnvironment<string>(view, EnvironmentKeys.View.AutomationId,cascades:false);
+			=> view.GetEnvironment<string>(view, EnvironmentKeys.View.AutomationId, cascades: false) ?? view.AccessibilityId;
 		public static void SetAutomationId(this View view, string automationId)
-			=> view.SetEnvironment(EnvironmentKeys.View.AutomationId, automationId, cascades: false);
+		{
+			view.AccessibilityId = automationId;
+			view.SetEnvironment(EnvironmentKeys.View.AutomationId, automationId, cascades: false);
+		}
+
+		public static T AutomationId<T>(this T view, string automationId) where T : View
+		{
+			view.SetAutomationId(automationId);
+			return view;
+		}
 
 		/// <summary>
 		/// Hunts through the parents to find the current Context.
@@ -237,6 +265,24 @@ namespace Comet
 			return view;
 		}
 
+		/// <summary>
+		/// Applies the given theme to this view subtree, overriding the global theme.
+		/// </summary>
+		public static T ApplyTheme<T>(this T view, Styles.Theme theme) where T : View
+		{
+			theme.Apply(view);
+			return view;
+		}
+
+		/// <summary>
+		/// Applies a typed functional <see cref="Styles.Style{T}"/> to this view.
+		/// </summary>
+		public static T ApplyControlStyle<T>(this T view, Styles.ControlStyle<T> style) where T : View
+		{
+			style.Apply(view);
+			return view;
+		}
+
 		// Visibility
 		public static T IsVisible<T>(this T view, bool visible = true) where T : View =>
 			view.SetEnvironment(nameof(IView.Visibility), visible ? Visibility.Visible : Visibility.Collapsed);
@@ -251,7 +297,9 @@ namespace Comet
 			view.SetEnvironment(nameof(IView.FlowDirection), direction);
 
 		public static T Shadow<T>(this T view, Graphics.Shadow shadow) where T : View =>
-			view.SetEnvironment(EnvironmentKeys.View.Shadow, shadow, false);
+			view.SetEnvironment(EnvironmentKeys.View.Shadow, (object)shadow, false);
+
+		public static T Shadow<T>(this T view, Func<Graphics.Shadow> shadow) where T : View => view.Shadow(shadow());
 
 		public static T IsEnabled<T>(this T view, bool enabled = true) where T : View =>
 			view.SetEnvironment(nameof(IView.IsEnabled), enabled);

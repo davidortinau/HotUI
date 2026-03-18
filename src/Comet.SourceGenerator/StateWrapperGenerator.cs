@@ -53,20 +53,17 @@ namespace {{NameSpace}} {
 
 		void Inpc_PropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
-			StateManager.OnPropertyChanged(sender, e.PropertyName, null);
 			PropertyChanged?.Invoke(sender, e);
 		}
 	
 		void NotifyPropertyChanged(object value, [CallerMemberName] string memberName = null){
 			if (shouldNotifyChanged) {
-				StateManager.OnPropertyChanged(this, memberName, value);
 				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(memberName));
 			}
 		}
 		
 		void NotifyPropertyRead([CallerMemberName] string memberName = null){ 
 			InitDirtyProperty(memberName);
-			StateManager.OnPropertyRead(this, memberName);
 			PropertyRead?.Invoke(this, new PropertyChangedEventArgs(memberName));
 		}
 		

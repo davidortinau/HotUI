@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class BasicTestView : View
+	public class BasicTestView : Component
 	{
 		class MyBindingObject : BindingObject
 		{
@@ -35,24 +36,22 @@ namespace Comet.Samples
 				Text = "Bar",
 				CanEdit = true,
 			};
-			Body = Build;
+			
 		}
 
-		View Build() =>
-			new VStack
-			{
+		public override View Render() =>
+			VStack(
 				(state.CanEdit
-					? (View) new TextField(state.Text)
-					: new Text(() => $"{state.Text}: multiText")), // Text will warn you. This should be done by TextBinding
-                new Text(state.Text),
-				new HStack
-				{
-					new Button("Toggle Entry/Label",
+					? (View) TextField(state.Text)
+					: Text(() => $"{state.Text}: multiText")), // Text will warn you. This should be done by TextBinding
+                Text(state.Text),
+				HStack(
+					Button("Toggle Entry/Label",
 						() => state.CanEdit = !state.CanEdit)
 						.Background(Colors.Salmon),
-					new Button("Update Text",
+					Button("Update Text",
 						() => state.Text = $"Click Count: {clickCount.Value++}" )
-				}
-			};
+				)
+			);
 	}
 }

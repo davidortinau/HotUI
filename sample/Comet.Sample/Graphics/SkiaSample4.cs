@@ -1,38 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using static Comet.CometControls;
 namespace Comet.Samples
 {
-	public class SkiaSample4 : View
+	public class SkiaSample4 : Component
 	{
 		readonly State<double> _strokeSize = 2;
 		readonly State<Color> _strokeColor = Colors.White ;
 
-		[Body]
-		View body()
+				public override View Render()
 		{
 			var fingerPaint = new BindableFingerPaint(
 				strokeSize: _strokeSize,
 				strokeColor: _strokeColor);
 
-			return new VStack()
-			{
-				new VStack()
-				{
-					new HStack()
-					{
-						new Text("Stroke Width:"),
-						new Slider(_strokeSize, 1, 10).FillHorizontal()
-					},
-					new HStack()
-					{
-						new Text("Stroke Color:"),
-						new TextField(new Binding<string>(() => _strokeColor.Value.ToArgbHex(),(s) => _strokeColor.Value = Color.FromArgb(s)))
-					},
-					new Button("Reset", () => fingerPaint.Reset()),
+			return VStack(
+				VStack(
+					HStack(
+						Text("Stroke Width:"),
+						Slider(_strokeSize,
+							new Binding<double>(() => 1d, null),
+							new Binding<double>(() => 10d, null)).FillHorizontal()
+					),
+					HStack(
+						Text("Stroke Color:"),
+						TextField(new Binding<string>(() => _strokeColor.Value.ToArgbHex(),(s) => _strokeColor.Value = Color.FromArgb(s)))
+					),
+					Button("Reset", () => fingerPaint.Reset()),
 					fingerPaint.Frame(height: 400)
-				},
-			};
+				)
+			);
 		}
 	}
 }

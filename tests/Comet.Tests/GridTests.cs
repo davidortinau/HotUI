@@ -9,7 +9,7 @@ namespace Comet.Tests
 	{
 		public class GridTestView1 : View
 		{
-			public readonly State<string> text = "Test";
+			public readonly Reactive<string> text = "Test";
 
 			[Body]
 			View body() => new Grid(columns: new[] { "*", "*" }, defaultRowHeight: 20)

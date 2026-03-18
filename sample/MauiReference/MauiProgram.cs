@@ -38,8 +38,7 @@ public static class MauiProgram
 			});
 
 #if DEBUG
-		builder.Logging.AddDebug();
-		builder.Services.AddLogging(configure => configure.AddDebug());
+		builder.EnableSampleRuntimeDebugging();
 #endif
 
 		builder.Services.AddSingleton<ProjectRepository>();

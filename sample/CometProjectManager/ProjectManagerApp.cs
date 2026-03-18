@@ -328,6 +328,10 @@ public static class MauiProgram
 				fonts.AddFont("FluentSystemIcons-Regular.ttf", Fonts.FluentUI.FontFamily);
 			});
 
+#if DEBUG
+		builder.EnableSampleRuntimeDebugging();
+#endif
+
 		return builder.Build();
 	}
 }

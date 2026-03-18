@@ -49,6 +49,7 @@ namespace Comet
 		public void AddTab(string title, View content)
 		{
 			_tabs.Add(new TabItem { Title = title, Content = content });
+			content.SetEnvironment(EnvironmentKeys.TabView.Title, title);
 			Add(content);
 		}
 

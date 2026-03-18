@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using static Comet.CometControls;
 
 
 /*
@@ -17,10 +15,9 @@ struct ContentView: View {
 
 namespace Comet.Samples.Comparisons
 {
-	public class Section1 : View
+	public class Section1 : Component
 	{
-		[Body]
-		View body()
-			=> new Text("Hello Comet!");
+		public override View Render() =>
+			Text("Hello Comet!");
 	}
 }

@@ -1,393 +1,326 @@
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Shapes;
-using Microsoft.Maui.Graphics;
-
-using MauiLabel = Microsoft.Maui.Controls.Label;
-using MauiBorder = Microsoft.Maui.Controls.Border;
-using MauiEntry = Microsoft.Maui.Controls.Entry;
-using MauiButton = Microsoft.Maui.Controls.Button;
-using MauiSlider = Microsoft.Maui.Controls.Slider;
-using MauiPicker = Microsoft.Maui.Controls.Picker;
-using MauiEditor = Microsoft.Maui.Controls.Editor;
-using MauiGrid = Microsoft.Maui.Controls.Grid;
-using MauiBoxView = Microsoft.Maui.Controls.BoxView;
-using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
-using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
+using Comet;
 
 namespace CometBaristaNotes.Components;
 
 /// <summary>
-/// Factory methods returning native MAUI controls for proper rendering in Shell.
+/// Factory methods returning Comet views for form fields and UI components.
 /// </summary>
 public static class FormHelpers
 {
-	public static MauiLabel MakeIcon(string glyph, double size, Color color)
+	public static View MakeIcon(string glyph, double size, Color color)
 	{
-		return new MauiLabel
-		{
-			Text = glyph,
-			FontFamily = Icons.FontFamily,
-			FontSize = size,
-			TextColor = color,
-			HorizontalTextAlignment = TextAlignment.Center,
-			VerticalTextAlignment = TextAlignment.Center,
-		};
+		return Text(glyph)
+			.FontFamily(Icons.FontFamily)
+			.FontSize(size)
+			.Color(color)
+			.HorizontalTextAlignment(TextAlignment.Center)
+			.VerticalTextAlignment(TextAlignment.Center);
 	}
 
-	public static Microsoft.Maui.Controls.View MakeCard(Microsoft.Maui.Controls.View content)
+	public static View MakeCard(View content)
 	{
-		return new MauiBorder
-		{
-			Content = content,
-			BackgroundColor = Theme.CardBackground,
-			Stroke = new SolidColorBrush(Theme.CardStroke),
-			StrokeThickness = 1,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
-			Padding = new Thickness(Theme.SpacingM),
-		};
+		return Border(content)
+			.CornerRadius(Theme.RadiusCard)
+			.Background(Theme.CardBackground)
+			.StrokeColor(Theme.CardStroke)
+			.StrokeThickness(1)
+			.Padding(new Thickness(Theme.SpacingM));
 	}
 
-	public static Microsoft.Maui.Controls.View MakeSectionHeader(string title)
+	public static View MakeSectionHeader(string title)
 	{
-		return new MauiLabel
-		{
-			Text = title.ToUpperInvariant(),
-			FontFamily = Theme.FontSemibold,
-			FontSize = 13,
-			FontAttributes = MauiFontAttributes.Bold,
-			TextColor = Theme.TextSecondary,
-			Margin = new Thickness(0, Theme.SpacingM, 0, Theme.SpacingXS),
-		};
+		return Text(title.ToUpperInvariant())
+			.FontFamily(Theme.FontSemibold)
+			.FontSize(13)
+			.FontWeight(FontWeight.Bold)
+			.Color(Theme.TextSecondary)
+			.Margin(new Thickness(0, Theme.SpacingM, 0, Theme.SpacingXS));
 	}
 
-	public static Microsoft.Maui.Controls.View MakeFormEntry(string label, string value, string placeholder, Action<string> onChanged)
+	public static View MakeFormEntry(string label, string value, string placeholder, Action<string> onChanged)
 	{
-		var stack = new VerticalStackLayout { Spacing = 0 };
-		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
+		return VStack(
+			Text(label)
+				.FontFamily(Theme.FontRegular)
+				.FontSize(12)
+				.Color(Theme.TextSecondary)
+				.Margin(new Thickness(16, 0, 0, 4)),
 
-		var entry = new MauiEntry
-		{
-			Text = value,
-			Placeholder = placeholder,
-			FontSize = 16,
-			TextColor = Theme.TextPrimary,
-			BackgroundColor = Colors.Transparent,
-			HeightRequest = Theme.FormFieldHeight,
-			Margin = new Thickness(16, 0),
-		};
-		entry.TextChanged += (s, e) => onChanged(e.NewTextValue ?? "");
-
-		var border = new MauiBorder
-		{
-			Content = entry,
-			StrokeThickness = 0,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusPill },
-			BackgroundColor = Theme.SurfaceVariant,
-		};
-
-		stack.Add(border);
-		return stack;
+			Border(
+				TextField(value, placeholder)
+					.FontSize(16)
+					.Color(Theme.TextPrimary)
+					.Background(Colors.Transparent)
+					.Frame(height: Theme.FormFieldHeight)
+					.Margin(new Thickness(16, 0))
+					.OnTextChanged(onChanged)
+			)
+			.CornerRadius(Theme.RadiusPill)
+			.Background(Theme.SurfaceVariant)
+			.StrokeThickness(0)
+		);
 	}
 
-	public static Microsoft.Maui.Controls.View MakeReadOnlyField(string label, string value)
+	public static View MakeReadOnlyField(string label, string value)
 	{
-		var stack = new VerticalStackLayout { Spacing = 0 };
-		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
+		return VStack(
+			Text(label)
+				.FontFamily(Theme.FontRegular)
+				.FontSize(12)
+				.Color(Theme.TextSecondary)
+				.Margin(new Thickness(16, 0, 0, 4)),
 
-		var valueLabel = new MauiLabel
-		{
-			Text = value,
-			FontFamily = Theme.FontSemibold,
-			FontSize = 16,
-			FontAttributes = MauiFontAttributes.Bold,
-			TextColor = Theme.TextPrimary,
-			VerticalTextAlignment = TextAlignment.Center,
-			HeightRequest = Theme.FormFieldHeight,
-			Padding = new Thickness(Theme.SpacingM, 0),
-		};
-
-		var border = new MauiBorder
-		{
-			Content = valueLabel,
-			StrokeThickness = 0,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusPill },
-			BackgroundColor = Theme.SurfaceVariant,
-		};
-
-		stack.Add(border);
-		return stack;
+			Border(
+				Text(value)
+					.FontFamily(Theme.FontSemibold)
+					.FontSize(16)
+					.FontWeight(FontWeight.Bold)
+					.Color(Theme.TextPrimary)
+					.VerticalTextAlignment(TextAlignment.Center)
+					.Frame(height: Theme.FormFieldHeight)
+					.Padding(new Thickness(Theme.SpacingM, 0))
+			)
+			.CornerRadius(Theme.RadiusPill)
+			.Background(Theme.SurfaceVariant)
+			.StrokeThickness(0)
+		);
 	}
 
-	public static Microsoft.Maui.Controls.View MakePrimaryButton(string title, Action action)
+	public static View MakePrimaryButton(string title, Action action)
 	{
-		var btn = new MauiButton
-		{
-			Text = title,
-			FontFamily = Theme.FontSemibold,
-			BackgroundColor = Theme.Primary,
-			TextColor = Colors.White,
-			FontSize = 16,
-			FontAttributes = MauiFontAttributes.Bold,
-			HeightRequest = Theme.ButtonHeight,
-			CornerRadius = (int)Theme.RadiusPill,
-		};
-		btn.Clicked += (s, e) => action();
-		return btn;
+		return Button(title, action)
+			.FontFamily(Theme.FontSemibold)
+			.Background(Theme.Primary)
+			.Color(Colors.White)
+			.FontSize(16)
+			.FontWeight(FontWeight.Bold)
+			.Frame(height: Theme.ButtonHeight)
+			.CornerRadius((int)Theme.RadiusPill);
 	}
 
-	public static Microsoft.Maui.Controls.View MakeSecondaryButton(string title, Action action)
+	public static View MakeSecondaryButton(string title, Action action)
 	{
-		var btn = new MauiButton
-		{
-			Text = title,
-			FontFamily = Theme.FontSemibold,
-			BackgroundColor = Theme.SurfaceVariant,
-			TextColor = Theme.Primary,
-			FontSize = 16,
-			FontAttributes = MauiFontAttributes.Bold,
-			HeightRequest = Theme.ButtonHeight,
-			CornerRadius = (int)Theme.RadiusPill,
-		};
-		btn.Clicked += (s, e) => action();
-		return btn;
+		return Button(title, action)
+			.FontFamily(Theme.FontSemibold)
+			.Background(Theme.SurfaceVariant)
+			.Color(Theme.Primary)
+			.FontSize(16)
+			.FontWeight(FontWeight.Bold)
+			.Frame(height: Theme.ButtonHeight)
+			.CornerRadius((int)Theme.RadiusPill);
 	}
 
-	public static Microsoft.Maui.Controls.View MakeDangerButton(string title, Action action)
+	public static View MakeDangerButton(string title, Action action)
 	{
-		var btn = new MauiButton
-		{
-			Text = title,
-			FontFamily = Theme.FontSemibold,
-			BackgroundColor = Theme.Error,
-			TextColor = Colors.White,
-			FontSize = 16,
-			FontAttributes = MauiFontAttributes.Bold,
-			HeightRequest = Theme.ButtonHeight,
-			CornerRadius = (int)Theme.RadiusPill,
-		};
-		btn.Clicked += (s, e) => action();
-		return btn;
+		return Button(title, action)
+			.FontFamily(Theme.FontSemibold)
+			.Background(Theme.Error)
+			.Color(Colors.White)
+			.FontSize(16)
+			.FontWeight(FontWeight.Bold)
+			.Frame(height: Theme.ButtonHeight)
+			.CornerRadius((int)Theme.RadiusPill);
 	}
 
-	public static Microsoft.Maui.Controls.View MakeEmptyState(string icon, string title, string description)
+	public static View MakeEmptyState(string icon, string title, string description)
 	{
-		var stack = new VerticalStackLayout
-		{
-			Spacing = 12,
-			HorizontalOptions = LayoutOptions.Center,
-			VerticalOptions = LayoutOptions.Center,
-			Padding = new Thickness(Theme.SpacingXL),
-		};
-		stack.Add(new MauiLabel { Text = icon, FontFamily = Icons.FontFamily, FontSize = 48, HorizontalTextAlignment = TextAlignment.Center });
-		stack.Add(new MauiLabel { Text = title, FontFamily = Theme.FontSemibold, FontSize = 18, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, HorizontalTextAlignment = TextAlignment.Center });
-		stack.Add(new MauiLabel { Text = description, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary, HorizontalTextAlignment = TextAlignment.Center });
-		return stack;
+		return VStack(12,
+			Text(icon)
+				.FontFamily(Icons.FontFamily)
+				.FontSize(48)
+				.HorizontalTextAlignment(TextAlignment.Center),
+
+			Text(title)
+				.FontFamily(Theme.FontSemibold)
+				.FontSize(18)
+				.FontWeight(FontWeight.Bold)
+				.Color(Theme.TextPrimary)
+				.HorizontalTextAlignment(TextAlignment.Center),
+
+			Text(description)
+				.FontFamily(Theme.FontRegular)
+				.FontSize(14)
+				.Color(Theme.TextSecondary)
+				.HorizontalTextAlignment(TextAlignment.Center)
+		)
+		.Padding(new Thickness(Theme.SpacingXL));
 	}
 
-	public static Microsoft.Maui.Controls.View MakeListCard(string title, string? subtitle, string? detail, Action? onTap)
+	public static View MakeListCard(string title, string? subtitle, string? detail, Action? onTap)
 	{
-		var grid = new MauiGrid
+		var infoViews = new List<View>
 		{
-			ColumnDefinitions =
-			{
-				new ColumnDefinition(GridLength.Star),
-				new ColumnDefinition(GridLength.Auto),
-			},
+			Text(title)
+				.FontFamily(Theme.FontSemibold)
+				.FontSize(16)
+				.FontWeight(FontWeight.Bold)
+				.Color(Theme.TextPrimary),
 		};
-
-		var infoStack = new VerticalStackLayout { Spacing = 2 };
-		infoStack.Add(new MauiLabel { Text = title, FontFamily = Theme.FontSemibold, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
 		if (subtitle != null)
-			infoStack.Add(new MauiLabel { Text = subtitle, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+			infoViews.Add(
+				Text(subtitle)
+					.FontFamily(Theme.FontRegular)
+					.FontSize(14)
+					.Color(Theme.TextSecondary));
 		if (detail != null)
-			infoStack.Add(new MauiLabel { Text = detail, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
+			infoViews.Add(
+				Text(detail)
+					.FontFamily(Theme.FontRegular)
+					.FontSize(12)
+					.Color(Theme.TextMuted));
 
-		grid.Add(infoStack, 0, 0);
-		grid.Add(new MauiLabel { Text = Icons.ChevronRight, FontFamily = Icons.FontFamily, FontSize = 20, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center, Padding = new Thickness(Theme.SpacingS, 0) }, 1, 0);
+		var infoStack = VStack(2);
+		foreach (var v in infoViews)
+			infoStack.Add(v);
 
-		var border = new MauiBorder
-		{
-			Content = grid,
-			BackgroundColor = Theme.CardBackground,
-			Stroke = new SolidColorBrush(Theme.CardStroke),
-			StrokeThickness = 1,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
-			Padding = new Thickness(Theme.SpacingM),
-		};
+		var chevron = Text(Icons.ChevronRight)
+			.FontFamily(Icons.FontFamily)
+			.FontSize(20)
+			.Color(Theme.TextMuted)
+			.VerticalTextAlignment(TextAlignment.Center)
+			.Padding(new Thickness(Theme.SpacingS, 0));
+
+		var row = HStack(Theme.SpacingS,
+			infoStack.FillHorizontal(),
+			chevron
+		);
+
+		View card = Border(row)
+			.CornerRadius(Theme.RadiusCard)
+			.Background(Theme.CardBackground)
+			.StrokeColor(Theme.CardStroke)
+			.StrokeThickness(1)
+			.Padding(new Thickness(Theme.SpacingM));
 
 		if (onTap != null)
-		{
-			var tap = new TapGestureRecognizer();
-			tap.Tapped += (s, e) => onTap();
-			border.GestureRecognizers.Add(tap);
-		}
+			card = card.OnTap(_ => onTap());
 
-		return border;
+		return card;
 	}
 
-	public static Microsoft.Maui.Controls.View MakeFormPicker(string label, int selectedIndex, string[] items, Action<int> onChanged)
+	public static View MakeFormPicker(string label, int selectedIndex, string[] items, Action<int> onChanged)
 	{
-		var stack = new VerticalStackLayout { Spacing = 0 };
-		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
+		return VStack(
+			Text(label)
+				.FontFamily(Theme.FontRegular)
+				.FontSize(12)
+				.Color(Theme.TextSecondary)
+				.Margin(new Thickness(16, 0, 0, 4)),
 
-		var picker = new MauiPicker
-		{
-			TextColor = Theme.TextPrimary,
-			BackgroundColor = Colors.Transparent,
-			HeightRequest = Theme.FormFieldHeight,
-			Margin = new Thickness(16, 0),
-		};
-		foreach (var item in items) picker.Items.Add(item);
-		if (selectedIndex >= 0 && selectedIndex < items.Length) picker.SelectedIndex = selectedIndex;
-		picker.SelectedIndexChanged += (s, e) => onChanged(picker.SelectedIndex);
-
-		var border = new MauiBorder
-		{
-			Content = picker,
-			StrokeThickness = 0,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusPill },
-			BackgroundColor = Theme.SurfaceVariant,
-		};
-
-		stack.Add(border);
-		return stack;
+			Border(
+				Picker(selectedIndex, items)
+					.Color(Theme.TextPrimary)
+					.Background(Colors.Transparent)
+					.Frame(height: Theme.FormFieldHeight)
+					.Margin(new Thickness(16, 0))
+					.OnSelectedIndexChanged(onChanged)
+			)
+			.CornerRadius(Theme.RadiusPill)
+			.Background(Theme.SurfaceVariant)
+			.StrokeThickness(0)
+		);
 	}
 
-	public static Microsoft.Maui.Controls.View MakeFormSlider(string label, double value, double min, double max, Action<double> onChanged, out MauiLabel valueLabelRef)
+	public static View MakeFormSlider(string label, double value, double min, double max, Action<double> onChanged)
 	{
-		var stack = new VerticalStackLayout { Spacing = 0 };
+		return VStack(
+			Text(label)
+				.FontFamily(Theme.FontRegular)
+				.FontSize(12)
+				.Color(Theme.TextSecondary)
+				.Margin(new Thickness(16, 0, 0, 4)),
 
-		var captionLabel = new MauiLabel
-		{
-			Text = label,
-			FontFamily = Theme.FontRegular,
-			FontSize = 12,
-			TextColor = Theme.TextSecondary,
-			Margin = new Thickness(16, 0, 0, 4),
-		};
-		stack.Add(captionLabel);
-
-		var slider = new MauiSlider
-		{
-			Minimum = min,
-			Maximum = max,
-			Value = value,
-			MinimumTrackColor = Theme.Primary,
-			MaximumTrackColor = Theme.SurfaceVariant,
-			Margin = new Thickness(16, 0),
-			VerticalOptions = LayoutOptions.Center,
-		};
-
-		var sliderBorder = new MauiBorder
-		{
-			Content = slider,
-			StrokeThickness = 0,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusPill },
-			BackgroundColor = Theme.SurfaceVariant,
-			HeightRequest = Theme.FormFieldHeight,
-		};
-
-		valueLabelRef = captionLabel;
-
-		slider.ValueChanged += (s, e) =>
-		{
-			onChanged(e.NewValue);
-		};
-
-		stack.Add(sliderBorder);
-		return stack;
+			Border(
+				Slider(value, min, max)
+					.MinimumTrackColor(Theme.Primary)
+					.MaximumTrackColor(Theme.SurfaceVariant)
+					.Margin(new Thickness(16, 0))
+					.OnValueChanged(onChanged)
+			)
+			.CornerRadius(Theme.RadiusPill)
+			.Background(Theme.SurfaceVariant)
+			.StrokeThickness(0)
+			.Frame(height: Theme.FormFieldHeight)
+		);
 	}
 
-	public static Microsoft.Maui.Controls.View MakeFormEditor(string label, string value, Action<string> onChanged)
+	public static View MakeFormEditor(string label, string value, Action<string> onChanged)
 	{
-		var stack = new VerticalStackLayout { Spacing = 0 };
-		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
+		return VStack(
+			Text(label)
+				.FontFamily(Theme.FontRegular)
+				.FontSize(12)
+				.Color(Theme.TextSecondary)
+				.Margin(new Thickness(16, 0, 0, 4)),
 
-		var editor = new MauiEditor
-		{
-			Text = value,
-			FontSize = 16,
-			TextColor = Theme.TextPrimary,
-			BackgroundColor = Colors.Transparent,
-			HeightRequest = 80,
-			Margin = new Thickness(16, 8),
-		};
-		editor.TextChanged += (s, e) => onChanged(e.NewTextValue ?? "");
-
-		var border = new MauiBorder
-		{
-			Content = editor,
-			StrokeThickness = 0,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusEditor },
-			BackgroundColor = Theme.SurfaceVariant,
-		};
-
-		stack.Add(border);
-		return stack;
+			Border(
+				TextEditor(value)
+					.FontSize(16)
+					.Color(Theme.TextPrimary)
+					.Background(Colors.Transparent)
+					.Frame(height: 80)
+					.Margin(new Thickness(16, 8))
+					.OnTextChanged(onChanged)
+			)
+			.CornerRadius(Theme.RadiusEditor)
+			.Background(Theme.SurfaceVariant)
+			.StrokeThickness(0)
+		);
 	}
 
-	public static Microsoft.Maui.Controls.View MakeFormEntryWithLimit(string label, string value, string placeholder, int maxLength, Action<string> onChanged)
+	public static View MakeFormEntryWithLimit(string label, string value, string placeholder, int maxLength, Action<string> onChanged)
 	{
-		var stack = new VerticalStackLayout { Spacing = 0 };
-		stack.Add(new MauiLabel { Text = label, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
+		var currentLength = value?.Length ?? 0;
 
-		var entry = new MauiEntry
-		{
-			Text = value,
-			Placeholder = placeholder,
-			FontSize = 16,
-			TextColor = Theme.TextPrimary,
-			BackgroundColor = Theme.SurfaceVariant,
-			HeightRequest = Theme.FormFieldHeight,
-			MaxLength = maxLength,
-		};
+		return VStack(
+			Text(label)
+				.FontFamily(Theme.FontRegular)
+				.FontSize(12)
+				.Color(Theme.TextSecondary)
+				.Margin(new Thickness(16, 0, 0, 4)),
 
-		var counterLabel = new MauiLabel
-		{
-			Text = $"{(value?.Length ?? 0)}/{maxLength}",
-			FontFamily = Theme.FontRegular,
-			FontSize = 12,
-			TextColor = Theme.TextMuted,
-			HorizontalTextAlignment = TextAlignment.End,
-		};
+			Border(
+				TextField(value, placeholder)
+					.FontSize(16)
+					.Color(Theme.TextPrimary)
+					.Background(Theme.SurfaceVariant)
+					.Frame(height: Theme.FormFieldHeight)
+					.OnTextChanged(text =>
+					{
+						text ??= string.Empty;
+						if (text.Length > maxLength)
+							text = text[..maxLength];
+						onChanged(text);
+					})
+			)
+			.CornerRadius(Theme.RadiusPill)
+			.Background(Theme.SurfaceVariant)
+			.StrokeThickness(0),
 
-		entry.TextChanged += (s, e) =>
-		{
-			var text = e.NewTextValue ?? "";
-			counterLabel.Text = $"{text.Length}/{maxLength}";
-			counterLabel.TextColor = text.Length >= maxLength ? Theme.Warning : Theme.TextMuted;
-			onChanged(text);
-		};
-
-		var border = new MauiBorder
-		{
-			Content = entry,
-			StrokeThickness = 0,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusPill },
-			BackgroundColor = Theme.SurfaceVariant,
-		};
-
-		stack.Add(border);
-		stack.Add(counterLabel);
-		return stack;
+			Text($"{currentLength}/{maxLength}")
+				.FontFamily(Theme.FontRegular)
+				.FontSize(12)
+				.Color(currentLength >= maxLength ? Theme.Warning : Theme.TextMuted)
+				.HorizontalTextAlignment(TextAlignment.End)
+		);
 	}
 
-	public static Microsoft.Maui.Controls.View MakeToggleRow(string label, bool isOn, Action<bool> onChanged)
+	public static View MakeToggleRow(string label, bool isOn, Action<bool> onChanged)
 	{
-		var grid = new MauiGrid
-		{
-			ColumnDefinitions =
-			{
-				new ColumnDefinition(GridLength.Star),
-				new ColumnDefinition(GridLength.Auto),
-			},
-		};
+		var grid = Grid(columns: new object[] { "*", "Auto" }, rows: new object[] { "Auto" },
+			Text(label)
+				.FontFamily(Theme.FontSemibold)
+				.FontSize(14)
+				.FontWeight(FontWeight.Bold)
+				.Color(Theme.TextPrimary)
+				.VerticalTextAlignment(TextAlignment.Center)
+				.Cell(row: 0, column: 0),
 
-		grid.Add(new MauiLabel { Text = label, FontFamily = Theme.FontSemibold, FontSize = 14, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary, VerticalTextAlignment = TextAlignment.Center }, 0, 0);
-
-		var toggle = new Microsoft.Maui.Controls.Switch { IsToggled = isOn, OnColor = Theme.Primary };
-		toggle.Toggled += (s, e) => onChanged(e.Value);
-		grid.Add(toggle, 1, 0);
+			Toggle(isOn)
+				.OnColor(Theme.Primary)
+				.OnToggled(onChanged)
+				.Cell(row: 0, column: 1)
+		);
 
 		return MakeCard(grid);
 	}

@@ -11,6 +11,8 @@ namespace Comet
 			object[] columns = null,
 			object[] rows = null,
 			float? spacing = null,
+			float? columnSpacing = null,
+			float? rowSpacing = null,
 			object defaultRowHeight = null,
 			object defaultColumnWidth = null)
 		{
@@ -19,6 +21,8 @@ namespace Comet
 
 			layout.DefaultRowHeight = defaultRowHeight ?? "*";
 			layout.DefaultColumnWidth = defaultColumnWidth ?? "*";
+			layout.ColumnSpacing = columnSpacing ?? spacing ?? 0;
+			layout.RowSpacing = rowSpacing ?? spacing ?? 0;
 
 			if (columns != null)
 				layout.AddColumns(columns);

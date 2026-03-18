@@ -1,4 +1,5 @@
 using System;
+using Comet.Reactive;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 
@@ -10,27 +11,28 @@ namespace Comet
 		{
 		}
 
-		public BoxView(Binding<Color> color)
+		public BoxView(Color color)
 		{
 			Color = color;
 		}
 
-		public BoxView(Func<Color> color) : this((Binding<Color>)color)
+		public BoxView(Func<Color> color)
 		{
+			Color = PropertySubscription<Color>.FromFunc(color);
 		}
 
-		private Binding<Color> _color;
-		public Binding<Color> Color
+		private PropertySubscription<Color> _color;
+		public PropertySubscription<Color> Color
 		{
 			get => _color;
-			set => this.SetBindingValue(ref _color, value);
+			set => this.SetPropertySubscription(ref _color, value);
 		}
 
-		private Binding<CornerRadius> _cornerRadius;
-		public Binding<CornerRadius> CornerRadius
+		private PropertySubscription<CornerRadius> _cornerRadius;
+		public PropertySubscription<CornerRadius> CornerRadius
 		{
 			get => _cornerRadius;
-			set => this.SetBindingValue(ref _cornerRadius, value);
+			set => this.SetPropertySubscription(ref _cornerRadius, value);
 		}
 	}
 }

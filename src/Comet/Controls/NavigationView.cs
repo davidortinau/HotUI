@@ -40,6 +40,20 @@ namespace Comet
 					((IStackNavigationView)this).RequestNavigation(new NavigationRequest(_views, true));
 			}
 		}
+
+		public void Navigate<TView>() where TView : View, new()
+			=> Navigate(new TView());
+
+		public void Navigate<TView>(object parameters) where TView : View, new()
+		{
+			var view = new TView();
+			NavigationParameterHelper.Apply(view, parameters);
+			Navigate(view);
+		}
+
+		public void Navigate<TView, TParameters>(TParameters parameters) where TView : View, new()
+			=> Navigate<TView>((object)parameters);
+
 		public void SetPerformPop(Action action) => PerformPop = action;
 		public void SetPerformPop(NavigationView navView)
 			=> PerformPop = navView.PerformPop;
@@ -52,6 +66,15 @@ namespace Comet
 
 		protected Action<View> PerformNavigate { get; set; }
 
+		/// <summary>
+		/// Action that pops the platform navigation controller to root
+		/// and updates the root view controller's content.
+		/// </summary>
+		public void SetPerformContentReset(Action<View> action) => PerformContentReset = action;
+		public void SetPerformContentReset(NavigationView navView)
+			=> PerformContentReset = navView.PerformContentReset;
+		protected Action<View> PerformContentReset { get; set; }
+
 		//IToolbar IToolbarElement.Toolbar => CometWindow.Toolbar;
 
 		protected override void OnHandlerChange()
@@ -59,7 +82,14 @@ namespace Comet
 			if (_views.Count == 0 && Content != null)
 				_views.Add(Content);
 
-			((IStackNavigationView)this).RequestNavigation(new NavigationRequest(_views, false));
+			// When the handler is transferred from another NavigationView (during diff),
+			// the platform navigation controller may have a stale stack.
+			// Reset the root content to match the current Content.
+			if (PerformContentReset != null && Content != null)
+				PerformContentReset(Content);
+			else
+				((IStackNavigationView)this).RequestNavigation(new NavigationRequest(_views, false));
+
 			base.OnHandlerChange();
 		}
 
@@ -121,15 +151,28 @@ namespace Comet
 			}
 		}
 
-		//public static void PopToRoot(View view)
-		//{
+		/// <summary>
+		/// Pops all views from the navigation stack back to the root content.
+		/// </summary>
+		public void PopToRoot()
+		{
+			lock (_viewsLock)
+			{
+				if (_views.Count <= 1) return;
+				var root = _views[0];
+				_views.Clear();
+				_views.Add(root);
+			}
+			if (PerformContentReset != null && Content != null)
+				PerformContentReset(Content);
+		}
 
-		//}
-
-		//public static void PopToView(View fromView, View toView)
-		//{
-
-		//}
+		public static void PopToRoot(View view)
+		{
+			var parent = FindParentNavigationView(view);
+			if (parent is NavigationView nav)
+				nav.PopToRoot();
+		}
 
 		static View FindParentNavigationView(View view)
 		{

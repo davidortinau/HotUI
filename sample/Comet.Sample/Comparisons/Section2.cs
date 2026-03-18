@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-using System.Text;
-using Microsoft.Maui.Graphics;
+﻿using static Comet.CometControls;
 
 
 /*
@@ -21,12 +17,11 @@ struct ContentView: View {
 
 namespace Comet.Samples.Comparisons
 {
-	public class Section2 : View
+	public class Section2 : Component
 	{
-		[Body]
-		View body() =>
-				 new Text("Turtle Rock")
-					 .Color(Colors.Green);
+		public override View Render() =>
+			Text("Turtle Rock")
+				.Color(Colors.Green);
 	}
 
 }

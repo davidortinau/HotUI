@@ -1,24 +1,24 @@
 ﻿using System;
+using static Comet.CometControls;
+
 namespace Comet.Samples
 {
-	public class InsaneDiffPage : View
+	public class InsaneDiffPage : Component
 	{
 		readonly State<bool> myBoolean = new State<bool>();
 		readonly State<string> myText = new State<string>();
 
-		[Body]
-		View body()
+				public override View Render()
 		{
-			var stack = new VStack {
-					new Button
-						(()=> myBoolean.Value ? myText.Value : $"State: {myBoolean.Value}",
-						()=> myBoolean.Value = !myBoolean.Value),
-				};
+			var stack = VStack(
+					Button(()=> myBoolean.Value ? myText.Value : $"State: {myBoolean.Value}",
+						()=> myBoolean.Value = !myBoolean.Value)
+				);
 			for (var i = 0; i < 100; i++)
 			{
-				stack.Add(new Text(i.ToString()));
+				stack.Add(Text(i.ToString()));
 			}
-			return new ScrollView { stack };
+			return ScrollView( stack );
 		}
 	}
 }

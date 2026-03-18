@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using Comet.Internal;
+using Comet.Reactive;
 using Microsoft.Maui;
 
 namespace Comet
@@ -45,35 +46,131 @@ namespace Comet
 	}
 
 	/// <summary>
-	/// Modern collection view that wraps ListView with additional features.
-	/// Supports vertical/horizontal layouts, grouping, empty views, and selection modes.
+	/// Generic CollectionView that inherits from CollectionView (not ListView&lt;T&gt;) so that
+	/// handler resolution finds CollectionViewHandler instead of ListViewHandler.
+	/// Replicates ListView&lt;T&gt; generic item machinery.
 	/// </summary>
-	public class CollectionView<T> : ListView<T>
+	public class CollectionView<T> : CollectionView
 	{
-		public CollectionView() : base() { }
+		protected IDictionary<(int section, int row, object item), View> CurrentViews { get; }
 
-		public CollectionView(Binding<IReadOnlyList<T>> items) : base(items) { }
-
-		public CollectionView(Func<IReadOnlyList<T>> items) : base(items) { }
-
-		public ItemsLayout ItemsLayout { get; set; } = ItemsLayout.Vertical();
-
-		public View EmptyView { get; set; }
-
-		public SelectionMode SelectionMode { get; set; } = SelectionMode.Single;
-
-		Binding<T> _selectedItem;
-		public Binding<T> SelectedItem
+		PropertySubscription<IReadOnlyList<T>> _items;
+		PropertySubscription<IReadOnlyList<T>> Items
 		{
-			get => _selectedItem;
-			set => this.SetBindingValue(ref _selectedItem, value);
+			get => _items;
+			set => this.SetPropertySubscription(ref _items, value);
 		}
 
-		Binding<IReadOnlyList<T>> _selectedItems;
-		public Binding<IReadOnlyList<T>> SelectedItems
+		IReadOnlyList<T> currentItems;
+
+		public CollectionView(Func<IReadOnlyList<T>> items) : this()
+		{
+			Items = PropertySubscription<IReadOnlyList<T>>.FromFunc(items);
+			this.currentItems = Items?.CurrentValue;
+			SetupObservable();
+		}
+
+		public CollectionView(PropertySubscription<IReadOnlyList<T>> items) : this()
+		{
+			Items = items;
+			this.currentItems = Items?.CurrentValue;
+			SetupObservable();
+		}
+
+		public CollectionView()
+		{
+			if (ListView.HandlerSupportsVirtualization)
+			{
+				CurrentViews = new FixedSizeDictionary<(int section, int row, object item), View>(150)
+				{
+					OnDequeue = (pair) =>
+					{
+						var view = pair.Value;
+						if (view?.ViewHandler?.PlatformView == null)
+							view.Dispose();
+						else
+							CurrentViews[pair.Key] = view;
+					}
+				};
+			}
+			else
+				CurrentViews = new Dictionary<(int section, int row, object item), View>();
+
+			ShouldDisposeViews = true;
+		}
+
+		public override void ViewPropertyChanged(string property, object value)
+		{
+			if (property == nameof(Items))
+			{
+				DisposeObservable();
+				currentItems = Items?.CurrentValue;
+				SetupObservable();
+				ReloadData();
+			}
+			base.ViewPropertyChanged(property, value);
+		}
+
+		void SetupObservable()
+		{
+			if (!(currentItems is ObservableCollection<T> observable))
+				return;
+			observable.CollectionChanged += Observable_CollectionChanged;
+		}
+
+		protected virtual void Observable_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+		{
+			ReloadData();
+		}
+
+		void DisposeObservable()
+		{
+			if (!(currentItems is ObservableCollection<T> observable))
+				return;
+			observable.CollectionChanged -= Observable_CollectionChanged;
+		}
+
+		public Func<T, View> ViewFor { get; set; }
+
+		public Func<int, T> ItemFor { get; set; }
+
+		public Func<int> Count { get; set; }
+
+		protected override int GetCount(int section) => currentItems?.Count ?? Count?.Invoke() ?? 0;
+
+		protected override object GetItemAt(int section, int index) => currentItems.SafeGetAtIndex(index, ItemFor);
+
+		protected override View GetViewFor(int section, int index)
+		{
+			var item = (T)GetItemAt(section, index);
+			if (item == null)
+				return null;
+			var key = (section, index, item);
+			if (!CurrentViews.TryGetValue(key, out var view) || (view?.IsDisposed ?? true))
+			{
+				view = ViewFor?.Invoke(item);
+				if (view == null)
+					return null;
+				CurrentViews[key] = view;
+				view.Parent = this;
+			}
+			return view;
+		}
+
+		public override void Add(View view) => throw new NotSupportedException("You cannot add a View directly to a Typed CollectionView");
+
+		PropertySubscription<T> _selectedItem;
+		public PropertySubscription<T> SelectedItem
+		{
+			get => _selectedItem;
+			set => this.SetPropertySubscription(ref _selectedItem, value);
+		}
+
+		PropertySubscription<IReadOnlyList<T>> _selectedItems;
+		public PropertySubscription<IReadOnlyList<T>> SelectedItems
 		{
 			get => _selectedItems;
-			set => this.SetBindingValue(ref _selectedItems, value);
+			set => this.SetPropertySubscription(ref _selectedItems, value);
 		}
 
 		public View GroupHeaderTemplate { get; set; }
@@ -83,9 +180,6 @@ namespace Comet
 		public Func<T, View> GroupHeaderViewFor { get; set; }
 		public Func<T, View> GroupFooterViewFor { get; set; }
 
-		public ItemSizingStrategy ItemSizingStrategy { get; set; } = ItemSizingStrategy.MeasureAllItems;
-
-		// ScrollTo support
 		public Action<int, bool> ScrollToRequested { get; set; }
 
 		public void ScrollTo(int index, bool animate = true)
@@ -93,12 +187,18 @@ namespace Comet
 			ScrollToRequested?.Invoke(index, animate);
 		}
 
-		// Infinite scroll support
-		public int RemainingItemsThreshold { get; set; } = 0;
+		protected override void Dispose(bool disposing)
+		{
+			if (!disposing)
+				return;
 
-		public Action RemainingItemsThresholdReached { get; set; }
+			DisposeObservable();
 
-		public Action<int> RemainingItemsThresholdReachedCommand { get; set; }
+			var currentViews = CurrentViews?.ToList();
+			CurrentViews?.Clear();
+			currentViews?.ForEach(x => x.Value?.Dispose());
+			base.Dispose(disposing);
+		}
 	}
 
 	public enum SelectionMode

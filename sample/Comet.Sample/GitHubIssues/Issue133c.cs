@@ -1,9 +1,10 @@
 ﻿using System;
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class Issue133c : View
+	public class Issue133c : Component
 	{
 		[State]
 		readonly CreditCard _card;
@@ -14,16 +15,14 @@ namespace Comet.Samples
 		}
 
 
-		[Body]
-		View body() => new VStack(spacing: 20)
-		{
+				public override View Render() => VStack(20,
 
 			new BorderedEntry(_card.Number,"Enter CC Number", "\uf09d")
-				.Margin(left:20, right: 20),
+				.Margin(left:20, right: 20)
 
-		}.FillHorizontal().Alignment(Alignment.Top);
+		).FillHorizontal().Alignment(Alignment.Top);
 
-		private class BorderedEntry : View
+		private class BorderedEntry : Component
 		{
 			private Binding<String> _val;
 			private string _placeholder;
@@ -36,16 +35,14 @@ namespace Comet.Samples
 				_icon = icon;
 			}
 
-			[Body]
-			View body() => new HStack(spacing: 8)
-				{
-					new Text(_icon)
+						public override View Render() => HStack(8,
+					Text(_icon)
 						.Frame(width: 20)
 						.Margin(left: 8)
 						.FontFamily("Font Awesome 5 Free"),
 
-					new TextField(_val, _placeholder)
-				}
+					TextField(_val, new Binding<string>(() => _placeholder, null))
+				)
 				.Frame(height: 40)
 				.RoundedBorder(color: Colors.Grey);
 		}

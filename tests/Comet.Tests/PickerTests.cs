@@ -32,7 +32,7 @@ namespace Comet.Tests
 		[Fact]
 		public void PickerSelectedIndexBinding()
 		{
-			var state = new State<int>(0);
+			var state = new Reactive<int>(0);
 			var picker = new Picker(state, "Apple", "Banana", "Cherry");
 
 			Assert.Equal(0, picker.SelectedIndex.CurrentValue);

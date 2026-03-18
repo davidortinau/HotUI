@@ -51,10 +51,6 @@ namespace Comet
 
 				var values = change.Value;
 				//Handle the bingings!
-				if (values.newValue is Binding nb)
-					values.newValue = nb.Value;
-				if (values.oldValue is Binding ob)
-					values.oldValue = ob.Value;
 				if (values.newValue == values.oldValue)
 					continue;
 				Animation animation = new ContextualAnimation
@@ -190,8 +186,6 @@ namespace Comet
 				var prop = change.Key;
 				var values = change.Value;
 
-				if (values.newValue is Binding nb) values.newValue = nb.Value;
-				if (values.oldValue is Binding ob) values.oldValue = ob.Value;
 				if (Equals(values.newValue, values.oldValue))
 					continue;
 

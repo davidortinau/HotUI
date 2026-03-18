@@ -2,23 +2,23 @@
 
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class Question1b : View
+	public class Question1b : Component
 	{
-		[Body]
-		View body() =>
-			new VStack {
-				new Image("turtlerock.jpg")
+				public override View Render() =>
+			VStack(
+				Image("turtlerock.jpg")
 					.Frame(75, 75)
 					.Padding(4),
-				new Text("Title")
+				Text("Title")
 					.HorizontalTextAlignment(TextAlignment.Center),
-				new Text("Description")
+				Text("Description")
 					.HorizontalTextAlignment(TextAlignment.Center)
 					.FontSize(12)
-					.Color(Colors.Grey),
-			}.FillHorizontal();
+					.Color(Colors.Grey)
+			).FillHorizontal();
 	}
 }

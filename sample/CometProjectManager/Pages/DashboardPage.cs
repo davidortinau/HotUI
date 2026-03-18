@@ -13,7 +13,9 @@ using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
 
 namespace CometProjectManager.Pages;
 
-public class DashboardPage : View
+public class DashboardPageState { }
+
+public class DashboardPage : Component<DashboardPageState>
 {
 [State] readonly DataStore _store = DataStore.Instance;
 readonly Action? _onMenuTap;
@@ -30,10 +32,8 @@ static readonly Color LightBg = Color.FromArgb("#F2F2F2");
 MauiBorder BuildProjectCard(Project p)
 {
 var stack = new Microsoft.Maui.Controls.VerticalStackLayout { Spacing = 15,
-    // Match SfShimmer CustomView minimum height from MAUI reference (227pt card - 30pt padding)
     MinimumHeightRequest = 197 };
 
-// Icon (FontImageSource) — no HeightRequest, matching MAUI reference
 stack.Add(new MauiImage
 {
 Source = new FontImageSource
@@ -48,7 +48,6 @@ HorizontalOptions = Microsoft.Maui.Controls.LayoutOptions.Start,
 Aspect = Aspect.Center,
 });
 
-// Name (uppercase, gray, 14px)
 stack.Add(new MauiLabel
 {
 Text = p.Name.ToUpperInvariant(),
@@ -56,7 +55,6 @@ TextColor = Gray400,
 FontSize = 14,
 });
 
-// Description (WordWrap, default body size 17px)
 stack.Add(new MauiLabel
 {
 Text = p.Description,
@@ -64,7 +62,6 @@ TextColor = DarkOnLightBg,
 LineBreakMode = LineBreakMode.WordWrap,
 });
 
-// Tags (HorizontalStackLayout matching MAUI reference)
 var tagLayout = new Microsoft.Maui.Controls.HorizontalStackLayout { Spacing = 15 };
 foreach (var tag in p.Tags)
 {
@@ -74,7 +71,6 @@ StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius =
 HeightRequest = 32,
 StrokeThickness = 0,
 Background = new SolidColorBrush(tag.DisplayColor),
-// iOS: Padding="12,0,12,8" matching OnPlatform in TagView.xaml
 Padding = Microsoft.Maui.Devices.DeviceInfo.Platform == Microsoft.Maui.Devices.DevicePlatform.Android
     ? new Thickness(12, 0)
     : new Thickness(12, 0, 12, 8),
@@ -117,8 +113,7 @@ _ => _store.ToggleTaskComplete(task.ID),
 );
 }
 
-[Body]
-View body()
+public override View Render()
 {
 var tasks = _store.AllTasks.Value ?? new System.Collections.Generic.List<ProjectTask>();
 var projects = _store.Projects.Value ?? new System.Collections.Generic.List<Project>();
@@ -131,19 +126,18 @@ Count = d.Count,
 ChartColor = d.Color,
 }).ToList();
 
-// Match MAUI reference: LayoutSpacing=5 (phone), LayoutPadding=15 (phone)
 var contentStack = new Microsoft.Maui.Controls.VerticalStackLayout
 {
 Spacing = 5,
 Padding = new Thickness(15),
 };
 
-// 1. Category chart (extra bottom margin to match MAUI SfPullToRefresh/Shimmer rendering)
+// 1. Category chart
 var chart = new CategoryChartControl(chartItems);
 chart.Margin = new Thickness(0, 12, 0, 19);
 contentStack.Add(chart);
 
-// 2. Projects header — Title2 style: 22px, Bold
+// 2. Projects header
 contentStack.Add(new MauiLabel
 {
 Text = "Projects",
@@ -201,15 +195,15 @@ Aspect = Aspect.Center,
 };
 cleanButton.Clicked += (s, e) =>
 {
-	_store.CleanCompletedTasks();
-	_ = AppNavigation.ShowToastAsync("All cleaned up!");
+_store.CleanCompletedTasks();
+_ = AppNavigation.ShowToastAsync("All cleaned up!");
 };
 tasksHeaderGrid.Add(cleanButton);
 }
 
 contentStack.Add(tasksHeaderGrid);
 
-// 5. Task rows (spacing=15 matching XAML)
+// 5. Task rows
 var tasksStack = new Microsoft.Maui.Controls.VerticalStackLayout { Spacing = 15 };
 foreach (var task in tasks)
 tasksStack.Add(BuildTaskRow(task));
@@ -222,8 +216,8 @@ var pullToRefresh = new SfPullToRefresh();
 pullToRefresh.PullableContent = new MauiScrollView { Content = contentStack };
 pullToRefresh.Refreshing += (s, e) =>
 {
-	_store.RefreshProjects();
-	pullToRefresh.IsRefreshing = false;
+_store.RefreshProjects();
+pullToRefresh.IsRefreshing = false;
 };
 rootGrid.Add(pullToRefresh);
 
@@ -235,10 +229,9 @@ rootGrid.Add(fab);
 
 if (!_wrapInNav) return new MauiViewHost(rootGrid);
 
-var nav = new NavigationView
-{
-new MauiViewHost(rootGrid),
-};
+var nav = NavigationView(
+new MauiViewHost(rootGrid)
+);
 if (_onMenuTap != null) { nav.LeadingBarAction = _onMenuTap; }
 return nav.Title(_store.Today).Background(LightBg);
 }

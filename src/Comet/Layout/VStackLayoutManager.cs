@@ -7,7 +7,7 @@ public class VStackLayoutManager : Microsoft.Maui.Layouts.ILayoutManager
 	private readonly LayoutAlignment _defaultAlignment;
 	private readonly double _spacing;
 
-	public VStackLayoutManager(ContainerView layout, LayoutAlignment alignment = LayoutAlignment.Center,
+	public VStackLayoutManager(ContainerView layout, LayoutAlignment alignment = LayoutAlignment.Fill,
 		double? spacing = null)
 	{
 		_defaultAlignment = alignment;

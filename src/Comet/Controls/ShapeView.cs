@@ -1,5 +1,6 @@
 ﻿using System;
 using Comet.Graphics;
+using Comet.Reactive;
 using Microsoft.Maui.Graphics;
 
 namespace Comet
@@ -9,20 +10,20 @@ namespace Comet
 	/// </summary>
 	public class ShapeView : View, IDrawable
 	{
-		public ShapeView(Binding<Shape> value)
+		public ShapeView(Shape value)
 		{
-			Shape = value;
+			Shape = new PropertySubscription<Shape>(value);
 		}
 		public ShapeView(Func<Shape> value)
 		{
-			Shape = value;
+			Shape = PropertySubscription<Shape>.FromFunc(value);
 		}
 
-		Binding<Shape> _shape;
-		public Binding<Shape> Shape
+		PropertySubscription<Shape> _shape;
+		public PropertySubscription<Shape> Shape
 		{
 			get => _shape;
-			private set => this.SetBindingValue(ref _shape, value);
+			private set => this.SetPropertySubscription(ref _shape, value);
 		}
 
 		void IDrawable.Draw(ICanvas canvas, RectF dirtyRect) {
@@ -34,6 +35,12 @@ namespace Comet
 			var strokeColor = shape.GetStrokeColor(this, Colors.Black);
 			var strokeWidth = shape.GetLineWidth(this, 1);
 			var fill = shape.GetFill(this);
+
+			// Apply dash pattern if set on the shape
+			var dashPattern = shape.GetEnvironment<float[]>(this, "StrokeDashPattern");
+			if (dashPattern != null && dashPattern.Length > 0)
+				canvas.StrokeDashPattern = dashPattern;
+
 			canvas.DrawShape(shape, dirtyRect, drawingStyle, strokeWidth, strokeColor, fill);
 		}
 	}

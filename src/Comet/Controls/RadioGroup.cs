@@ -6,6 +6,8 @@ namespace Comet
 {
 	public class RadioGroup : AbstractLayout, IStackLayout
 	{
+		public string GroupName { get; set; }
+
 		public RadioGroup(Orientation orientation = Orientation.Vertical)
 			: base()
 		{
@@ -15,6 +17,8 @@ namespace Comet
 		public Orientation Orientation { get; }
 
 		double IStackLayout.Spacing => 6;
+
+		internal string ResolveGroupName() => string.IsNullOrWhiteSpace(GroupName) ? Id : GroupName;
 
 		protected override ILayoutManager CreateLayoutManager() => Orientation == Orientation.Vertical
 				? new VerticalStackLayoutManager(this) : new HorizontalStackLayoutManager(this);

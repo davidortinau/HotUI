@@ -1,24 +1,16 @@
-using Comet;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Graphics;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
 
-using MauiLabel = Microsoft.Maui.Controls.Label;
-using MauiBorder = Microsoft.Maui.Controls.Border;
-using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
-using MauiGrid = Microsoft.Maui.Controls.Grid;
-using MauiBoxView = Microsoft.Maui.Controls.BoxView;
-using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
-
 namespace CometBaristaNotes.Pages;
+
+public class ShotDetailPageState { }
 
 /// <summary>
 /// Displays the details of a previously logged shot.
 /// Navigated to from the Activity feed when tapping a shot card.
 /// </summary>
-public class ShotDetailPage : Comet.View
+public class ShotDetailPage : Component<ShotDetailPageState>
 {
 	readonly int _shotId;
 	ShotRecord? _shot;
@@ -29,76 +21,64 @@ public class ShotDetailPage : Comet.View
 		_shot = InMemoryDataStore.Instance?.GetShot(shotId);
 	}
 
-	[Body]
-	Comet.View body()
+	public override View Render()
 	{
 		if (_shot == null)
 		{
-			var emptyStack = new VerticalStackLayout
-			{
-				BackgroundColor = Theme.Background,
-				VerticalOptions = LayoutOptions.Fill,
-			};
-			emptyStack.Add(FormHelpers.MakeEmptyState(Icons.Coffee, "Shot Not Found", "This shot could not be loaded."));
-			return new MauiViewHost(emptyStack);
+			return VStack(
+				FormHelpers.MakeEmptyState(Icons.Coffee, "Shot Not Found", "This shot could not be loaded.")
+			)
+			.Background(Theme.Background)
+			.FillVertical();
 		}
 
-		var content = new VerticalStackLayout
+		var items = new List<View>
 		{
-			Spacing = Theme.SpacingS,
-			Padding = new Thickness(Theme.SpacingM),
+			// Header
+			Text(_shot.Timestamp.ToString("dddd, MMMM d 'at' h:mm tt"))
+				.FontFamily(Theme.FontRegular)
+				.FontSize(14)
+				.Color(Theme.TextSecondary),
+
+			Text(_shot.DrinkType)
+				.FontFamily(Theme.FontSemibold)
+				.FontSize(28)
+				.Color(Theme.TextPrimary),
+
+			Spacer().Frame(height: 8),
+
+			// Dose card
+			BuildCard("Dose",
+				BuildStatRow("In", $"{_shot.DoseIn:F1}g"),
+				BuildStatRow("Out", _shot.ActualOutput.HasValue ? $"{_shot.ActualOutput.Value:F1}g" : "—"),
+				BuildStatRow("Ratio", _shot.DoseIn > 0 && _shot.ActualOutput.HasValue
+					? $"1:{(_shot.ActualOutput.Value / _shot.DoseIn):F1}"
+					: "—")
+			),
+
+			// Time card
+			BuildCard("Extraction",
+				BuildStatRow("Expected", $"{_shot.ExpectedTime:F0}s"),
+				BuildStatRow("Actual", _shot.ActualTime.HasValue ? $"{_shot.ActualTime.Value:F1}s" : "—"),
+				BuildStatRow("Grind", string.IsNullOrEmpty(_shot.GrindSetting) ? "—" : _shot.GrindSetting)
+			),
 		};
-
-		// Header with date and drink type
-		content.Add(new MauiLabel
-		{
-			Text = _shot.Timestamp.ToString("dddd, MMMM d 'at' h:mm tt"),
-			FontFamily = Theme.FontRegular,
-			FontSize = 14,
-			TextColor = Theme.TextSecondary,
-		});
-
-		content.Add(new MauiLabel
-		{
-			Text = _shot.DrinkType,
-			FontFamily = Theme.FontSemibold,
-			FontSize = 28,
-			TextColor = Theme.TextPrimary,
-		});
-
-		content.Add(new MauiBoxView { HeightRequest = 8, BackgroundColor = Colors.Transparent });
-
-		// Dose card
-		content.Add(BuildCard("Dose",
-			BuildStatRow("In", $"{_shot.DoseIn:F1}g"),
-			BuildStatRow("Out", _shot.ActualOutput.HasValue ? $"{_shot.ActualOutput.Value:F1}g" : "—"),
-			BuildStatRow("Ratio", _shot.DoseIn > 0 && _shot.ActualOutput.HasValue
-				? $"1:{(_shot.ActualOutput.Value / _shot.DoseIn):F1}"
-				: "—")
-		));
-
-		// Time card
-		content.Add(BuildCard("Extraction",
-			BuildStatRow("Expected", $"{_shot.ExpectedTime:F0}s"),
-			BuildStatRow("Actual", _shot.ActualTime.HasValue ? $"{_shot.ActualTime.Value:F1}s" : "—"),
-			BuildStatRow("Grind", string.IsNullOrEmpty(_shot.GrindSetting) ? "—" : _shot.GrindSetting)
-		));
 
 		// Equipment card
 		if (!string.IsNullOrEmpty(_shot.MachineName) || !string.IsNullOrEmpty(_shot.GrinderName))
 		{
-			var equipmentRows = new List<Microsoft.Maui.Controls.View>();
+			var equipmentRows = new List<View>();
 			if (!string.IsNullOrEmpty(_shot.MachineName))
 				equipmentRows.Add(BuildStatRow("Machine", _shot.MachineName));
 			if (!string.IsNullOrEmpty(_shot.GrinderName))
 				equipmentRows.Add(BuildStatRow("Grinder", _shot.GrinderName));
-			content.Add(BuildCard("Equipment", equipmentRows.ToArray()));
+			items.Add(BuildCard("Equipment", equipmentRows.ToArray()));
 		}
 
 		// Bean card
 		if (!string.IsNullOrEmpty(_shot.BeanName))
 		{
-			content.Add(BuildCard("Coffee",
+			items.Add(BuildCard("Coffee",
 				BuildStatRow("Bean", _shot.BeanName),
 				BuildStatRow("Bag", _shot.BagDisplayName ?? "—")
 			));
@@ -115,98 +95,71 @@ public class ShotDetailPage : Comet.View
 				Icons.SentimentSatisfied,
 				Icons.SentimentVerySatisfied,
 			};
-			var ratingRow = new HorizontalStackLayout { Spacing = Theme.SpacingS };
+			var ratingRow = HStack(Theme.SpacingS);
 			for (int i = 0; i < sentiments.Length; i++)
 			{
-				ratingRow.Add(new MauiLabel
-				{
-					Text = sentiments[i],
-					FontFamily = Icons.FontFamily,
-					FontSize = 28,
-					TextColor = i == _shot.Rating.Value ? Theme.Primary : Theme.StarEmpty,
-				});
+				var color = i == _shot.Rating.Value ? Theme.Primary : Theme.StarEmpty;
+				ratingRow.Add(Text(sentiments[i])
+					.FontFamily(Icons.FontFamily)
+					.FontSize(28)
+					.Color(color));
 			}
-			content.Add(BuildCard("Rating", ratingRow));
+			items.Add(BuildCard("Rating", ratingRow));
 		}
 
 		// Tasting notes
 		if (!string.IsNullOrEmpty(_shot.TastingNotes))
 		{
-			content.Add(BuildCard("Tasting Notes",
-				new MauiLabel
-				{
-					Text = _shot.TastingNotes,
-					FontFamily = Theme.FontRegular,
-					FontSize = 16,
-					TextColor = Theme.TextPrimary,
-					LineBreakMode = LineBreakMode.WordWrap,
-				}
+			items.Add(BuildCard("Tasting Notes",
+				Text(_shot.TastingNotes)
+					.FontFamily(Theme.FontRegular)
+					.FontSize(16)
+					.Color(Theme.TextPrimary)
 			));
 		}
 
 		// Bottom padding
-		content.Add(new MauiBoxView { HeightRequest = 40, BackgroundColor = Colors.Transparent });
+		items.Add(Spacer().Frame(height: 40));
 
-		var scrollView = new MauiScrollView
-		{
-			Content = content,
-			BackgroundColor = Theme.Background,
-		};
+		var stack = VStack(Theme.SpacingS);
+		foreach (var item in items)
+			stack.Add(item);
+		stack.Padding(new Thickness(Theme.SpacingM));
 
-		return new MauiViewHost(scrollView);
+		return ScrollView(stack).Background(Theme.Background);
 	}
 
-	static MauiBorder BuildCard(string title, params Microsoft.Maui.Controls.View[] children)
+	static View BuildCard(string title, params View[] children)
 	{
-		var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, Padding = new Thickness(Theme.SpacingM) };
-		stack.Add(new MauiLabel
-		{
-			Text = title.ToUpperInvariant(),
-			FontFamily = Theme.FontSemibold,
-			FontSize = 11,
-			TextColor = Theme.TextSecondary,
-			CharacterSpacing = 1.2,
-		});
+		var stack = VStack(Theme.SpacingS);
+		stack.Add(Text(title.ToUpperInvariant())
+			.FontFamily(Theme.FontSemibold)
+			.FontSize(11)
+			.Color(Theme.TextSecondary));
 		foreach (var child in children)
 			stack.Add(child);
 
-		return new MauiBorder
-		{
-			Content = stack,
-			BackgroundColor = Theme.Surface,
-			StrokeThickness = 0,
-			StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(16) },
-			Margin = new Thickness(0, 4),
-		};
+		return Border(stack)
+			.CornerRadius(16)
+			.Background(Theme.Surface)
+			.StrokeThickness(0)
+			.Padding(new Thickness(Theme.SpacingM))
+			.Margin(new Thickness(0, 4));
 	}
 
-	static MauiGrid BuildStatRow(string label, string value)
-	{
-		var grid = new MauiGrid();
-		grid.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(100)));
-		grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-
-		var labelView = new MauiLabel
-		{
-			Text = label,
-			FontFamily = Theme.FontRegular,
-			FontSize = 15,
-			TextColor = Theme.TextSecondary,
-			VerticalOptions = LayoutOptions.Center,
-		};
-
-		var valueView = new MauiLabel
-		{
-			Text = value,
-			FontFamily = Theme.FontSemibold,
-			FontSize = 15,
-			TextColor = Theme.TextPrimary,
-			VerticalOptions = LayoutOptions.Center,
-		};
-		MauiGrid.SetColumn(valueView, 1);
-
-		grid.Add(labelView);
-		grid.Add(valueView);
-		return grid;
-	}
+	static View BuildStatRow(string label, string value) =>
+		Grid(columns: new object[] { 100, "*" }, rows: new object[] { "Auto" },
+			Text(label)
+				.FontFamily(Theme.FontRegular)
+				.FontSize(15)
+				.Color(Theme.TextSecondary)
+				.VerticalTextAlignment(TextAlignment.Center)
+				.Cell(row: 0, column: 0),
+			Text(value)
+				.FontFamily(Theme.FontSemibold)
+				.FontSize(15)
+				.Color(Theme.TextPrimary)
+				.VerticalTextAlignment(TextAlignment.Center)
+				.Cell(row: 0, column: 1)
+		);
 }

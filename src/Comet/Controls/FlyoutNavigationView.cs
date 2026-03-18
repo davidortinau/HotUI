@@ -3,36 +3,39 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Comet.Reactive;
 
 namespace Comet
 {
 	public class FlyoutNavigationView<T> : FlyoutView, IFlyoutView
 	{
 		ListView<T> listView;
-		Binding<IReadOnlyList<T>> _items;
+		PropertySubscription<IReadOnlyList<T>> _items;
 		View detailView;
-		Binding<IReadOnlyList<T>> Items
+		PropertySubscription<IReadOnlyList<T>> Items
 		{
 			get => _items;
-			set => this.SetBindingValue(ref _items, value);
+			set => this.SetPropertySubscription(ref _items, value);
 		}
 
-		Binding<int> _currentIndex;
-		public Binding<int> CurrentIndex
+		PropertySubscription<int> _currentIndex;
+		public PropertySubscription<int> CurrentIndex
 		{
 			get => _currentIndex;
-			private set => this.SetBindingValue(ref _currentIndex, value);
+			private set => this.SetPropertySubscription(ref _currentIndex, value);
 		}
-		public FlyoutNavigationView(Binding<IReadOnlyList<T>> items, Binding<int> currentIndex = null)
+		public FlyoutNavigationView(IReadOnlyList<T> items, int currentIndex = 0)
 		{
 			CurrentIndex = currentIndex;
-			Items = items;
+			Items = new PropertySubscription<IReadOnlyList<T>>(items);
 			Setup();
 		}
 
-		public FlyoutNavigationView(Func<IReadOnlyList<T>> items, Func<int> currentIndex = null, Func<double> flyoutWidth = null) : this((Binding<IReadOnlyList<T>>)items, (Binding<int>)currentIndex)
+		public FlyoutNavigationView(Func<IReadOnlyList<T>> items, Func<int> currentIndex = null, Func<double> flyoutWidth = null)
 		{
-
+			CurrentIndex = currentIndex != null ? PropertySubscription<int>.FromFunc(currentIndex) : null;
+			Items = PropertySubscription<IReadOnlyList<T>>.FromFunc(items);
+			Setup();
 		}
 
 		void Setup()
@@ -43,7 +46,7 @@ namespace Comet
 				ItemSelected = (t) => {
 					var v = DetailViewFor?.Invoke((T)t.item);
 					SetDetail(v);
-					CurrentIndex.Set?.Invoke(t.row);
+					CurrentIndex?.Set(t.row);
 				}
 			};
 

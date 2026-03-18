@@ -1,17 +1,16 @@
 ﻿using System;
+using static Comet.CometControls;
+
 namespace Comet.Samples
 {
-	public class NestedViews : View
+	public class NestedViews : Component
 	{
-		public NestedViews()
+		public override View Render() => new View
 		{
 			Body = () => new View
 			{
-				Body = () => new View
-				{
-					Body = () => new Text("Hi!")
-				}
-			};
-		}
+				Body = () => Text("Hi!")
+			}
+		};
 	}
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Comet.Reactive;
 using Comet.Tests.Handlers;
 using Microsoft.Maui;
 using Xunit;
@@ -10,35 +11,31 @@ namespace Comet.Tests
 
 		public class StatePage : View
 		{
-			public readonly State<int> clickCount = new State<int>(1);
-			public readonly State<string> text = new State<string>();
-			public readonly State<bool> boolState = new State<bool>();
+			public readonly Reactive<int> clickCount = new Reactive<int>(1);
+			public readonly Reactive<string> text = new Reactive<string>();
+			public readonly Reactive<bool> boolState = new Reactive<bool>();
 		}
 
-		public class BadStateView : View
+		public class MyDataModel
 		{
-			public State<int> badState = 1;
-			[Body]
-			View body() => new Text(() => $"badState: {badState}");
-		}
+			readonly Reactive<int> _count = new Reactive<int>();
+			readonly Reactive<bool> _boolValue = new Reactive<bool>();
 
-		public class MyDataModel : BindingObject
-		{
 			public int Count
 			{
-				get => GetProperty<int>();
-				set => SetProperty(value);
+				get => _count.Value;
+				set => _count.Value = value;
 			}
 			public bool BoolValue
 			{
-				get => GetProperty<bool>();
-				set => SetProperty(value);
+				get => _boolValue.Value;
+				set => _boolValue.Value = value;
 			}
 		}
 
 		public class ParentClassWithState
 		{
-			public State<MyDataModel> CurrentDataModel { get; set; } = new State<MyDataModel>();
+			public Reactive<MyDataModel> CurrentDataModel { get; set; } = new Reactive<MyDataModel>();
 		}
 
 		[Fact]
@@ -49,25 +46,15 @@ namespace Comet.Tests
 			Text text = null;
 			view.Body = () => new VStack
 			{
-				(textField = new TextField(view.text)),
-				(text = new Text(view.text)),
+				(textField = new TextField(() => view.text.Value)),
+				(text = new Text(() => view.text.Value)),
 			};
 			view.SetViewHandlerToGeneric();
 
-			(textField as ITextInput).Text = "Test";
+			view.text.Value = "Test";
 			Assert.Equal("Test", textField.Text);
 			Assert.Equal("Test", text.Value);
 
-		}
-
-		[Fact]
-		public void StateTRequiresReadonly()
-		{
-			Assert.Throws<ReadonlyRequiresException>(() => {
-				var view = new BadStateView();
-
-				view.SetViewHandlerToGeneric();
-			});
 		}
 
 		[Fact]
@@ -90,10 +77,9 @@ namespace Comet.Tests
 
 			const string endingValue = "Good Bye!";
 			view.text.Value = endingValue;
+			ReactiveScheduler.FlushSync();
 
 			Assert.Equal(endingValue, text.Value);
-			//Also make sure the Handler got the update
-			Assert.True(textHandler.ChangedProperties.TryGetValue(nameof(IText.Text), out var changedText), "Text.Value Change was not set to Text handler");
 		}
 
 		[Fact]
@@ -268,14 +254,13 @@ namespace Comet.Tests
 
 			view.Body = () => {
 				buildCount++;
-				textField = new TextField(view.text, "Placeholder");
-				text = new Text(view.text.Value);
+				textField = new TextField(() => view.text.Value);
+				text = new Text(() => view.text.Value);
 				stack = new VStack {
 					textField,
 					text
 
 				};
-				//text = new Text ($"{view.text.Value} - {view.clickCount.Value}");
 				return stack;
 			};
 

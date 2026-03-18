@@ -1,0 +1,158 @@
+using System;
+using Microsoft.Maui.Graphics;
+
+namespace Comet.Styles
+{
+	/// <summary>
+	/// Manages the active theme reference via the environment system.
+	/// Supports both global and scoped (per-subtree) theme overrides.
+	/// </summary>
+	public static class ThemeManager
+	{
+		/// <summary>
+		/// Environment key for the active theme reference.
+		/// </summary>
+		internal static readonly string ActiveThemeKey = "Comet.Theme.Active";
+
+		/// <summary>
+		/// Gets the current theme from the nearest environment scope for a view.
+		/// Walks the parent chain to find scoped .Theme() overrides.
+		/// </summary>
+		public static Theme Current(View view)
+		{
+			if (view == null)
+				return Current();
+
+			var theme = view.GetEnvironment<Theme>(ActiveThemeKey);
+			return theme ?? Current();
+		}
+
+		/// <summary>
+		/// Gets the current theme from the global environment.
+		/// </summary>
+		public static Theme Current()
+		{
+			var theme = View.GetGlobalEnvironment<Theme>(ActiveThemeKey);
+			if (theme != null)
+				return theme;
+
+			// Fall back to the legacy Theme.Current if no new-style theme is set
+			return Theme.Current ?? Defaults.Light;
+		}
+
+		/// <summary>
+		/// Sets the active theme globally. Reactive — views that read tokens update.
+		/// </summary>
+		public static void SetTheme(Theme theme)
+		{
+			View.SetGlobalEnvironment(ActiveThemeKey, theme);
+		}
+
+		/// <summary>
+		/// Sets a scoped theme override on a subtree.
+		/// Children resolve tokens from this theme instead of the global one.
+		/// </summary>
+		public static T UseTheme<T>(this T view, Theme theme) where T : View
+		{
+			view.SetEnvironment(ActiveThemeKey, theme, cascades: true);
+			return view;
+		}
+
+		/// <summary>
+		/// Returns a func that lazily resolves a color token from the global theme.
+		/// When the theme changes, the func re-evaluates.
+		/// </summary>
+		public static Func<Color> TokenBinding(Token<Color> token)
+			=> () =>
+			{
+				var theme = Current();
+				return token.Resolve(theme);
+			};
+
+		/// <summary>
+		/// Returns a func that lazily resolves a color token from the nearest
+		/// scoped theme for a specific view.
+		/// </summary>
+		public static Func<Color> TokenBinding(View view, Token<Color> token)
+			=> () =>
+			{
+				var theme = Current(view);
+				return token.Resolve(theme);
+			};
+
+		/// <summary>
+		/// Returns a func that lazily resolves a double token from the global theme.
+		/// </summary>
+		public static Func<double> TokenBinding(Token<double> token)
+			=> () =>
+			{
+				var theme = Current();
+				return token.Resolve(theme);
+			};
+
+		/// <summary>
+		/// Returns a func that lazily resolves a FontSpec token from the global theme.
+		/// </summary>
+		public static Func<FontSpec> TokenBinding(Token<FontSpec> token)
+			=> () =>
+			{
+				var theme = Current();
+				return token.Resolve(theme);
+			};
+	}
+
+	/// <summary>
+	/// Extension methods for token overrides on views.
+	/// </summary>
+	public static class TokenOverrideExtensions
+	{
+		/// <summary>
+		/// Overrides a single color token for this view's subtree.
+		/// </summary>
+		public static T OverrideToken<T>(this T view, Token<Color> token, Color value) where T : View
+		{
+			view.SetEnvironment(token.Key, value, cascades: true);
+			return view;
+		}
+
+		/// <summary>
+		/// Overrides a single double token for this view's subtree.
+		/// </summary>
+		public static T OverrideToken<T>(this T view, Token<double> token, double value) where T : View
+		{
+			view.SetEnvironment(token.Key, value, cascades: true);
+			return view;
+		}
+
+		/// <summary>
+		/// Overrides a single FontSpec token for this view's subtree.
+		/// </summary>
+		public static T OverrideToken<T>(this T view, Token<FontSpec> token, FontSpec value) where T : View
+		{
+			view.SetEnvironment(token.Key, value, cascades: true);
+			return view;
+		}
+	}
+
+	/// <summary>
+	/// Typography convenience extension (spec Decision D3).
+	/// Applies all font properties from a FontSpec token in a single call.
+	/// </summary>
+	public static class TypographyExtensions
+	{
+		/// <summary>
+		/// Applies size, weight, and family from a FontSpec token.
+		/// </summary>
+		public static T Typography<T>(this T view, Token<FontSpec> token) where T : View
+		{
+			view.FontSize((Func<double>)(() => view.GetToken(token).Size));
+			view.FontWeight((Func<Microsoft.Maui.FontWeight>)(() => view.GetToken(token).Weight));
+			view.FontFamily((Func<string>)(() =>
+			{
+				var spec = view.GetToken(token);
+				return spec.Family;
+			}));
+			return view;
+		}
+	}
+}

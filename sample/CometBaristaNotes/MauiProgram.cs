@@ -13,8 +13,12 @@ public static class MauiProgram
 	public static MauiApp CreateMauiApp()
 	{
 		var builder = MauiApp.CreateBuilder();
-		builder.UseMauiApp<BaristaNotesApp>();
-		builder.UseCometHandlers();
+
+#if DEBUG
+		builder.UseCometSampleDebugHost(BaristaApp.CreateRootView);
+#else
+		builder.UseCometApp<BaristaApp>();
+#endif
 		builder.ConfigureSyncfusionCore();
 		builder.UseUXDiversPopups();
 
@@ -22,52 +26,22 @@ public static class MauiProgram
 		builder.ConfigureLifecycleEvents(events => {
 #if IOS || MACCATALYST
 			events.AddiOS(ios => ios.FinishedLaunching((app, options) => {
-				var mauiApp = Microsoft.Maui.Controls.Application.Current;
-				if (mauiApp != null)
-				{
-					mauiApp.Resources.MergedDictionaries.Add(new UXDivers.Popups.Maui.Controls.DarkTheme());
-					mauiApp.Resources.MergedDictionaries.Add(new UXDivers.Popups.Maui.Controls.PopupStyles());
-					// Add custom resources
-					var customResources = new Microsoft.Maui.Controls.ResourceDictionary
-				{
-					// Font Families
-					{ "IconsFontFamily", MaterialSymbolsFont.FontFamily },
-					{ "AppFontFamily", "Manrope" },
-					{ "AppSemiBoldFamily", "ManropeSemibold" },
-					
-					// UXDivers Popups Icon Overrides
-					{ "UXDPopupsCloseIconButton", MaterialSymbolsFont.Close },
-					{ "UXDPopupsCheckCircleIconButton", MaterialSymbolsFont.Check_circle },
-
-					{ "BackgroundColor", AppColors.Dark.Surface },
-					{ "BackgroundSecondaryColor", AppColors.Dark.Surface },
-					{ "BackgroundTertiaryColor", Colors.Red },
-					{ "PrimaryColor", AppColors.Dark.Primary },
-					{ "PrimaryVariantColor", AppColors.Dark.SurfaceElevated },
-					{ "TextColor", AppColors.Dark.TextPrimary },
-					{ "TextTertiaryColor", AppColors.Dark.TextSecondary },
-					{ "PopupBackgroundColor", AppColors.Dark.SurfaceElevated },
-					{ "PopupBorderColor", AppColors.Dark.Outline }
-				};
-					mauiApp.Resources.MergedDictionaries.Add(customResources);
-				}
-
+				// CometApp does not set Application.Current, so we skip
+				// Application.Current.Resources merging. UXDivers popups
+				// will use their default dark theme styling.
 				return true;
 			}));
 #endif
 		});
 
-		// Configure iOS navigation bar: large titles + matching background color
+		// Configure platform-specific handler customizations
 		builder.ConfigureMauiHandlers(handlers => {
-
 			ModifyEntrys();
-
-			// #if IOS || MACCATALYST
-			// 			// Use compatibility renderer for Shell to enable PrefersLargeTitles
-			// 			handlers.AddHandler(typeof(Microsoft.Maui.Controls.Shell),
-			// 				typeof(CometBaristaNotes.Platforms.iOS.CustomShellRenderer));
-			// #endif
 		});
+
+#if DEBUG
+		builder.EnableSampleRuntimeDebugging();
+#endif
 
 		builder.ConfigureFonts(fonts => {
 			fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -114,7 +88,7 @@ public static class MauiProgram
 	private static void ModifyEntrys()
 	{
 #if IOS || MACCATALYST
-		EntryHandler.Mapper.AppendToMapping("NoBorder", (handler, view) => {
+		Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("NoBorder", (handler, view) => {
 			// Remove border
 			handler.PlatformView.BorderStyle = UIKit.UITextBorderStyle.None;
 
@@ -126,7 +100,7 @@ public static class MauiProgram
 			handler.PlatformView.LeftViewMode = UIKit.UITextFieldViewMode.Always;
 		});
 
-		PickerHandler.Mapper.AppendToMapping("NoBorder", (handler, view) => {
+		Microsoft.Maui.Handlers.PickerHandler.Mapper.AppendToMapping("NoBorder", (handler, view) => {
 			// Remove border + make background transparent
 			handler.PlatformView.BorderStyle = UIKit.UITextBorderStyle.None;
 			handler.PlatformView.BackgroundColor = UIKit.UIColor.Clear;
@@ -138,7 +112,7 @@ public static class MauiProgram
 #endif
 
 #if ANDROID
-		EntryHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+		Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
 		{
 			// Remove background/underline + any focus tint
 			handler.PlatformView.Background = null;
@@ -150,7 +124,7 @@ public static class MauiProgram
 			handler.PlatformView.SetPadding(0, handler.PlatformView.PaddingTop, 0, handler.PlatformView.PaddingBottom);
 		});
 
-		PickerHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+		Microsoft.Maui.Handlers.PickerHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
 		{
 			var pv = handler.PlatformView;
 

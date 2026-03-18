@@ -10,7 +10,7 @@ namespace Comet
 		private readonly float? spacing;
 
 		public HStack(
-			LayoutAlignment alignment = LayoutAlignment.Center,
+			LayoutAlignment alignment = LayoutAlignment.Fill,
 			float? spacing = null) : base()
 		{
 			this.alignment = alignment;

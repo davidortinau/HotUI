@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 using System.Text;
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 
 /*
@@ -23,15 +24,14 @@ struct CircleImage: View {
 
 namespace Comet.Samples.Comparisons
 {
-	public class Section4b : View
+	public class Section4b : Component
 	{
-		[Body]
-		View body() => new VStack {
-				new Image("turtlerock.jpg")
+				public override View Render() => VStack(
+				Image("turtlerock.jpg")
 					.ClipShape(new Circle())
 					.Border(new Circle().Stroke(Colors.White, lineWidth: 4))
 					.Shadow(radius: 10)
-			};
+			);
 
 	}
 }

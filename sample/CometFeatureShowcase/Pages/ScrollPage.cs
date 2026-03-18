@@ -9,11 +9,12 @@ using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
 using MauiVerticalStackLayout = Microsoft.Maui.Controls.VerticalStackLayout;
 using MauiSelectionMode = Microsoft.Maui.Controls.SelectionMode;
 using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
-using CometView = Comet.View;
 
 namespace CometFeatureShowcase.Pages;
 
-public class ScrollPage : CometView
+public class ScrollPageState { }
+
+public class ScrollPage : Component<ScrollPageState>
 {
     class ItemModel
     {
@@ -25,8 +26,7 @@ public class ScrollPage : CometView
     ObservableCollection<ItemModel> items = new();
     int totalLoaded = 20;
 
-    [Body]
-    CometView body()
+    public override Comet.View Render()
     {
         var root = new MauiGrid { BackgroundColor = Color.FromArgb("#F5F5F5") };
 

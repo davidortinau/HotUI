@@ -1,17 +1,17 @@
 using Microsoft.Maui.Controls;
 using MauiLabel = Microsoft.Maui.Controls.Label;
 using MauiBorder = Microsoft.Maui.Controls.Border;
-using CometView = Comet.View;
 
 namespace CometFeatureShowcase.Pages;
 
-public class TabDemoPage : CometView
+public class TabDemoPageState { }
+
+public class TabDemoPage : Component<TabDemoPageState>
 {
     int selectedTabIndex = 0;
     Microsoft.Maui.Controls.StackLayout? contentArea;
 
-    [Body]
-    CometView body()
+    public override Comet.View Render()
     {
         var root = new Microsoft.Maui.Controls.Grid { BackgroundColor = Color.FromArgb("#F5F5F5") };
 

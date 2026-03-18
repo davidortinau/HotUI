@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 /*
  // Flutter only support if render
@@ -37,22 +38,21 @@ class MyWidget extends StatelessWidget {
 
 namespace Comet.Samples.Comparisons
 {
-	public class Section5 : View
+	public class Section5 : Component
 	{
 		bool showMore = true;
 		int[] nums = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 		string fillColor = "Red";
-		[Body]
-		View body() => new VStack {
-				new Text("Hello Comet!"),
+				public override View Render() => new VStack {
+				Text("Hello Comet!"),
 				() => {
 					if(showMore)
-						return new Text("If condition is working");
+						return Text("If condition is working");
 					else
-						return new Text("Else condition is working");
+						return Text("Else condition is working");
 				},
-				nums.Select(i => new Text($"Show rows {i}")),
-				showMore?new Text("Ternary is working"):null,
+				nums.Select(i => Text($"Show rows {i}")),
+				showMore?Text("Ternary is working"):null,
 				() => {
 					switch(fillColor)
 					{
@@ -66,3 +66,4 @@ namespace Comet.Samples.Comparisons
 
 	}
 }
+

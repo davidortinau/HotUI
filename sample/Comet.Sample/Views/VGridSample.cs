@@ -1,12 +1,13 @@
+using static Comet.CometControls;
+
 ﻿namespace Comet.Samples;
 
-public class VGridSample : View
+public class VGridSample : Component
 {
-	[Body]
-	View view() => new VGrid(4)
+		public override View Render() => new VGrid(4)
 	{
 		Enumerable.Range(0,20).Select(x=>
-			new Text($"{x}")
+			Text($"{x}")
 				.HorizontalTextAlignment(TextAlignment.Center)
 		),
 	};

@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 
 using Comet.Samples.Models;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class ListViewSample2 : View
+	public class ListViewSample2 : Component
 	{
 		//This should come from a database or something
 		List<Song> Songs = new List<Song>
@@ -26,29 +27,22 @@ namespace Comet.Samples
 			}
 		};
 
-		public ListViewSample2()
+		public override View Render() => new ListView<Song>(Songs)
 		{
-			Body = () => new ListView<Song>(Songs)
-			{
-				ViewFor = song => new HStack
-				{
-					new Image(song.ArtworkUrl)
-						.Frame(44,44).Alignment(Alignment.Center)
-						.Margin(left:10f)
-						.ClipShape(new Circle()),
-					new VStack(LayoutAlignment.Start)
-					{
-						new Text(song.Title),
-						new Text(song.Artist),
-						new Text(song.Album),
-					},
-				}.Alignment(Alignment.Leading),
-				Header = new VStack
-				{
-					new Text("Songs")
-				},
-			}.OnSelected((song) => { Console.WriteLine("Song Selected"); });
-		}
-
+			ViewFor = song => HStack(
+				Image(song.ArtworkUrl)
+					.Frame(44,44).Alignment(Alignment.Center)
+					.Margin(left:10f)
+					.ClipShape(new Circle()),
+				VStack(LayoutAlignment.Start,
+					Text(song.Title),
+					Text(song.Artist),
+					Text(song.Album)
+				)
+			).Alignment(Alignment.Leading),
+			Header = VStack(
+				Text("Songs")
+			),
+		}.OnSelected((song) => { Console.WriteLine("Song Selected"); });
 	}
 }

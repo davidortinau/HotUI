@@ -7,7 +7,9 @@ using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
 
 namespace CometWeather.Pages;
 
-public class FavoritesPage : View
+public class FavoritesPageState { }
+
+public class FavoritesPage : Component<FavoritesPageState>
 {
     static readonly Color DarkBg    = Color.FromArgb("#081B25");
     static readonly Color CardBg    = Color.FromArgb("#0D2B3E");
@@ -15,8 +17,7 @@ public class FavoritesPage : View
     static readonly Color TextGray  = Color.FromArgb("#8BA3B4");
     static readonly Color AccentBlue = Color.FromArgb("#1A6EBD");
 
-    [Body]
-    View body()
+    public override View Render()
     {
         var root = new MauiGrid { BackgroundColor = DarkBg };
         root.RowDefinitions.Add(new Microsoft.Maui.Controls.RowDefinition { Height = GridLength.Auto });

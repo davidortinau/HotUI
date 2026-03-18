@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Comet.Reactive;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 
@@ -116,25 +117,25 @@ namespace Comet
 		Size IContentView.CrossPlatformArrange(Rect bounds) => ((ICrossPlatformLayout)this).CrossPlatformArrange(bounds);
 
 		// Legacy Frame properties
-		private Binding<Color> _borderColor;
-		public Binding<Color> BorderColor
+		private PropertySubscription<Color> _borderColor;
+		public PropertySubscription<Color> BorderColor
 		{
 			get => _borderColor;
-			set => this.SetBindingValue(ref _borderColor, value);
+			set => this.SetPropertySubscription(ref _borderColor, value);
 		}
 
-		private Binding<float> _cornerRadius;
-		public Binding<float> CornerRadius
+		private PropertySubscription<float> _cornerRadius;
+		public PropertySubscription<float> CornerRadius
 		{
 			get => _cornerRadius;
-			set => this.SetBindingValue(ref _cornerRadius, value);
+			set => this.SetPropertySubscription(ref _cornerRadius, value);
 		}
 
-		private Binding<bool> _hasShadow;
-		public Binding<bool> HasShadow
+		private PropertySubscription<bool> _hasShadow;
+		public PropertySubscription<bool> HasShadow
 		{
 			get => _hasShadow;
-			set => this.SetBindingValue(ref _hasShadow, value);
+			set => this.SetPropertySubscription(ref _hasShadow, value);
 		}
 	}
 }

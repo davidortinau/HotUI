@@ -1,4 +1,5 @@
-﻿using Comet.Internal;
+using Comet.Internal;
+using Comet.HotReload;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
@@ -64,6 +65,7 @@ namespace Comet.Tests
 			v.ResetGlobalEnvironment();
 			UI.Init(true);
 			MauiHotReloadHelper.Reset();
+			CometHotReloadHelper.Reset();
 			v?.Dispose();
 		}
 	}

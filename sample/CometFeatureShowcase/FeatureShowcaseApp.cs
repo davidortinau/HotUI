@@ -127,6 +127,10 @@ public static class MauiProgram
             fonts.AddFont("OpenSans-SemiBold.ttf", "OpenSansSemibold");
         });
 
+#if DEBUG
+        builder.EnableSampleRuntimeDebugging();
+#endif
+
         return builder.Build();
     }
 }

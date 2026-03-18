@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Comet.Reactive;
 using Microsoft.Maui;
 
 namespace Comet
@@ -15,7 +16,7 @@ namespace Comet
 			ItemsLayout = ItemsLayout.Horizontal();
 		}
 
-		public CarouselView(Binding<IReadOnlyList<T>> items) : base(items)
+		public CarouselView(IReadOnlyList<T> items) : base(new PropertySubscription<IReadOnlyList<T>>(items))
 		{
 			ItemsLayout = ItemsLayout.Horizontal();
 		}
@@ -25,18 +26,18 @@ namespace Comet
 			ItemsLayout = ItemsLayout.Horizontal();
 		}
 
-		Binding<int> _position;
-		public Binding<int> Position
+		PropertySubscription<int> _position;
+		public PropertySubscription<int> Position
 		{
 			get => _position;
-			set => this.SetBindingValue(ref _position, value);
+			set => this.SetPropertySubscription(ref _position, value);
 		}
 
-		Binding<T> _currentItem;
-		public Binding<T> CurrentItem
+		PropertySubscription<T> _currentItem;
+		public PropertySubscription<T> CurrentItem
 		{
 			get => _currentItem;
-			set => this.SetBindingValue(ref _currentItem, value);
+			set => this.SetPropertySubscription(ref _currentItem, value);
 		}
 
 		public bool IsBounceEnabled { get; set; } = true;
@@ -59,11 +60,11 @@ namespace Comet
 	/// </summary>
 	public class CarouselView : CollectionView
 	{
-		Binding<int> _position;
-		public Binding<int> Position
+		PropertySubscription<int> _position;
+		public PropertySubscription<int> Position
 		{
 			get => _position;
-			set => this.SetBindingValue(ref _position, value);
+			set => this.SetPropertySubscription(ref _position, value);
 		}
 
 		public bool IsBounceEnabled { get; set; } = true;

@@ -1,19 +1,18 @@
 ﻿using System;
+using static Comet.CometControls;
+
 namespace Comet.Samples
 {
-	public class TabViewSample : View
+	public class TabViewSample : Component
 	{
 
-		[Body]
-		View body() => new TabView
-		{
-			new HStack{
-				new Text("Tab 1")
-			}.TabText("Tab 1"),
-			new HStack
-			{
-				new Text("Tab 2"),
-			}.TabText("Tab 2")
-		};
+				public override View Render() => TabView(
+			HStack(
+				Text("Tab 1")
+			).TabText("Tab 1"),
+			HStack(
+				Text("Tab 2")
+			).TabText("Tab 2")
+		);
 	}
 }

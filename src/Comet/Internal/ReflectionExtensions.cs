@@ -8,7 +8,7 @@ namespace Comet.Reflection
 {
 	public static class ReflectionExtensions
 	{
-		// Cached per (Type, propertyName): null = skip (no writable property/field, or Binding type),
+		// Cached per (Type, propertyName): null = skip (no writable property/field, or PropertySubscription type),
 		// PropertyInfo or FieldInfo = set via this member.
 		static readonly Dictionary<(Type, string), MemberInfo> _setMemberCache
 			= new Dictionary<(Type, string), MemberInfo>();
@@ -54,7 +54,7 @@ namespace Comet.Reflection
 			var property = type.GetProperty(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 			if (property != null && property.CanWrite)
 			{
-				if (property.PropertyType.IsDeepSubclass(typeof(Binding)))
+				if (property.PropertyType.IsDeepSubclass(typeof(Comet.Reactive.PropertySubscription<>)))
 					return null;
 
 				var target = Expression.Parameter(typeof(object), "target");
@@ -146,8 +146,8 @@ namespace Comet.Reflection
 				var info = type.GetProperty(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 				if (info != null && info.CanWrite)
 				{
-					if (info.PropertyType.IsDeepSubclass(typeof(Binding)))
-						member = null; // Binding-typed — always skip
+					if (info.PropertyType.IsDeepSubclass(typeof(Comet.Reactive.PropertySubscription<>)))
+						member = null; // PropertySubscription-typed — always skip
 					else
 						member = info;
 				}
@@ -182,7 +182,7 @@ namespace Comet.Reflection
 				var property = type.GetProperty(name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 				if (property != null && property.CanWrite)
 				{
-					if (property.PropertyType.IsDeepSubclass(typeof(Binding)))
+					if (property.PropertyType.IsDeepSubclass(typeof(Comet.Reactive.PropertySubscription<>)))
 						return null;
 
 					var target = Expression.Parameter(typeof(object), "target");
@@ -232,13 +232,14 @@ namespace Comet.Reflection
 			var newType = obj.GetType();
 			if (type.IsAssignableFrom(newType))
 				return obj;
-			if (obj?.GetType().Name == "State`1" && type.Name != "State`1")
+			var typeName = obj?.GetType().Name;
+			if ((typeName == "State`1" || typeName == "Reactive`1") && type.Name != "State`1" && type.Name != "Reactive`1")
 			{
 				return obj.GetPropValue<object>("Value");
 			}
-			else if(obj?.GetType().Name == "Binding`1" && type.Name != "Binding`1")
+			else if(obj?.GetType().Name == "PropertySubscription`1" && type.Name != "PropertySubscription`1")
 			{
-				return obj.GetPropValue<object>("Value");
+				return obj.GetPropValue<object>("CurrentValue");
 			}
 			//if (type == typeof(String))
 			//    return obj.ToString();
@@ -330,25 +331,18 @@ namespace Comet.Reflection
 			{
 				if (obj == null)
 					return null;
-				if (obj is BindingObject bo)
+				var type = obj.GetType();
+				var info = type.GetProperty(part, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+				if (info != null)
 				{
-					obj = bo.GetValueInternal(part).value;
+					obj = info.GetValue(obj, null);
 				}
 				else
 				{
-					var type = obj.GetType();
-					var info = type.GetProperty(part, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-					if (info != null)
-					{
-						obj = info.GetValue(obj, null);
-					}
-					else
-					{
-						var field = type.GetField(part, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-						if (field == null)
-							return null;
-						obj = field.GetValue(obj);
-					}
+					var field = type.GetField(part, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+					if (field == null)
+						return null;
+					obj = field.GetValue(obj);
 				}
 			}
 			return obj;
@@ -365,6 +359,9 @@ namespace Comet.Reflection
 		public static bool IsDeepSubclass(this Type type, Type subclass)
 		{
 			if (type.IsSubclassOf(subclass))
+				return true;
+			// Handle open generic type definitions (e.g. typeof(PropertySubscription<>))
+			if (subclass.IsGenericTypeDefinition && type.IsGenericType && type.GetGenericTypeDefinition() == subclass)
 				return true;
 			return type?.BaseType?.IsDeepSubclass(subclass) ?? false;
 		}

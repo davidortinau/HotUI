@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Comet.Reactive;
 using Microsoft.Maui;
 
 namespace Comet
@@ -8,32 +9,32 @@ namespace Comet
 	{
 		public Picker() { }
 
-		public Picker(Binding<int> selectedIndex, params string[] items)
+		public Picker(int selectedIndex, params string[] items)
 		{
 			SelectedIndex = selectedIndex;
 			if (items != null)
 				Items = new List<string>(items);
 		}
 
-		private Binding<IList<string>> _items;
-		public Binding<IList<string>> Items
+		private PropertySubscription<IList<string>> _items;
+		public PropertySubscription<IList<string>> Items
 		{
 			get => _items;
-			set => this.SetBindingValue(ref _items, value);
+			set => this.SetPropertySubscription(ref _items, value);
 		}
 
-		private Binding<int> _selectedIndex;
-		public Binding<int> SelectedIndex
+		private PropertySubscription<int> _selectedIndex;
+		public PropertySubscription<int> SelectedIndex
 		{
 			get => _selectedIndex;
-			set => this.SetBindingValue(ref _selectedIndex, value);
+			set => this.SetPropertySubscription(ref _selectedIndex, value);
 		}
 
-		private Binding<string> _title;
-		public new Binding<string> Title
+		private PropertySubscription<string> _title;
+		public new PropertySubscription<string> Title
 		{
 			get => _title;
-			set => this.SetBindingValue(ref _title, value);
+			set => this.SetPropertySubscription(ref _title, value);
 		}
 
 		// IPicker implementation

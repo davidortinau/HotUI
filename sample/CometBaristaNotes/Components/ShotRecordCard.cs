@@ -1,91 +1,108 @@
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Shapes;
-using Microsoft.Maui.Graphics;
+using Comet;
 using CometBaristaNotes.Models;
-
-using MauiLabel = Microsoft.Maui.Controls.Label;
-using MauiBorder = Microsoft.Maui.Controls.Border;
-using MauiGrid = Microsoft.Maui.Controls.Grid;
-using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
-using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
 
 namespace CometBaristaNotes.Components;
 
 /// <summary>
-/// Factory for creating shot record card using native MAUI controls.
+/// Factory for creating shot record card using Comet fluent UI.
 /// </summary>
 public static class ShotRecordCardFactory
 {
-	public static Microsoft.Maui.Controls.View Create(ShotRecord shot, Action? onTap = null)
+	public static View Create(ShotRecord shot, Action? onTap = null)
 	{
-		var contentStack = new VerticalStackLayout { Spacing = 6 };
-
-		// Header row: coffee icon + drink type + rating
-		var headerGrid = new MauiGrid
-		{
-			ColumnDefinitions =
-			{
-				new ColumnDefinition(GridLength.Star),
-				new ColumnDefinition(GridLength.Auto),
-			},
-		};
-
-		var headerLeft = new HorizontalStackLayout { Spacing = 6 };
-		headerLeft.Add(new MauiLabel { Text = Icons.Coffee, FontFamily = Icons.FontFamily, FontSize = 18, TextColor = Theme.TextPrimary });
-		headerLeft.Add(new MauiLabel { Text = shot.DrinkType, FontFamily = Theme.FontSemibold, FontSize = 16, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
-		headerGrid.Add(headerLeft, 0, 0);
-
-		// Rating stars
-		var ratingLabel = MakeRatingBadge(shot);
-		headerGrid.Add(ratingLabel, 1, 0);
-
-		contentStack.Add(headerGrid);
-
-		// Bean name
 		var beanName = shot.BeanName ?? shot.BagDisplayName ?? "Unknown Bean";
-		contentStack.Add(new MauiLabel { Text = beanName, FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
 
-		// Recipe line
-		contentStack.Add(new MauiLabel { Text = FormatRecipeLine(shot), FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+		var footer = BuildFooter(shot);
 
-		// Footer: timestamp + user
-		var footerStack = new HorizontalStackLayout { Spacing = 4 };
-		footerStack.Add(new MauiLabel { Text = FormatTimestamp(shot), FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
-		if (shot.MadeByName != null)
-			footerStack.Add(new MauiLabel { Text = $"• By: {shot.MadeByName}", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
-		if (shot.MadeForName != null)
-			footerStack.Add(new MauiLabel { Text = $"• For: {shot.MadeForName}", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
-		contentStack.Add(footerStack);
+		var card = Border(
+			VStack(6,
+				Grid(columns: new object[] { "*", "Auto" }, rows: new object[] { "Auto" },
+					HStack(6,
+						Text(Icons.Coffee)
+							.FontFamily(Icons.FontFamily)
+							.FontSize(18)
+							.Color(Theme.TextPrimary),
+						Text(shot.DrinkType)
+							.FontFamily(Theme.FontSemibold)
+							.FontWeight(FontWeight.Bold)
+							.FontSize(16)
+							.Color(Theme.TextPrimary)
+					)
+					.Cell(row: 0, column: 0),
 
-		var border = new MauiBorder
-		{
-			Content = contentStack,
-			BackgroundColor = Theme.CardBackground,
-			Stroke = new SolidColorBrush(Theme.CardStroke),
-			StrokeThickness = 1,
-			StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusCard },
-			Padding = new Thickness(Theme.SpacingM),
-			Margin = new Thickness(Theme.SpacingM, Theme.SpacingXS),
-		};
+					MakeRatingBadge(shot)
+						.Cell(row: 0, column: 1)
+				),
+
+				Text(beanName)
+					.FontFamily(Theme.FontRegular)
+					.FontSize(14)
+					.Color(Theme.TextSecondary),
+
+				Text(FormatRecipeLine(shot))
+					.FontFamily(Theme.FontRegular)
+					.FontSize(14)
+					.Color(Theme.TextSecondary),
+
+				footer
+			)
+		)
+		.CornerRadius(Theme.RadiusCard)
+		.Background(Theme.CardBackground)
+		.StrokeColor(Theme.CardStroke)
+		.StrokeThickness(1)
+		.Padding(new Thickness(Theme.SpacingM))
+		.Margin(new Thickness(Theme.SpacingM, Theme.SpacingXS));
 
 		if (onTap != null)
-		{
-			var tap = new TapGestureRecognizer();
-			tap.Tapped += (s, e) => onTap();
-			border.GestureRecognizers.Add(tap);
-		}
+			card.OnTap(_ => onTap());
 
-		return border;
+		return card;
 	}
 
-	static Microsoft.Maui.Controls.View MakeRatingBadge(ShotRecord shot)
+	static View BuildFooter(ShotRecord shot)
+	{
+		var items = new List<View>
+		{
+			Text(FormatTimestamp(shot))
+				.FontFamily(Theme.FontRegular)
+				.FontSize(12)
+				.Color(Theme.TextMuted),
+		};
+
+		if (shot.MadeByName != null)
+			items.Add(Text($"• By: {shot.MadeByName}")
+				.FontFamily(Theme.FontRegular)
+				.FontSize(12)
+				.Color(Theme.TextMuted));
+
+		if (shot.MadeForName != null)
+			items.Add(Text($"• For: {shot.MadeForName}")
+				.FontFamily(Theme.FontRegular)
+				.FontSize(12)
+				.Color(Theme.TextMuted));
+
+		var stack = HStack(4);
+		foreach (var item in items)
+			stack.Add(item);
+
+		return stack;
+	}
+
+	static View MakeRatingBadge(ShotRecord shot)
 	{
 		if (!shot.Rating.HasValue)
-			return new MauiLabel { Text = "—", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextMuted };
+			return Text("—")
+				.FontFamily(Theme.FontRegular)
+				.FontSize(14)
+				.Color(Theme.TextMuted);
 
 		var sentiments = new[] { Icons.SentimentVeryDissatisfied, Icons.SentimentDissatisfied, Icons.SentimentNeutral, Icons.SentimentSatisfied, Icons.SentimentVerySatisfied };
 		var idx = Math.Clamp(shot.Rating.Value - 1, 0, sentiments.Length - 1);
-		return new MauiLabel { Text = sentiments[idx], FontFamily = Icons.FontFamily, FontSize = 18, TextColor = Theme.StarFilled };
+		return Text(sentiments[idx])
+			.FontFamily(Icons.FontFamily)
+			.FontSize(18)
+			.Color(Theme.StarFilled);
 	}
 
 	static string FormatRecipeLine(ShotRecord shot)

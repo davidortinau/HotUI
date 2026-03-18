@@ -19,19 +19,19 @@ namespace Comet
 		/// <param name="color"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public static T Color<T>(this T view, Binding<Color> color) where T : View
+		public static T Color<T>(this T view, Color color) where T : View
 		{
-			view.SetEnvironment(EnvironmentKeys.Colors.Color, color, false);
+			view.SetEnvironment(EnvironmentKeys.Colors.Color, (object)color, false);
 			return view;
 		}
-		public static T Color<T>(this T view, Func<Color> color) where T : View => view.Color((Binding<Color>)color);
+		public static T Color<T>(this T view, Func<Color> color) where T : View => view.Color(color());
 
-		public static T Color<T>(this T view, Type type, Binding<Color> color) where T : View
+		public static T Color<T>(this T view, Type type, Color color) where T : View
 		{
-			view.SetEnvironment(type, EnvironmentKeys.Colors.Color, color, true);
+			view.SetEnvironment(type, EnvironmentKeys.Colors.Color, (object)color, true);
 			return view;
 		}
-		public static T Color<T>(this T view, Type type, Func<Color> color) where T : View => view.Color(type: type, (Binding<Color>)color);
+		public static T Color<T>(this T view, Type type, Func<Color> color) where T : View => view.Color(type: type, color());
 
 		public static Color GetColor<T>(this T view, Color defaultColor = null, ControlState state = ControlState.Default) where T : View
 		{
@@ -64,12 +64,12 @@ namespace Comet
 		/// <param name="color"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public static T Background<T>(this T view, Binding<Color> color, bool cascades = false) where T : View
+		public static T Background<T>(this T view, Color color, bool cascades = false) where T : View
 		{
-			view.SetEnvironment(EnvironmentKeys.Colors.Background, color, cascades);
+			view.SetEnvironment(EnvironmentKeys.Colors.Background, (object)color, cascades);
 			return view;
 		}
-		public static T Background<T>(this T view, Func<Color> color, bool cascades = false) where T : View => view.Background((Binding<Color>)color, cascades);
+		public static T Background<T>(this T view, Func<Color> color, bool cascades = false) where T : View => view.Background(color(), cascades);
 
 		/// <summary>
 		/// Set the background color by hex value
@@ -78,12 +78,12 @@ namespace Comet
 		/// <param name="colorHex"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public static T Background<T>(this T view, Binding<string> colorHex, bool cascades = false) where T : View
+		public static T Background<T>(this T view, string colorHex, bool cascades = false) where T : View
 		{
-			view.SetEnvironment(EnvironmentKeys.Colors.Background, colorHex, cascades);
+			view.SetEnvironment(EnvironmentKeys.Colors.Background, (object)colorHex, cascades);
 			return view;
 		}
-		public static T Background<T>(this T view, Func<string> colorHex, bool cascades = false) where T : View => view.Background((Binding<string>)colorHex, cascades);
+		public static T Background<T>(this T view, Func<string> colorHex, bool cascades = false) where T : View => view.Background(colorHex(), cascades);
 
 		/// <summary>
 		/// Set the background color
@@ -92,18 +92,18 @@ namespace Comet
 		/// <param name="color"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public static T Background<T>(this T view, Type type, Binding<Color> color) where T : View
+		public static T Background<T>(this T view, Type type, Color color) where T : View
 		{
-			view.SetEnvironment(type, EnvironmentKeys.Colors.Background, color, true);
+			view.SetEnvironment(type, EnvironmentKeys.Colors.Background, (object)color, true);
 			return view;
 		}
-		public static T Background<T>(this T view, Type type, Func<Color> color) where T : View => view.Background(type, (Binding<Color>)color);
-		public static T Background<T>(this T view, Type type, Binding<Paint> paint) where T : View
+		public static T Background<T>(this T view, Type type, Func<Color> color) where T : View => view.Background(type, color());
+		public static T Background<T>(this T view, Type type, Paint paint) where T : View
 		{
-			view.SetEnvironment(type, EnvironmentKeys.Colors.Background, paint, true);
+			view.SetEnvironment(type, EnvironmentKeys.Colors.Background, (object)paint, true);
 			return view;
 		}
-		public static T Background<T>(this T view, Type type, Func<Paint> paint) where T : View => view.Background(type, (Binding<Paint>)paint);
+		public static T Background<T>(this T view, Type type, Func<Paint> paint) where T : View => view.Background(type, paint());
 
 		public static Paint GetBackground(this View view, Type type, Paint defaultColor = null, ControlState state = ControlState.Default)
 		{
@@ -129,11 +129,23 @@ namespace Comet
 			return color ?? defaultColor;
 		}
 
+		public static T NavigationBackgroundColor<T>(this T view, Color color) where T : View
+		{
+			view.SetEnvironment(EnvironmentKeys.Navigation.BackgroundColor, (object)color);
+			return view;
+		}
 
-		public static T Opacity<T>(this T view, Binding<double> opacity, bool cascades = false) where T : View 
-			=> view.SetEnvironment(EnvironmentKeys.View.Opacity, opacity, cascades);
+		public static T NavigationTextColor<T>(this T view, Color color) where T : View
+		{
+			view.SetEnvironment(EnvironmentKeys.Navigation.TextColor, (object)color);
+			return view;
+		}
+
+
+		public static T Opacity<T>(this T view, double opacity, bool cascades = false) where T : View 
+			=> view.SetEnvironment(EnvironmentKeys.View.Opacity, (object)opacity, cascades);
 		public static T Opacity<T>(this T view, Func<double> opacity, bool cascades = false) where T : View 
-			=> view.Opacity((Binding<double>)opacity,cascades);
+			=> view.Opacity(opacity(), cascades);
 		
 		public static double GetOpacity(this View view, ControlState state = ControlState.Default)
 		{

@@ -1,37 +1,22 @@
+using static Comet.CometControls;
+
 ﻿namespace Comet.Samples
 {
-	public class RadioButtonSample : View
+	// Known issue: Comet's RadioButton does not implement IRadioButton, so MAUI's
+	// RadioButtonHandler throws InvalidCastException at runtime. Fixing this requires
+	// reconciling Comet's container-based grouping model (RadioGroup) with MAUI's
+	// property-based model (GroupName). See ControlsGenerator.cs line 20 where the
+	// CometGenerate attribute for IRadioButton is intentionally commented out.
+	public class RadioButtonSample : Component
 	{
-		[Body]
-		View body() => new VStack
-		{
-			new RadioGroup
-			{
-				new RadioButton(
-					label: "Group 1: Option A",
-					selected: true,
-					onClick: () => System.Diagnostics.Debug.WriteLine("Option A selected")),
-				new RadioButton(
-					label: "Group 1: Option B",
-					onClick: () => System.Diagnostics.Debug.WriteLine("Option B selected")),
-				new RadioButton(
-					label: "Group 1: Option C",
-					onClick: () => System.Diagnostics.Debug.WriteLine("Option C selected")),
-			},
-			new RadioGroup(
-				orientation: Orientation.Horizontal)
-			{
-				new RadioButton(
-					label: "Implicit Group: Option 1",
-					onClick: () => System.Diagnostics.Debug.WriteLine("Option 1 selected")),
-				new RadioButton(
-					label: "Implicit Group: Option 2",
-					selected: true,
-					onClick: () => System.Diagnostics.Debug.WriteLine("Option 2 selected")),
-				new RadioButton(
-					label: "Implicit Group: Option 3",
-					onClick: () => System.Diagnostics.Debug.WriteLine("Option 3 selected"))
-			}
-		};
+				public override View Render() => VStack(
+			Text("RadioButton Sample")
+				.FontSize(24),
+			Text("⚠️ Known Issue: RadioButton is not yet compatible with MAUI's RadioButtonHandler.")
+				.Color(Colors.Orange),
+			Text("Comet's RadioButton needs to implement IRadioButton to work with the native handler. "
+				+ "This requires reconciling Comet's RadioGroup container model with MAUI's GroupName-based approach.")
+				.FontSize(14)
+		);
 	}
 }

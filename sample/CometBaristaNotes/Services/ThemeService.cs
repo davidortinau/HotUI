@@ -30,14 +30,9 @@ public class ThemeService : IThemeService
 
 	private static void ApplyTheme(AppThemeMode mode)
 	{
-		if (Microsoft.Maui.Controls.Application.Current is not null)
-		{
-			Microsoft.Maui.Controls.Application.Current.UserAppTheme = mode switch
-			{
-				AppThemeMode.Light => Microsoft.Maui.ApplicationModel.AppTheme.Light,
-				AppThemeMode.Dark => Microsoft.Maui.ApplicationModel.AppTheme.Dark,
-				_ => Microsoft.Maui.ApplicationModel.AppTheme.Unspecified,
-			};
-		}
+		// In pure CometApp mode, Application.Current is null.
+		// Theme switching is handled by the Comet view layer
+		// through State<AppThemeMode> reactivity — views re-render
+		// when the theme mode changes via the ThemeChanged event.
 	}
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Comet.Graphics;
+using Comet.Reactive;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 
@@ -13,21 +14,25 @@ namespace Comet
 			[nameof(ImageSource)] = nameof(IImageSourcePart.Source),
 		};
 
-		public ImageButton(Binding<string> source, Action clicked = null)
+		public ImageButton(string source, Action clicked = null)
 		{
-			StringSource = source;
+			StringSource = new PropertySubscription<string>(source);
 			Clicked = clicked;
 		}
 
-		public ImageButton(Func<string> source, Action clicked = null) : this((Binding<string>)source, clicked) { }
+		public ImageButton(Func<string> source, Action clicked = null)
+		{
+			StringSource = PropertySubscription<string>.FromFunc(source);
+			Clicked = clicked;
+		}
 
-		private Binding<string> _source;
-		public Binding<string> StringSource
+		private PropertySubscription<string> _source;
+		public PropertySubscription<string> StringSource
 		{
 			get => _source;
 			protected set
 			{
-				this.SetBindingValue(ref _source, value);
+				this.SetPropertySubscription(ref _source, value);
 				CreateImageSource(_source.CurrentValue);
 			}
 		}
@@ -46,7 +51,7 @@ namespace Comet
 		{
 			try
 			{
-				this.source ??= new Binding<IImageSource>();
+				this.source ??= new PropertySubscription<IImageSource>(default(IImageSource));
 				this.source.Set((ImageSource)source);
 				ViewHandler?.UpdateValue(nameof(IImageSourcePart.Source));
 			}

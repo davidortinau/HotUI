@@ -1,67 +1,65 @@
-using Comet;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Shapes;
-using Microsoft.Maui.Graphics;
 using CometBaristaNotes.Models;
 using CometBaristaNotes.Services;
 using CometBaristaNotes.Components;
 
-using MauiLabel = Microsoft.Maui.Controls.Label;
-using MauiBorder = Microsoft.Maui.Controls.Border;
-using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
-using MauiGrid = Microsoft.Maui.Controls.Grid;
-using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
-using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
-
 namespace CometBaristaNotes.Pages;
 
-public class BeanDetailPage : Comet.View
+public class BeanDetailPageState
+{
+	public string Name { get; set; } = "";
+	public string Roaster { get; set; } = "";
+	public string Origin { get; set; } = "";
+	public string Notes { get; set; } = "";
+	public bool IsLoaded { get; set; }
+	public string Error { get; set; } = "";
+	public List<Bag> Bags { get; set; } = new();
+	public RatingAggregate Rating { get; set; } = new();
+	public List<ShotRecord> AllShots { get; set; } = new();
+	public int VisibleShotCount { get; set; } = 10;
+}
+
+public class BeanDetailPage : Component<BeanDetailPageState>
 {
 	readonly int _beanId;
 	const int ShotsPageSize = 10;
-
-	[State] readonly State<string> _name = new("");
-	[State] readonly State<string> _roaster = new("");
-	[State] readonly State<string> _origin = new("");
-	[State] readonly State<string> _notes = new("");
-	[State] readonly State<bool> _isLoaded = new(false);
-	[State] readonly State<string> _error = new("");
-	[State] readonly State<List<Bag>> _bags = new(new());
-	[State] readonly State<RatingAggregate> _rating = new(new());
-	[State] readonly State<List<ShotRecord>> _allShots = new(new());
-	[State] readonly State<int> _visibleShotCount = new(ShotsPageSize);
 
 	public BeanDetailPage(int beanId = 0) { _beanId = beanId; }
 
 	void LoadBean()
 	{
-		if (_beanId <= 0) { _isLoaded.Value = true; return; }
+		if (_beanId <= 0) { SetState(s => s.IsLoaded = true); return; }
 
 		var store = InMemoryDataStore.Instance;
 		if (store == null) return;
 
 		var bean = store.GetBean(_beanId);
-		if (bean == null) { _error.Value = "Bean not found"; _isLoaded.Value = true; return; }
+		if (bean == null)
+		{
+			SetState(s => { s.Error = "Bean not found"; s.IsLoaded = true; });
+			return;
+		}
 
-		_name.Value = bean.Name;
-		_roaster.Value = bean.Roaster ?? "";
-		_origin.Value = bean.Origin ?? "";
-		_notes.Value = bean.Notes ?? "";
-		_bags.Value = store.GetBagsForBean(_beanId);
-		_rating.Value = store.GetBeanRating(_beanId);
-		_allShots.Value = store.GetShotsByBean(_beanId);
-
-		_isLoaded.Value = true;
+		SetState(s =>
+		{
+			s.Name = bean.Name;
+			s.Roaster = bean.Roaster ?? "";
+			s.Origin = bean.Origin ?? "";
+			s.Notes = bean.Notes ?? "";
+			s.Bags = store.GetBagsForBean(_beanId);
+			s.Rating = store.GetBeanRating(_beanId);
+			s.AllShots = store.GetShotsByBean(_beanId);
+			s.IsLoaded = true;
+		});
 	}
 
 	void Save()
 	{
-		if (string.IsNullOrWhiteSpace(_name.Value))
+		if (string.IsNullOrWhiteSpace(State.Name))
 		{
-			_error.Value = "Bean name is required";
+			SetState(s => s.Error = "Bean name is required");
 			return;
 		}
-		_error.Value = "";
+		SetState(s => s.Error = "");
 
 		var store = InMemoryDataStore.Instance;
 		if (store == null) return;
@@ -71,10 +69,10 @@ public class BeanDetailPage : Comet.View
 			store.UpdateBean(new Bean
 			{
 				Id = _beanId,
-				Name = _name.Value,
-				Roaster = string.IsNullOrWhiteSpace(_roaster.Value) ? null : _roaster.Value,
-				Origin = string.IsNullOrWhiteSpace(_origin.Value) ? null : _origin.Value,
-				Notes = string.IsNullOrWhiteSpace(_notes.Value) ? null : _notes.Value,
+				Name = State.Name,
+				Roaster = string.IsNullOrWhiteSpace(State.Roaster) ? null : State.Roaster,
+				Origin = string.IsNullOrWhiteSpace(State.Origin) ? null : State.Origin,
+				Notes = string.IsNullOrWhiteSpace(State.Notes) ? null : State.Notes,
 				IsActive = true
 			});
 		}
@@ -82,24 +80,24 @@ public class BeanDetailPage : Comet.View
 		{
 			store.CreateBean(new Bean
 			{
-				Name = _name.Value,
-				Roaster = string.IsNullOrWhiteSpace(_roaster.Value) ? null : _roaster.Value,
-				Origin = string.IsNullOrWhiteSpace(_origin.Value) ? null : _origin.Value,
-				Notes = string.IsNullOrWhiteSpace(_notes.Value) ? null : _notes.Value,
+				Name = State.Name,
+				Roaster = string.IsNullOrWhiteSpace(State.Roaster) ? null : State.Roaster,
+				Origin = string.IsNullOrWhiteSpace(State.Origin) ? null : State.Origin,
+				Notes = string.IsNullOrWhiteSpace(State.Notes) ? null : State.Notes,
 			});
 		}
 
-		Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+		Navigation?.Pop();
 	}
 
 	async void DeleteBean()
 	{
-		var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+		var page = Services.PageHelper.GetCurrentPage();
 		if (page == null) return;
 
 		var confirmed = await page.DisplayAlertAsync(
 			"Delete Bean",
-			$"Are you sure you want to delete \"{_name.Value}\"? This will also archive all associated bags.",
+			$"Are you sure you want to delete \"{State.Name}\"? This will also archive all associated bags.",
 			"Delete", "Cancel");
 
 		if (!confirmed) return;
@@ -108,96 +106,93 @@ public class BeanDetailPage : Comet.View
 		if (store == null) return;
 
 		store.ArchiveBean(_beanId);
-		await Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+		Navigation?.Pop();
 	}
 
-	[Body]
-	Comet.View body()
+	public override View Render()
 	{
-		if (!_isLoaded.Value)
+		if (!State.IsLoaded)
 			LoadBean();
 
 		var isEdit = _beanId > 0;
 
-		var stack = new VerticalStackLayout { Spacing = Theme.SpacingS, Padding = new Thickness(Theme.SpacingM) };
+		var items = new List<View>();
 
-		stack.Add(FormHelpers.MakeSectionHeader(isEdit ? "EDIT BEAN" : "NEW BEAN"));
-		stack.Add(FormHelpers.MakeFormEntry("Name *", _name.Value, "Bean name", v => _name.Value = v));
-		stack.Add(FormHelpers.MakeFormEntry("Roaster", _roaster.Value, "Roaster name", v => _roaster.Value = v));
-		stack.Add(FormHelpers.MakeFormEntry("Origin", _origin.Value, "Country or region", v => _origin.Value = v));
-		stack.Add(FormHelpers.MakeFormEntry("Notes", _notes.Value, "Tasting notes, processing, etc.", v => _notes.Value = v));
+		items.Add(FormHelpers.MakeSectionHeader(isEdit ? "EDIT BEAN" : "NEW BEAN"));
+		items.Add(FormHelpers.MakeFormEntry("Name *", State.Name, "Bean name", v => SetState(s => s.Name = v)));
+		items.Add(FormHelpers.MakeFormEntry("Roaster", State.Roaster, "Roaster name", v => SetState(s => s.Roaster = v)));
+		items.Add(FormHelpers.MakeFormEntry("Origin", State.Origin, "Country or region", v => SetState(s => s.Origin = v)));
+		items.Add(FormHelpers.MakeFormEntry("Notes", State.Notes, "Tasting notes, processing, etc.", v => SetState(s => s.Notes = v)));
 
-		if (!string.IsNullOrEmpty(_error.Value))
-			stack.Add(new MauiLabel { Text = _error.Value, TextColor = Theme.Error, FontFamily = Theme.FontRegular, FontSize = 14 });
+		if (!string.IsNullOrEmpty(State.Error))
+			items.Add(Text(State.Error).Color(Theme.Error).FontFamily(Theme.FontRegular).FontSize(14));
 
-		stack.Add(FormHelpers.MakePrimaryButton(isEdit ? "Save Changes" : "Create Bean", Save));
+		items.Add(FormHelpers.MakePrimaryButton(isEdit ? "Save Changes" : "Create Bean", Save));
 
 		if (isEdit)
 		{
-			stack.Add(FormHelpers.MakeDangerButton("Delete Bean", DeleteBean));
-			stack.Add(FormHelpers.MakeSectionHeader("RATINGS"));
-			stack.Add(RatingDisplayFactory.Create(_rating.Value));
-			stack.Add(BuildRatingDistribution());
+			items.Add(FormHelpers.MakeDangerButton("Delete Bean", DeleteBean));
+			items.Add(FormHelpers.MakeSectionHeader("RATINGS"));
+			items.Add(RatingDisplayFactory.Create(State.Rating));
+			items.Add(BuildRatingDistribution());
 
-			stack.Add(FormHelpers.MakeSectionHeader("BAGS"));
-			if (_bags.Value.Count == 0)
-				stack.Add(new MauiLabel { Text = "No bags added yet", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+			items.Add(FormHelpers.MakeSectionHeader("BAGS"));
+			if (State.Bags.Count == 0)
+				items.Add(Text("No bags added yet").FontFamily(Theme.FontRegular).FontSize(14).Color(Theme.TextSecondary));
 
-			stack.Add(FormHelpers.MakeSecondaryButton("+ Add Bag", () =>
+			items.Add(FormHelpers.MakeSecondaryButton("+ Add Bag", () =>
 			{
-				Microsoft.Maui.Controls.Shell.Current.GoToAsync($"bag-detail?id=0&beanId={_beanId}");
+				Navigation?.Navigate(new BagFormPage(_beanId));
 			}));
 
-			foreach (var bag in _bags.Value)
+			foreach (var bag in State.Bags)
 			{
-				stack.Add(BuildBagCard(bag));
+				items.Add(BuildBagCard(bag));
 			}
 
 			// Shot History
-			stack.Add(FormHelpers.MakeSectionHeader("SHOT HISTORY"));
-			var shots = _allShots.Value;
+			items.Add(FormHelpers.MakeSectionHeader("SHOT HISTORY"));
+			var shots = State.AllShots;
 			if (shots.Count == 0)
 			{
-				stack.Add(new MauiLabel { Text = "No shots recorded yet", FontFamily = Theme.FontRegular, FontSize = 14, TextColor = Theme.TextSecondary });
+				items.Add(Text("No shots recorded yet").FontFamily(Theme.FontRegular).FontSize(14).Color(Theme.TextSecondary));
 			}
 			else
 			{
-				var visible = shots.Take(_visibleShotCount.Value).ToList();
+				var visible = shots.Take(State.VisibleShotCount).ToList();
 				foreach (var shot in visible)
 				{
 					var shotId = shot.Id;
-					stack.Add(ShotRecordCardFactory.Create(shot, () =>
+					items.Add(ShotRecordCardFactory.Create(shot, () =>
 					{
-						Microsoft.Maui.Controls.Shell.Current.GoToAsync($"shot-edit?id={shotId}");
+						Navigation?.Navigate(new ShotLoggingPage(shotId));
 					}));
 				}
 
-				if (_visibleShotCount.Value < shots.Count)
+				if (State.VisibleShotCount < shots.Count)
 				{
-					stack.Add(FormHelpers.MakeSecondaryButton(
-						$"Load More ({shots.Count - _visibleShotCount.Value} remaining)",
-						() => { _visibleShotCount.Value += ShotsPageSize; }));
+					items.Add(FormHelpers.MakeSecondaryButton(
+						$"Load More ({shots.Count - State.VisibleShotCount} remaining)",
+						() => { SetState(s => s.VisibleShotCount += ShotsPageSize); }));
 				}
 			}
 		}
 
-		var scrollView = new MauiScrollView
-		{
-			Content = stack,
-			BackgroundColor = Theme.Background,
-		};
+		var stack = VStack(Theme.SpacingS);
+		foreach (var item in items) stack.Add(item);
 
-		return new MauiViewHost(scrollView);
+		return ScrollView(
+			stack.Padding(new Thickness(Theme.SpacingM))
+		)
+		.Background(Theme.Background);
 	}
 
-	Microsoft.Maui.Controls.View BuildRatingDistribution()
+	View BuildRatingDistribution()
 	{
-		var shots = _allShots.Value;
-		// Sentiment icons indexed 0-4 matching rating values 1-5
+		var shots = State.AllShots;
 		var sentiments = new[] { Icons.SentimentVeryDissatisfied, Icons.SentimentDissatisfied, Icons.SentimentNeutral, Icons.SentimentSatisfied, Icons.SentimentVerySatisfied };
 		var sentimentColors = new[] { Theme.Error, Theme.Warning, Theme.TextMuted, Theme.Success, Theme.StarFilled };
 
-		// Count shots per rating (1-5); unrated shots are excluded
 		var counts = new int[5];
 		foreach (var shot in shots)
 		{
@@ -209,121 +204,97 @@ public class BeanDetailPage : Comet.View
 		}
 		var maxCount = counts.Max();
 
-		var container = new VerticalStackLayout { Spacing = Theme.SpacingXS };
+		var container = VStack(Theme.SpacingXS);
 
-		// Iterate from highest rating (5/VerySatisfied) down to lowest (1/VeryDissatisfied)
 		for (var i = 4; i >= 0; i--)
 		{
-			var row = new MauiGrid
-			{
-				ColumnDefinitions =
-				{
-					new ColumnDefinition(new GridLength(28, GridUnitType.Absolute)),
-					new ColumnDefinition(GridLength.Star),
-					new ColumnDefinition(new GridLength(30, GridUnitType.Absolute)),
-				},
-				ColumnSpacing = Theme.SpacingS,
-				HeightRequest = 24,
-			};
-
-			// Sentiment icon
-			row.Add(new MauiLabel
-			{
-				Text = sentiments[i],
-				FontFamily = Icons.FontFamily,
-				FontSize = 18,
-				TextColor = sentimentColors[i],
-				HorizontalTextAlignment = TextAlignment.Center,
-				VerticalTextAlignment = TextAlignment.Center,
-			}, 0, 0);
-
-			// Progress bar background
 			var barFraction = maxCount > 0 ? (double)counts[i] / maxCount : 0;
-			var barBackground = new MauiBorder
-			{
-				BackgroundColor = Theme.SurfaceVariant,
-				StrokeThickness = 0,
-				StrokeShape = new RoundRectangle { CornerRadius = 4 },
-				HeightRequest = 12,
-			};
-			// Use a Grid to overlay fill on background
-			var barGrid = new MauiGrid { };
-			barGrid.Add(barBackground, 0, 0);
-			var fillBorder = new MauiBorder
-			{
-				BackgroundColor = sentimentColors[i],
-				StrokeThickness = 0,
-				StrokeShape = new RoundRectangle { CornerRadius = 4 },
-				HeightRequest = 12,
-				HorizontalOptions = LayoutOptions.Fill,
-			};
-			barGrid.Add(fillBorder, 0, 0);
 
-			// Animate fill width using SizeChanged on the background
-			var fraction = barFraction;
-			barBackground.SizeChanged += (s, e) =>
-			{
-				var totalWidth = barBackground.Width;
-				if (totalWidth > 0)
-					fillBorder.WidthRequest = totalWidth * fraction;
-			};
-			fillBorder.HorizontalOptions = LayoutOptions.Start;
+			container.Add(
+				Grid(columns: new object[] { 28, "*", 30 }, rows: new object[] { "Auto" },
+					Text(sentiments[i])
+						.FontFamily(Icons.FontFamily)
+						.FontSize(18)
+						.Color(sentimentColors[i])
+						.HorizontalTextAlignment(TextAlignment.Center)
+						.VerticalTextAlignment(TextAlignment.Center)
+						.Cell(row: 0, column: 0),
 
-			row.Add(barGrid, 1, 0);
+					BuildBarOverlay(barFraction, sentimentColors[i])
+						.Cell(row: 0, column: 1),
 
-			// Count label
-			row.Add(new MauiLabel
-			{
-				Text = counts[i].ToString(),
-				FontFamily = Theme.FontRegular,
-				FontSize = 12,
-				TextColor = Theme.TextSecondary,
-				HorizontalTextAlignment = TextAlignment.End,
-				VerticalTextAlignment = TextAlignment.Center,
-			}, 2, 0);
-
-			container.Add(row);
+					Text(counts[i].ToString())
+						.FontFamily(Theme.FontRegular)
+						.FontSize(12)
+						.Color(Theme.TextSecondary)
+						.HorizontalTextAlignment(TextAlignment.End)
+						.VerticalTextAlignment(TextAlignment.Center)
+						.Cell(row: 0, column: 2)
+				)
+				.ColumnSpacing(Theme.SpacingS)
+				.Frame(height: 24)
+			);
 		}
 
-		var card = FormHelpers.MakeCard(container);
-		card.Margin = new Thickness(0, Theme.SpacingXS, 0, 0);
-		return card;
+		return Border(
+			container
+		)
+		.CornerRadius(Theme.RadiusCard)
+		.Background(Theme.CardBackground)
+		.StrokeColor(Theme.CardStroke)
+		.StrokeThickness(1)
+		.Padding(new Thickness(Theme.SpacingM))
+		.Margin(new Thickness(0, Theme.SpacingXS, 0, 0));
 	}
 
-	Microsoft.Maui.Controls.View BuildBagCard(Bag bag)
+	View BuildBarOverlay(double fraction, Color fillColor)
 	{
-		var grid = new MauiGrid
-		{
-			ColumnDefinitions =
-			{
-				new ColumnDefinition(GridLength.Star),
-				new ColumnDefinition(GridLength.Auto),
-			},
-		};
+		return ProgressBar(fraction)
+			.ProgressColor(fillColor)
+			.TrackColor(Theme.SurfaceVariant)
+			.Frame(height: 12);
+	}
 
-		var infoStack = new VerticalStackLayout { Spacing = 4 };
-		infoStack.Add(new MauiLabel { Text = $"Roasted {bag.RoastDate:MMM d, yyyy}", FontFamily = Theme.FontSemibold, FontSize = 14, FontAttributes = MauiFontAttributes.Bold, TextColor = Theme.TextPrimary });
+	View BuildBagCard(Bag bag)
+	{
+		var statsItems = new List<View>();
+		statsItems.Add(Text($"{bag.ShotCount} shots").FontFamily(Theme.FontRegular).FontSize(12).Color(Theme.TextMuted));
 
+		if (bag.AverageRating.HasValue)
+			statsItems.Add(Text($"{Icons.SentimentVerySatisfied} {bag.AverageRating.Value:F1}").FontFamily(Icons.FontFamily).FontSize(12).Color(Theme.StarFilled));
+		else
+			statsItems.Add(Text("No ratings").FontFamily(Theme.FontRegular).FontSize(12).Color(Theme.TextMuted));
+
+		statsItems.Add(Text(bag.IsComplete ? "Complete" : "Active").FontFamily(Theme.FontRegular).FontSize(12).Color(bag.IsComplete ? Theme.Success : Theme.Primary));
+
+		var statsStack = HStack(12);
+		foreach (var s in statsItems) statsStack.Add(s);
+
+		var infoItems = new List<View>();
+		infoItems.Add(Text($"Roasted {bag.RoastDate:MMM d, yyyy}").FontFamily(Theme.FontSemibold).FontSize(14).FontWeight(FontWeight.Bold).Color(Theme.TextPrimary));
 		if (bag.Notes != null)
-			infoStack.Add(new MauiLabel { Text = bag.Notes, FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary });
+			infoItems.Add(Text(bag.Notes).FontFamily(Theme.FontRegular).FontSize(12).Color(Theme.TextSecondary));
+		infoItems.Add(statsStack);
 
-		var statsStack = new HorizontalStackLayout { Spacing = 12 };
-		statsStack.Add(new MauiLabel { Text = $"{bag.ShotCount} shots", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
-		statsStack.Add(bag.AverageRating.HasValue
-			? new MauiLabel { Text = $"{Icons.SentimentVerySatisfied} {bag.AverageRating.Value:F1}", FontFamily = Icons.FontFamily, FontSize = 12, TextColor = Theme.StarFilled }
-			: new MauiLabel { Text = "No ratings", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextMuted });
-		statsStack.Add(new MauiLabel { Text = bag.IsComplete ? "Complete" : "Active", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = bag.IsComplete ? Theme.Success : Theme.Primary });
-		infoStack.Add(statsStack);
+		var infoStack = VStack(4);
+		foreach (var item in infoItems) infoStack.Add(item);
 
-		grid.Add(infoStack, 0, 0);
-		grid.Add(new MauiLabel { Text = Icons.ChevronRight, FontFamily = Icons.FontFamily, FontSize = 20, TextColor = Theme.TextMuted, VerticalTextAlignment = TextAlignment.Center }, 1, 0);
-
-		var card = FormHelpers.MakeCard(grid);
-
-		var tap = new TapGestureRecognizer();
-		tap.Tapped += (s, e) => Microsoft.Maui.Controls.Shell.Current.GoToAsync($"bag-detail?id={bag.Id}");
-		card.GestureRecognizers.Add(tap);
-
-		return card;
+		return Border(
+			Grid(columns: new object[] { "*", "Auto" }, rows: new object[] { "Auto" },
+				infoStack.Cell(row: 0, column: 0),
+				Text(Icons.ChevronRight)
+					.FontFamily(Icons.FontFamily)
+					.FontSize(20)
+					.Color(Theme.TextMuted)
+					.VerticalTextAlignment(TextAlignment.Center)
+					.Cell(row: 0, column: 1)
+			)
+		)
+		.CornerRadius(Theme.RadiusCard)
+		.Background(Theme.CardBackground)
+		.StrokeColor(Theme.CardStroke)
+		.StrokeThickness(1)
+		.Padding(new Thickness(Theme.SpacingM))
+		.OnTap(_ => Navigation?.Navigate(new BagDetailPage(bag.Id)));
 	}
 }

@@ -1,21 +1,20 @@
 ﻿using System;
+using static Comet.CometControls;
+
 namespace Comet.Samples
 {
-	public class VirtualSectionedListViewSample : View
+	public class VirtualSectionedListViewSample : Component
 	{
-		public VirtualSectionedListViewSample()
+		public override View Render() => new SectionedListView<int>
 		{
-			Body = () => new SectionedListView<int>
+			SectionCount = () => 10,
+			SectionFor = (s) => new Section<int>
 			{
-				SectionCount = () => 10,
-				SectionFor = (s) => new Section<int>
-				{
-					Header = new Text($"Header: {s}"),
-					Count = () => 10,
-					ItemFor = (index) => index,
-					ViewFor = (i) => new Text($"Row: {i}"),
-				},
-			};
-		}
+				Header = Text($"Header: {s}"),
+				Count = () => 10,
+				ItemFor = (index) => index,
+				ViewFor = (i) => Text($"Row: {i}"),
+			},
+		};
 	}
 }

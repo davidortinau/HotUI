@@ -51,12 +51,21 @@ namespace Comet
 
 	public class FontImageSource : ImageSource, IFontImageSource
 	{
-		public override bool IsEmpty => throw new NotImplementedException();
+		public override bool IsEmpty => string.IsNullOrEmpty(Glyph);
 
 		public Color Color { get; set; } = Colors.Black;
 
 		public Font Font { get; set; } = Font.Default;
 
 		public string Glyph { get; set; }
+
+		public FontImageSource() { }
+
+		public FontImageSource(string fontFamily, string glyph, double size = 24, Color color = null)
+		{
+			Glyph = glyph;
+			Font = Font.OfSize(fontFamily, size);
+			Color = color ?? Colors.Black;
+		}
 	}
 }

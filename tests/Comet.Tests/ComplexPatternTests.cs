@@ -94,7 +94,7 @@ namespace Comet.Tests
 		[Fact]
 		public void MixedMVUAndMauiHost_AllControlsRenderInOrder()
 		{
-			var state = new State<string>("test");
+			var state = new Reactive<string>("test");
 			var view = new View
 			{
 				Body = () => new VStack
@@ -120,7 +120,7 @@ namespace Comet.Tests
 		[Fact]
 		public void MixedMVUAndMauiHost_StateUpdatesPropagates()
 		{
-			var state = new State<string>("initial");
+			var state = new Reactive<string>("initial");
 			var textUpdateCount = 0;
 
 			var view = new View
@@ -215,7 +215,7 @@ namespace Comet.Tests
 		[Fact]
 		public void DeepNesting_StatePropagatesToAllLevels()
 		{
-			var counter = new State<int>(0);
+			var counter = new Reactive<int>(0);
 			var buildCount = 0;
 
 			View BuildNestedStack(int depth)
@@ -273,7 +273,7 @@ namespace Comet.Tests
 			for (int i = 0; i < 100; i++)
 				items.Add($"Item {i:D3}");
 
-			var filter = new State<string>("");
+			var filter = new Reactive<string>("");
 			var view = new View
 			{
 				Body = () => new ListView<string>(items.Where(x => x.Contains(filter.Value)).ToList())
@@ -293,7 +293,7 @@ namespace Comet.Tests
 			for (int i = 0; i < 50; i++)
 				items.Add($"Item {i:D3}");
 
-			var filter = new State<string>("");
+			var filter = new Reactive<string>("");
 			var view = new View
 			{
 				Body = () => new ListView<string>(items.Where(x => x.Contains(filter.Value)).ToList())
@@ -313,7 +313,7 @@ namespace Comet.Tests
 		public void LargeListWithFiltering_AddItemsWhileFiltered()
 		{
 			var items = new ObservableCollection<string> { "Apple", "Banana", "Cherry" };
-			var filter = new State<string>("A");
+			var filter = new Reactive<string>("A");
 
 			var view = new View
 			{
@@ -332,9 +332,9 @@ namespace Comet.Tests
 		[Fact]
 		public void MultipleInterdependentStates_AllUpdateCorrectly()
 		{
-			var count = new State<int>(0);
-			var items = new State<string>("item1,item2,item3");
-			var isLoading = new State<bool>(false);
+			var count = new Reactive<int>(0);
+			var items = new Reactive<string>("item1,item2,item3");
+			var isLoading = new Reactive<bool>(false);
 
 			View BuildContent()
 			{
@@ -368,9 +368,9 @@ namespace Comet.Tests
 		[Fact]
 		public void MultipleInterdependentStates_RapidUpdates()
 		{
-			var state1 = new State<int>(0);
-			var state2 = new State<string>("a");
-			var state3 = new State<bool>(false);
+			var state1 = new Reactive<int>(0);
+			var state2 = new Reactive<string>("a");
+			var state3 = new Reactive<bool>(false);
 			var buildCount = 0;
 
 			var view = new View
@@ -396,7 +396,7 @@ namespace Comet.Tests
 		[Fact]
 		public void NavigationWithStatePreservation_CounterPersistsAcrossNavigation()
 		{
-			var counterState = new State<int>(5);
+			var counterState = new Reactive<int>(5);
 
 			var pageA = new View
 			{
@@ -569,7 +569,7 @@ namespace Comet.Tests
 		public void EdgeCase_DisposalAfterComplexScenario()
 		{
 			var items = new ObservableCollection<int> { 1, 2, 3 };
-			var state = new State<string>("test");
+			var state = new Reactive<string>("test");
 
 			var view = new View
 			{

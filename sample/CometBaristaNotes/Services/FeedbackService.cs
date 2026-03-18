@@ -14,7 +14,7 @@ public class FeedbackService : IFeedbackService
 		await _semaphore.WaitAsync();
 		try
 		{
-			var page = Microsoft.Maui.Controls.Application.Current?.Windows.FirstOrDefault()?.Page;
+			var page = PageHelper.GetCurrentPage();
 			if (page is not null)
 			{
 				await page.DisplayAlertAsync(title, message, "OK");

@@ -270,7 +270,7 @@ namespace Comet.Benchmarks
 				{
 					new Text($"Metric {i}"),
 					new Text($"{i * 42.5:F1}"),
-					new ProgressBar(i / (float)_count)
+					new ProgressBar((double)(i / (float)_count))
 				});
 			}
 

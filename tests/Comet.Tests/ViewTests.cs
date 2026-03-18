@@ -9,9 +9,9 @@ namespace Comet.Tests
 
 		public class StatePage : View
 		{
-			public readonly State<int> clickCount = new State<int>(1);
-			public readonly State<string> text = new State<string>();
-			public readonly State<bool> boolState = new State<bool>();
+			public readonly Reactive<int> clickCount = new Reactive<int>(1);
+			public readonly Reactive<string> text = new Reactive<string>();
+			public readonly Reactive<bool> boolState = new Reactive<bool>();
 		}
 
 		[Fact]

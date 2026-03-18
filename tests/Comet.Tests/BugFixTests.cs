@@ -36,19 +36,6 @@ namespace Comet.Tests
 			Assert.Null(original.Parent);
 		}
 
-		// ---- Binding null safety ----
-
-		[Fact]
-		public void Binding_BindingValueChanged_DoesNotThrowWhenViewIsNull()
-		{
-			// View is not set (null) — should not throw NullReferenceException
-			var binding = new Binding<string>();
-			var exception = Record.Exception(() =>
-				binding.BindingValueChanged(null, "Test", "newValue"));
-
-			Assert.Null(exception);
-		}
-
 		// ---- WebView navigation callbacks ----
 
 		[Fact]

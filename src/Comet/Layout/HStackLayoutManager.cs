@@ -9,7 +9,7 @@ namespace Comet.Layout
 		private readonly float _spacing;
 
 		public HStackLayoutManager(ContainerView layout,
-			LayoutAlignment alignment = LayoutAlignment.Center,
+			LayoutAlignment alignment = LayoutAlignment.Fill,
 			float? spacing = null)
 		{
 			this.layout = layout;

@@ -47,10 +47,7 @@ namespace Comet.Tests.Handlers
 		public void UpdateValue(string property)
 		{
 			var val = CurrentView?.GetPropValue<object>(property);
-			if (val is Binding b)
-				ChangedProperties[property] = b.Value;
-			else
-				ChangedProperties[property] = val;
+			ChangedProperties[property] = val;
 		}
 
 		public void Dispose()

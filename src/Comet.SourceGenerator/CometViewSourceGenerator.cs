@@ -39,6 +39,7 @@ namespace Comet.SourceGenerator
 		const string classMustacheTemplate = @"
 using System;
 using Comet;
+using Comet.Reactive;
 using Microsoft.Maui;
 using System.Collections.Generic;
 namespace {{NameSpace}} {
@@ -48,29 +49,45 @@ namespace {{NameSpace}} {
 		public {{ClassName}}() {}
 		{{/HasParameters}}
 
-		public {{ClassName}} ({{#ParametersFunction}} Binding<{{{Type}}}> {{LowercaseName}}{{DefaultValueString}}{{/ParametersFunction}})
+		{{#SignalConstructorFunction}}	
+		public {{ClassName}} ({{#SignalParametersFunction}} {{{Type}}} {{LowercaseName}}{{DefaultValueString}}{{/SignalParametersFunction}})
 		{
 			{{#Parameters}}
-			{{Name}} = {{LowercaseName}};
+			{{{SignalAssignment}}}
 			{{/Parameters}}
 		}
+		{{/SignalConstructorFunction}}
 
-		{{#FuncConstructorFunction}}		
-		public {{ClassName}} ({{#ParametersFunction}} Func<{{{Type}}}> {{LowercaseName}}{{DefaultValueString}}{{/ParametersFunction}})
+		{{#FuncConstructorFunction}}
+		public {{ClassName}} ({{#FuncParametersFunction}} {{{Type}}} {{LowercaseName}}{{DefaultValueString}}{{/FuncParametersFunction}})
 		{
 			{{#Parameters}}
-			{{Name}} = {{LowercaseName}};
+			{{{FuncAssignment}}}
 			{{/Parameters}}
 		}
 		{{/FuncConstructorFunction}}
 
-		{{#Parameters}}
-		Binding<{{{Type}}}> {{LowercaseName}};
-		public Binding<{{{Type}}}> {{Name}}
+		{{#ComputedConstructorFunction}}
+		public {{ClassName}} ({{#ComputedParametersFunction}} {{{Type}}} {{LowercaseName}}{{DefaultValueString}}{{/ComputedParametersFunction}})
 		{
-			get => {{LowercaseName}};
-			private set => this.SetBindingValue(ref  this.{{LowercaseName}}, value);
+			{{#Parameters}}
+			{{{ComputedAssignment}}}
+			{{/Parameters}}
 		}
+		{{/ComputedConstructorFunction}}
+
+		{{#ValueConstructorFunction}}
+		public {{ClassName}} ({{#ValueParametersFunction}} {{{Type}}} {{LowercaseName}}{{DefaultValueString}}{{/ValueParametersFunction}})
+		{
+			{{#Parameters}}
+			{{{ValueAssignment}}}
+			{{/Parameters}}
+		}
+		{{/ValueConstructorFunction}}
+
+		{{#Parameters}}
+		{{{FieldDeclaration}}}
+		{{{PropertyDeclaration}}}
 		{{/Parameters}}
 		
 		{{#Properties}}
@@ -92,18 +109,63 @@ namespace {{NameSpace}} {
 }
 ";
 		const string extensionProperty = @"
-		public static T {{Name}}<T>(this T view, Binding<{{{Type}}}> {{LowercaseName}}, bool cascades = true) where T : {{ClassName}} =>
-			view.SetEnvironment(nameof({{FullName}}),{{LowercaseName}},cascades);
+		public static T {{Name}}<T>(this T view, {{{Type}}} {{LowercaseName}}, bool cascades = true) where T : {{ClassName}} =>
+			view.SetEnvironment(nameof({{FullName}}),(object){{LowercaseName}},cascades);
 		
 		public static T {{Name}}<T>(this T view, Func<{{{Type}}}> {{LowercaseName}}, bool cascades = true) where T : {{ClassName}} =>
-			view.SetEnvironment(nameof({{FullName}}),(Binding<{{{Type}}}>){{LowercaseName}},cascades);
+			view.SetEnvironment(nameof({{FullName}}),(object){{LowercaseName}},cascades);
 ";
 		const string extensionActionProperty = @"
 		public static T {{Name}}<T>(this T view, {{{Type}}} {{LowercaseName}}, bool cascades = true) where T : {{ClassName}} =>
 			view.SetEnvironment(nameof({{FullName}}),{{LowercaseName}},cascades);
 ";
+		const string onPrefixedExtensionActionProperty = @"
+		public static T On{{Name}}<T>(this T view, {{{Type}}} {{LowercaseName}}, bool cascades = true) where T : {{ClassName}} =>
+			view.SetEnvironment(nameof({{FullName}}),{{LowercaseName}},cascades);
+";
+		const string tokenExtensionProperty = @"
+		public static T {{Name}}<T>(this T view, Comet.Styles.Token<{{{Type}}}> token) where T : {{ClassName}} =>
+			view.SetEnvironment(nameof({{FullName}}),(object)(Func<{{{Type}}}>)(() => view.GetToken(token)),true);
+";
+		const string factoryMustacheTemplate = @"
+using System;
+using Comet;
+using Comet.Reactive;
+using Microsoft.Maui;
+namespace {{NameSpace}} {
+	public static partial class CometControls
+	{
+		{{#SignalConstructorFunction}}
+		public static {{ClassName}} {{ClassName}}({{#SignalParametersFunction}} {{{Type}}} {{LowercaseName}}{{DefaultValueString}}{{/SignalParametersFunction}})
+			=> new {{ClassName}}({{#ParameterNamesFunction}} {{LowercaseName}}{{/ParameterNamesFunction}});
+		{{/SignalConstructorFunction}}
+
+		{{#FuncConstructorFunction}}
+		public static {{ClassName}} {{ClassName}}({{#FuncParametersFunction}} {{{Type}}} {{LowercaseName}}{{DefaultValueString}}{{/FuncParametersFunction}})
+			=> new {{ClassName}}({{#ParameterNamesFunction}} {{LowercaseName}}{{/ParameterNamesFunction}});
+		{{/FuncConstructorFunction}}
+
+		{{#ComputedConstructorFunction}}
+		public static {{ClassName}} {{ClassName}}({{#ComputedParametersFunction}} {{{Type}}} {{LowercaseName}}{{DefaultValueString}}{{/ComputedParametersFunction}})
+			=> new {{ClassName}}({{#ParameterNamesFunction}} {{LowercaseName}}{{/ParameterNamesFunction}});
+		{{/ComputedConstructorFunction}}
+
+		{{#ValueConstructorFunction}}
+		public static {{ClassName}} {{ClassName}}({{#ValueParametersFunction}} {{{Type}}} {{LowercaseName}}{{DefaultValueString}}{{/ValueParametersFunction}})
+			=> new {{ClassName}}({{#ParameterNamesFunction}} {{LowercaseName}}{{/ParameterNamesFunction}});
+		{{/ValueConstructorFunction}}
+
+		{{#HasParameters}}
+		public static {{ClassName}} {{ClassName}}()
+			=> new {{ClassName}}();
+		{{/HasParameters}}
+	}
+}
+";
 		const string extensionMustacheTemplate = @"
 using Comet;
+using Comet.Reactive;
+using Comet.Styles;
 using Microsoft.Maui;
 using System;
 namespace {{NameSpace}} {
@@ -118,6 +180,49 @@ namespace {{NameSpace}} {
 	
 	}
 }
+";
+
+		const string styleBuilderMustacheTemplate = @"
+using System;
+using Comet;
+using Comet.Styles;
+using Microsoft.Maui;
+using Microsoft.Maui.Graphics;
+namespace Comet.Styles {
+	public class {{ClassName}}StyleBuilder
+	{
+		private readonly ControlStyle<{{ClassName}}> _style = new ControlStyle<{{ClassName}}>();
+
+		public {{ClassName}}StyleBuilder Background(Paint background)
+		{
+			_style.Set(EnvironmentKeys.Colors.Background, background);
+			return this;
+		}
+
+		public {{ClassName}}StyleBuilder TextColor(Color color)
+		{
+			_style.Set(EnvironmentKeys.Colors.Color, color);
+			return this;
+		}
+
+		{{#StyleProperties}}
+		{{#StylePropertyFunc}}
+		{{/StylePropertyFunc}}
+		{{/StyleProperties}}
+
+		public ControlStyle<{{ClassName}}> Build() => _style;
+
+		public static implicit operator ControlStyle<{{ClassName}}>({{ClassName}}StyleBuilder builder)
+			=> builder._style;
+	}
+}
+";
+		const string styleBuilderPropertyMustache = @"
+		public {{ClassName}}StyleBuilder {{Name}}({{{Type}}} {{LowercaseName}})
+		{
+			_style.Set(nameof({{FullName}}), {{LowercaseName}});
+			return this;
+		}
 ";
 
 		static Dictionary<(bool HasGet, bool HasSet), (string FromEnvironment, string FromProperty)> interfacePropertyDictionary;
@@ -163,7 +268,7 @@ namespace {{NameSpace}} {
 ";
 
 			var interfacePropertyMethodMustache = @"
-				void {{FullName}} ({{{ActionsParameters}}}) => {{Name}}.CurrentValue?.Invoke({{{ActionsInvokeParameters}}});
+				void {{FullName}} ({{{ActionsParameters}}}) => {{Name}}?.Invoke({{{ActionsInvokeParameters}}});
 ";
 
 			interfacePropertyDictionary = new Dictionary<(bool HasGet, bool HasSet), (string FromEnvironment, string FromProperty)>
@@ -190,6 +295,13 @@ namespace {{NameSpace}} {
 
 				var extensionSource = stubble.Render(extensionMustacheTemplate, input);
 				context.AddSource($"{item.name}Extension.g.cs", extensionSource);
+
+				var factorySource = stubble.Render(factoryMustacheTemplate, input);
+				context.AddSource($"{item.name}Factory.g.cs", factorySource);
+
+				// Phase 2.3: Generate style builder class
+				var styleBuilderSource = stubble.Render(styleBuilderMustacheTemplate, input);
+				context.AddSource($"{item.name}StyleBuilder.g.cs", styleBuilderSource);
 			}
 		}
 		public static string GetFullName(ISymbol symbol, string ending = null)
@@ -224,6 +336,7 @@ namespace {{NameSpace}} {
 			interfaces.RemoveAll(x => alreadyImplemented.Contains(x));
 			List<(string Type, string CleanType, string Name, string FullName, bool ShouldBeExtension, bool Skip, List<(string Type, string Name)> Parameters)> properties = new();
 			Dictionary<string, string> constructorTypes = new ();
+			Dictionary<string, bool> constructorIsValueType = new ();
 			List<string> propertiesWithSetters = new();
 			List<string> propertiesWithGetters = new();
 			Dictionary<string, bool> quoteDefaultData = new();
@@ -298,6 +411,7 @@ namespace {{NameSpace}} {
 					if (keyProperties.Contains(m.Name))
 					{
 						constructorTypes[m.Name] = type;
+						constructorIsValueType[m.Name] = !canBeNull;
 						var t = (type, cleanType, m.Name, $"{fullName}", false, skippedProperties.Contains(m.Name), parameters);
 						if (!properties.Contains(t))
 							properties.Add(t);
@@ -313,13 +427,14 @@ namespace {{NameSpace}} {
 
 
 			}
-			List<(string Type, string Name, string defaultValueString)> constructorParameters = new();
+			List<(string Type, string Name, string defaultValueString, bool IsValueType)> constructorParameters = new();
 			for (var i = 0; i < keyProperties.Count; i++)
 			{
 				var keyName = keyProperties[i];
 				var value = constructorTypes[keyName];
 				var defaultValue = i == 0 ? "" : " = null";
-				constructorParameters.Add((value, keyName, defaultValue));
+				constructorIsValueType.TryGetValue(keyName, out var isValueType);
+				constructorParameters.Add((value, keyName, defaultValue, isValueType));
 			}
 
 			string getPropertyDefaultValue(string key)
@@ -340,11 +455,46 @@ namespace {{NameSpace}} {
 				ClassName = name,
 				BaseClassName = $"{baseClass} , {string.Join(",", interfaces.Select(x => GetFullName(x)))}",
 				NameSpace = nameSpace,
-				Parameters = constructorParameters.Select(x => new {
-					Type = x.Type ?? typeof(Action).FullName,
-					Name = getNewName(x.Name),
-					LowercaseName = getNewName(x.Name).LowercaseFirst(),
-					DefaultValueString = x.defaultValueString
+				Parameters = constructorParameters.Select(x => {
+					var type = x.Type ?? typeof(Action).FullName;
+					var isDelegate = type.StartsWith("System.Action") || type.StartsWith("System.Func");
+					var isNullableValueType = type.StartsWith("System.Nullable<");
+					var needsNullableValueType = x.IsValueType && x.defaultValueString == " = null" && !isNullableValueType;
+					var valueType = needsNullableValueType ? $"{type}?" : type;
+					var allowsNull = !x.IsValueType || needsNullableValueType || isNullableValueType;
+					var name = getNewName(x.Name);
+					var lowercaseName = name.LowercaseFirst();
+					var valueBindingValue = needsNullableValueType ? $"{lowercaseName}.Value" : lowercaseName;
+					return new {
+						Type = type,
+						Name = name,
+						LowercaseName = lowercaseName,
+						DefaultValueString = x.defaultValueString,
+						SignalType = isDelegate ? type : $"Signal<{type}>",
+						FuncType = isDelegate ? type : $"Func<{type}>",
+						ComputedType = isDelegate ? type : $"Computed<{type}>",
+						ValueType = valueType,
+						FieldDeclaration = isDelegate
+							? $"{type} {lowercaseName};"
+							: $"PropertySubscription<{type}> {lowercaseName};",
+						PropertyDeclaration = isDelegate
+							? $"public {type} {name}\n\t\t{{\n\t\t\tget => {lowercaseName};\n\t\t\tprivate set => {lowercaseName} = value;\n\t\t}}"
+							: $"public PropertySubscription<{type}> {name}\n\t\t{{\n\t\t\tget => {lowercaseName};\n\t\t\tprivate set => this.SetPropertySubscription(ref  this.{lowercaseName}, value);\n\t\t}}",
+						SignalAssignment = isDelegate
+							? $"{name} = {lowercaseName};"
+							: $"{name} = {lowercaseName} == null ? null : PropertySubscription<{type}>.FromSignal({lowercaseName});",
+						FuncAssignment = isDelegate
+							? $"{name} = {lowercaseName};"
+							: $"{name} = {lowercaseName} == null ? null : PropertySubscription<{type}>.FromFunc({lowercaseName});",
+						ComputedAssignment = isDelegate
+							? $"{name} = {lowercaseName};"
+							: $"{name} = {lowercaseName} == null ? null : new PropertySubscription<{type}>(() => {lowercaseName}.Value);",
+						ValueAssignment = isDelegate
+							? $"{name} = {lowercaseName};"
+							: allowsNull
+								? $"{name} = {lowercaseName} == null ? null : new PropertySubscription<{type}>({valueBindingValue});"
+								: $"{name} = new PropertySubscription<{type}>({lowercaseName});"
+					};
 				}).ToList(),
 				HasParameters = constructorParameters.Where(x => x.Type != "System.Action").Any(),
 				Properties = properties.Select(x => new {
@@ -370,22 +520,91 @@ namespace {{NameSpace}} {
 					x.DefaultValueString
 				}).Replace("Binding<System.Action>", "System.Action")))),
 
+				SignalParametersFunction = new Func<dynamic, string, object>((dyn, str) => string.Join(",", ((IEnumerable<dynamic>)dyn.Parameters).Select(x => stubble.Render(str, new {
+					Type = x.SignalType,
+					x.Name,
+					x.LowercaseName,
+					x.DefaultValueString
+				})))),
+
+				FuncParametersFunction = new Func<dynamic, string, object>((dyn, str) => string.Join(",", ((IEnumerable<dynamic>)dyn.Parameters).Select(x => stubble.Render(str, new {
+					Type = x.FuncType,
+					x.Name,
+					x.LowercaseName,
+					x.DefaultValueString
+				})))),
+
+				ComputedParametersFunction = new Func<dynamic, string, object>((dyn, str) => string.Join(",", ((IEnumerable<dynamic>)dyn.Parameters).Select(x => stubble.Render(str, new {
+					Type = x.ComputedType,
+					x.Name,
+					x.LowercaseName,
+					x.DefaultValueString
+				})))),
+
+				ValueParametersFunction = new Func<dynamic, string, object>((dyn, str) => string.Join(",", ((IEnumerable<dynamic>)dyn.Parameters).Select(x => stubble.Render(str, new {
+					Type = x.ValueType,
+					x.Name,
+					x.LowercaseName,
+					x.DefaultValueString
+				})))),
+
+				ParameterNamesFunction = new Func<dynamic, string, object>((dyn, str) => string.Join(",", ((IEnumerable<dynamic>)dyn.Parameters).Select(x => stubble.Render(str, new {
+					x.LowercaseName
+				})))),
+
+				SignalConstructorFunction = new Func<dynamic, string, object>((dyn, str) =>
+					dyn.HasParameters ? stubble.Render(str, dyn) : ""),
+
 				FuncConstructorFunction = new Func<dynamic, string, object>((dyn, str) =>
-						//Feeling lazy, didnt want another template. May change this later
-						dyn.HasParameters ? stubble.Render(str, dyn).Replace("(Binding<System.Action>)", "").Replace("Func<System.Action>", "System.Action") : ""),
+					dyn.HasParameters ? stubble.Render(str, dyn) : ""),
+
+				ComputedConstructorFunction = new Func<dynamic, string, object>((dyn, str) =>
+					dyn.HasParameters ? stubble.Render(str, dyn) : ""),
+
+				ValueConstructorFunction = new Func<dynamic, string, object>((dyn, str) =>
+					dyn.HasParameters ? stubble.Render(str, dyn) : ""),
 				PropertiesFunc = new Func<dynamic, string, object>((dyn, str) => {
 					var templateGroup = interfacePropertyDictionary[(dyn.HasGet, dyn.HasSet)];
 					var template = dyn.ShouldBeExtension ? templateGroup.FromEnvironment : templateGroup.FromProperty;
 					return stubble.Render(template, dyn);
 				}),
 
-				ExtensionPropertiesFunc = new Func<dynamic, string, object>((dyn, str) => dyn.ShouldBeExtension && !dyn.Skip ? stubble.Render(dyn.Type == "System.Action" ? extensionActionProperty : extensionProperty, dyn) : ""),
+				ExtensionPropertiesFunc = new Func<dynamic, string, object>((dyn, str) => {
+					if (!dyn.ShouldBeExtension || dyn.Skip) return "";
+					string typeStr = dyn.Type;
+					var result = stubble.Render(typeStr.StartsWith("System.Action") ? extensionActionProperty : extensionProperty, dyn);
+					// Phase 2.2: Add "On" prefixed alias for Action-type extension properties
+					if (typeStr.StartsWith("System.Action"))
+						result += stubble.Render(onPrefixedExtensionActionProperty, dyn);
+					// View-aware Token<T> overloads for scoped theme resolution (spec §8.8, D6)
+					if (!typeStr.StartsWith("System.Action") && !typeStr.StartsWith("System.Func"))
+						result += stubble.Render(tokenExtensionProperty, dyn);
+					return result;
+				}),
 				HasRenamedProperties = propertyNameTransforms.Any(),
 				RenamedProperties = propertyNameTransforms.Select(x => new {
 					OldName = x.Key,
 					NewName = x.Value
 				}).ToList(),
 
+				// Phase 2.3: Style builder properties (non-Action, non-Skip extension properties)
+				StyleProperties = properties
+					.Where(x => x.ShouldBeExtension && !x.Skip)
+					.Where(x => !string.IsNullOrWhiteSpace(x.Type))
+					.Where(x => !x.Type.StartsWith("System.Action") && !x.Type.StartsWith("System.Func"))
+					.Where(x => {
+						var n = getNewName(x.Name);
+						return n != "Background" && n != "Color" && n != "TextColor";
+					})
+					.Select(x => new {
+						Type = x.Type,
+						Name = getNewName(x.Name),
+						x.FullName,
+						ClassName = name,
+						LowercaseName = getNewName(x.Name).LowercaseFirst(),
+					}).ToList(),
+				StylePropertyFunc = new Func<dynamic, string, object>((dyn, str) =>
+					stubble.Render(styleBuilderPropertyMustache, dyn)),
 
 			};
 			return input;

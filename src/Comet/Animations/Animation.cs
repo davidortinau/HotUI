@@ -34,10 +34,7 @@ namespace Comet
 			{
 				base.Update(percent);
 				var oldV = ContextualObject?.GetEnvironment(Parent.GetValueOfType<View>(), PropertyName, PropertyCascades);
-				if (oldV is Binding b)
-					b.BindingValueChanged(null, PropertyName, CurrentValue);
-				else
-					ContextualObject?.SetEnvironment(PropertyName, CurrentValue, PropertyCascades);
+				ContextualObject?.SetEnvironment(PropertyName, CurrentValue, PropertyCascades);
 			}
 			catch (Exception ex)
 			{

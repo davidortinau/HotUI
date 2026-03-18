@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Comet.Internal;
+using Comet.Reactive;
 using Microsoft.Maui;
 
 namespace Comet
@@ -27,24 +28,26 @@ namespace Comet
 		//TODO Evaluate if 30 is a good number
 		protected IDictionary<(int section, int row, object item), View> CurrentViews { get; }
 
-		Binding<IReadOnlyList<T>> _items;
-		Binding<IReadOnlyList<T>> Items
+		PropertySubscription<IReadOnlyList<T>> _items;
+		PropertySubscription<IReadOnlyList<T>> Items
 		{
 			get => _items;
-			set => this.SetBindingValue(ref _items, value);
+			set => this.SetPropertySubscription(ref _items, value);
 		}
 
 
 		IReadOnlyList<T> currentItems;
 
-		public ListView(Func<IReadOnlyList<T>> items) : this((Binding<IReadOnlyList<T>>)items)
+		public ListView(Func<IReadOnlyList<T>> items) : this()
 		{
-
+			Items = PropertySubscription<IReadOnlyList<T>>.FromFunc(items);
+			this.currentItems = Items?.CurrentValue;
+			SetupObservable();
 		}
-		public ListView(Binding<IReadOnlyList<T>> items) : this()
+		public ListView(PropertySubscription<IReadOnlyList<T>> items) : this()
 		{
 			Items = items;
-			this.currentItems = items?.CurrentValue;
+			this.currentItems = Items?.CurrentValue;
 			SetupObservable();
 		}
 
@@ -121,12 +124,7 @@ namespace Comet
 			var key = (section, index,item);
 			if (!CurrentViews.TryGetValue(key, out var view) || (view?.IsDisposed ?? true))
 			{
-				using (new StateBuilder(this))
-				{
-					view = ViewFor?.Invoke(item);
-					if (item is INotifyPropertyRead read && view != null)
-						StateManager.MonitorListViewObject(view, read);
-				}
+				view = ViewFor?.Invoke(item);
 				if (view == null)
 					return null;
 				CurrentViews[key] = view;
@@ -249,7 +247,7 @@ namespace Comet
 
 	public class Section : View, IEnumerable<View>
 	{
-		public Section(Binding<IList<View>> views, View header = null, View footer = null)
+		public Section(PropertySubscription<IList<View>> views, View header = null, View footer = null)
 		{
 
 		}
@@ -284,16 +282,16 @@ namespace Comet
 
 	public class Section<T> : Section
 	{
-		readonly Binding<IReadOnlyList<T>> itemsBinding;
+		readonly PropertySubscription<IReadOnlyList<T>> itemsBinding;
 		IReadOnlyList<T> items;
 		readonly List<View> trackedViews = new List<View>();
 
 		public Section() { }
 
-		public Section(Binding<IReadOnlyList<T>> items)
+		public Section(IReadOnlyList<T> items)
 		{
-			this.itemsBinding = items;
-			this.items = items?.CurrentValue;
+			this.itemsBinding = new PropertySubscription<IReadOnlyList<T>>(items);
+			this.items = itemsBinding?.CurrentValue;
 		}
 
 		public override void ViewPropertyChanged(string property, object value)
@@ -313,16 +311,10 @@ namespace Comet
 		public override View GetViewFor(int index)
 		{
 			var item = (T)GetItemAt(index);
-			using (new StateBuilder(this))
-			{
-				var view = ViewFor?.Invoke(item);
-				if (item is INotifyPropertyRead read && view != null)
-				{
-					StateManager.MonitorListViewObject(view, read);
-					trackedViews.Add(view);
-				}
-				return view;
-			}
+			var view = ViewFor?.Invoke(item);
+			if (view != null)
+				trackedViews.Add(view);
+			return view;
 		}
 		public override int GetCount() => items?.Count ?? Count?.Invoke() ?? 0;
 

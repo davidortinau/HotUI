@@ -1,118 +1,50 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Comet.Layout;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Layouts;
 
 namespace Comet
 {
-	public class Border : View, IEnumerable, IContainerView, IContentView
+	public class Border : AbstractLayout, IBorderStroke
 	{
-		IEnumerator IEnumerable.GetEnumerator() => new[] { Content }.GetEnumerator();
-		public View Content { get; set; }
-
-		object IContentView.Content => Content;
-
-		IView IContentView.PresentedContent => Content;
-
-		Thickness IPadding.Padding => this.GetPadding();
-
-		public virtual void Add(View view)
+		public View Content
 		{
-			if (view == null)
-				return;
-			view.Parent = this;
-			view.Navigation = Parent?.Navigation;
-			Content = view;
-			TypeHashCode = view.GetContentTypeHashCode();
-		}
-
-		protected override void OnParentChange(View parent)
-		{
-			base.OnParentChange(parent);
-			if (Content != null)
+			get => Count > 0 ? this[0] : null;
+			set
 			{
-				Content.Parent = this;
+				Clear();
+				if (value != null)
+					Add(value);
 			}
 		}
 
-		internal override void ContextPropertyChanged(string property, object value, bool cascades)
-		{
-			base.ContextPropertyChanged(property, value, cascades);
-			Content?.ContextPropertyChanged(property, value, cascades);
-		}
+		protected override ILayoutManager CreateLayoutManager() =>
+			new BorderLayoutManager(this);
 
-		protected override void Dispose(bool disposing)
-		{
-			Content?.Dispose();
-			Content = null;
-			base.Dispose(disposing);
-		}
+		protected override Thickness GetDefaultPadding() => Thickness.Zero;
 
-		public override void LayoutSubviews(Rect frame)
-		{
-			this.Frame = frame;
-			Content?.LayoutSubviews(frame);
-		}
+		IShape IBorderStroke.Shape =>
+			this.GetEnvironment<IShape>(EnvironmentKeys.View.ClipShape)
+			?? new RoundedRectangle(0);
 
-		public override Size GetDesiredSize(Size availableSize)
-		{
-			if (Content != null)
-			{
-				var margin = Content.GetMargin();
-				availableSize.Width -= margin.HorizontalThickness;
-				availableSize.Height -= margin.VerticalThickness;
-				MeasuredSize = Content.Measure(availableSize, true);
-				return MeasuredSize;
-			}
+		Paint IStroke.Stroke =>
+			this.GetEnvironment<Paint>(EnvironmentKeys.Shape.StrokeColor);
 
-			return base.GetDesiredSize(availableSize);
-		}
+		double IStroke.StrokeThickness =>
+			this.GetEnvironment<double?>(EnvironmentKeys.Shape.LineWidth) ?? 0;
 
-		internal override void Reload(bool isHotReload)
-		{
-			Content?.Reload(isHotReload);
-			base.Reload(isHotReload);
-		}
+		LineCap IStroke.StrokeLineCap => LineCap.Butt;
 
-		public override void ViewDidAppear()
-		{
-			Content?.ViewDidAppear();
-			base.ViewDidAppear();
-		}
+		LineJoin IStroke.StrokeLineJoin => LineJoin.Miter;
 
-		public override void ViewDidDisappear()
-		{
-			Content?.ViewDidDisappear();
-			base.ViewDidDisappear();
-		}
+		float[] IStroke.StrokeDashPattern => null;
 
-		public override void PauseAnimations()
-		{
-			Content?.PauseAnimations();
-			base.PauseAnimations();
-		}
+		float IStroke.StrokeDashOffset => 0;
 
-		public override void ResumeAnimations()
-		{
-			Content?.ResumeAnimations();
-			base.ResumeAnimations();
-		}
-
-		public IReadOnlyList<View> GetChildren() => new[] { Content };
-
-		Size ICrossPlatformLayout.CrossPlatformMeasure(double widthConstraint, double heightConstraint) => this.Measure(widthConstraint, heightConstraint);
-
-		Size ICrossPlatformLayout.CrossPlatformArrange(Rect bounds)
-		{
-			if (!this.MeasurementValid)
-				Measure(bounds.Width, bounds.Height);
-			this.LayoutSubviews(bounds);
-			return this.MeasuredSize;
-		}
-
-		Size IContentView.CrossPlatformMeasure(double widthConstraint, double heightConstraint) => this.Measure(widthConstraint, heightConstraint);
-
-		Size IContentView.CrossPlatformArrange(Rect bounds) => ((ICrossPlatformLayout)this).CrossPlatformArrange(bounds);
+		float IStroke.StrokeMiterLimit => 10;
 	}
 }
+

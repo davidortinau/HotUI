@@ -1,4 +1,6 @@
 using System;
+using Comet.Tests.Handlers;
+using Microsoft.Maui.Graphics;
 using Xunit;
 
 namespace Comet.Tests
@@ -74,6 +76,50 @@ namespace Comet.Tests
 
 			Microsoft.Maui.IView iview = view;
 			Assert.Equal("testId", iview.AutomationId);
+		}
+
+		[Fact]
+		public void SetAutomationIdAlsoUpdatesAccessibilityId()
+		{
+			var view = new Text("Hello");
+			view.SetAutomationId("inspect-id");
+
+			Assert.Equal("inspect-id", view.AccessibilityId);
+			Assert.Equal("inspect-id", view.AutomationId);
+		}
+
+		[Fact]
+		public void PublicInspectionPropertiesMirrorViewState()
+		{
+			var view = new Text("Hello");
+			view.SetAutomationId("counter-increment-button");
+			view.IsVisible(false);
+			view.IsEnabled(false);
+			view.Frame = new Rect(10, 20, 30, 40);
+
+			Assert.Equal("counter-increment-button", view.AutomationId);
+			Assert.False(view.IsVisible);
+			Assert.True(view.Hidden);
+			Assert.True(view.Disabled);
+			Assert.Equal(Microsoft.Maui.Visibility.Collapsed, view.Visibility);
+			Assert.Equal(view.Frame, view.Bounds);
+			Assert.Equal(view.Frame, view.WindowBounds);
+			Assert.Equal("counter-increment-button", ((Microsoft.Maui.IView)view).AutomationId);
+			Assert.False(((Microsoft.Maui.IView)view).IsEnabled);
+			Assert.Equal(Microsoft.Maui.Visibility.Collapsed, ((Microsoft.Maui.IView)view).Visibility);
+		}
+
+		[Fact]
+		public void InspectionHandlerBridgeExposesNativeType()
+		{
+			var view = new Text("Hello");
+			var handler = new GenericViewHandler();
+			view.ViewHandler = handler;
+
+			Assert.Same(handler, view.Handler);
+			Assert.Same(view, view.PlatformView);
+			Assert.Same(view, view.NativeView);
+			Assert.Equal(typeof(Text).FullName, view.NativeType);
 		}
 
 		[Fact]

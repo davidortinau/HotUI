@@ -1,13 +1,14 @@
+using static Comet.CometControls;
+
 ﻿namespace Comet.Samples;
 
-public class VGridNumberPad : View
+public class VGridNumberPad : Component
 {
-	[Body]
-	View view() => new VGrid(3)
+		public override View Render() => new VGrid(3)
 	{
-		new Button("7"),new Button("8"),new Button("9"),
-		new Button("4"),new Button("5"),new Button("6"),
-		new Button("1"),new Button("2"),new Button("3"),
-		new Button("0").NextColumn()
+		Button("7"),Button("8"),Button("9"),
+		Button("4"),Button("5"),Button("6"),
+		Button("1"),Button("2"),Button("3"),
+		Button("0").NextColumn()
 	};
 }

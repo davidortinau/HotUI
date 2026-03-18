@@ -30,7 +30,9 @@ namespace Comet
 		}
 		public static CometApp CurrentApp { get; protected set; }
 		public static CometWindow CurrentWindow { get; protected set; }
-		public static IMauiContext MauiContext => StateManager.CurrentContext ?? CurrentWindow?.MauiContext ?? ((IMauiContextHolder)CurrentApp).MauiContext;
+		public static IMauiContext MauiContext => CometContext.Current ??
+			CurrentWindow?.MauiContext ??
+			(CurrentApp as IMauiContextHolder)?.MauiContext;
 
 		public static float DisplayScale => CurrentWindow?.DisplayScale ?? 1;
 		List<IWindow> windows = new List<IWindow>();

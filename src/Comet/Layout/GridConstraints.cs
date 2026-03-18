@@ -24,10 +24,10 @@ namespace Comet.Layout
 			PositionY = positionY;
 		}
 
-		public int Row { get; internal set; }
-		public int Column { get; internal set; }
-		public int RowSpan { get; }
-		public int ColumnSpan { get; }
+		public int Row { get; set; }
+		public int Column { get; set; }
+		public int RowSpan { get; set; }
+		public int ColumnSpan { get; set; }
 		public float WeightX { get; }
 		public float WeightY { get; }
 		public float PositionX { get; }

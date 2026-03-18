@@ -1,23 +1,23 @@
 ﻿
 
 using Microsoft.Maui.Graphics;
+using static Comet.CometControls;
 
 namespace Comet.Samples
 {
-	public class AnimationSample : View
+	public class AnimationSample : Component
 	{
 		public AnimationSample()
 		{
-			Body = Build;
+			
 		}
 		readonly State<bool> shouldAnimate = true;
 		Text animatedText;
 		Button button;
-		View Build() =>
-			new VStack
-			{
-				new Text("Regular Text Behind..."),
-				(animatedText = new Text("Text to Animate!")
+		public override View Render() =>
+			VStack(
+				Text("Regular Text Behind..."),
+				(animatedText = Text("Text to Animate!")
 					.Background(Colors.Orange)
 					.Color(Colors.Blue)
 					.FontSize(10)
@@ -37,7 +37,7 @@ namespace Comet.Samples
 					//	ScaleTo = new PointF(2f, 2f),
 					//}
 					),
-				new Text("Regular Text Above...").Background(Colors.White)
+				Text("Regular Text Above...").Background(Colors.White)
 				.BeginAnimationSequence(repeats:true)
 					.Animate(duration:1,action:(text)=>{
 						text.Background(Colors.Fuchsia);
@@ -55,16 +55,16 @@ namespace Comet.Samples
 						text.Background(Colors.Fuchsia);
 						button.Background(Colors.Green);
 				}).EndAnimationSequence(),
-				new Text("Does this move?").Background(Colors.LightBlue).Frame(width:100,height:44).Animate((text)=>{
+				Text("Does this move?").Background(Colors.LightBlue).Frame(width:100,height:44).Animate((text)=>{
 					text.Frame(width:400, height: 100);
 				},duration:3,repeats:true,autoReverses:true),
-				(button = new Button("Animate", () => {
+				(button = Button("Animate", () => {
 					shouldAnimate.Value = !shouldAnimate;
 					if(shouldAnimate)
 						this.ResumeAnimations();
 					else
 						this.PauseAnimations();
 				}).Background(Colors.Transparent))
-			};
+			);
 	}
 }

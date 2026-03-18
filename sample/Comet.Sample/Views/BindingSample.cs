@@ -1,7 +1,10 @@
-﻿using System;
+using System;
+using static Comet.CometControls;
+using Comet.Reactive;
+
 namespace Comet.Samples
 {
-	public class BindingSample : View
+	public class BindingSample : Component
 	{
 		class MyBindingObject : BindingObject
 		{
@@ -21,9 +24,9 @@ namespace Comet.Samples
 		[State]
 		readonly MyBindingObject state;
 
-		readonly State<int> clickCount = 1;
+		readonly Signal<int> clickCount = new(1);
 
-		readonly State<bool> bar = false;
+		readonly Signal<bool> bar = new(false);
 
 		public BindingSample()
 		{
@@ -32,34 +35,30 @@ namespace Comet.Samples
 				Text = "Bar",
 				CanEdit = true,
 			};
-			Body = Build;
+			
 		}
 
-		View Build() =>
-			new NavigationView{ new ScrollView
-			{
-				new VStack
-				{
+		public override View Render() =>
+			NavigationView(ScrollView(
+				VStack(
 					(state.CanEdit
-						? (View) new TextField(state.Text)
-						: new Text(() => $"{state.Text}: multiText")), // Formatted Text will warn you. This should be done by TextBinding
-					new Text(state.Text),
-					new HStack
-					{
-						new Button("Toggle Entry/Label",
+						? (View) TextField(state.Text)
+						: Text(() => $"{state.Text}: multiText")), // Formatted Text will warn you. This should be done by TextBinding
+					Text(state.Text),
+					HStack(
+						Button("Toggle Entry/Label",
 							() => state.CanEdit = !state.CanEdit),
-						new Button("Update Text",
+						Button("Update Text",
 							() => state.Text = $"Click Count: {clickCount.Value++}"),
-						new Button("Update FontSize",
+						Button("Update FontSize",
 							() => {
 								var font = View.GetGlobalEnvironment<float?>(EnvironmentKeys.Fonts.Size) ?? 14;
 								var size = font + 5;
 								View.SetGlobalEnvironment (EnvironmentKeys.Fonts.Size, size);
-							}),
-					},
-					new Toggle(state.CanEdit)
-				}
-			}
-		};
+							})
+					),
+					Toggle(state.CanEdit)
+				)
+			));
 	}
 }

@@ -30,9 +30,14 @@ public partial class CometHostHandler : ViewHandler<CometHost, CometHostHandler.
 		base.DisconnectHandler(platformView);
 	}
 
-	// Fill available space
 	public override Microsoft.Maui.Graphics.Size GetDesiredSize(double widthConstraint, double heightConstraint)
 	{
+		if (VirtualView is IContentView contentView)
+		{
+			var size = contentView.CrossPlatformMeasure(widthConstraint, heightConstraint);
+			if (size.Width > 0 && size.Height > 0)
+				return size;
+		}
 		var w = double.IsInfinity(widthConstraint) ? 400 : widthConstraint;
 		var h = double.IsInfinity(heightConstraint) ? 800 : heightConstraint;
 		return new Microsoft.Maui.Graphics.Size(w, h);

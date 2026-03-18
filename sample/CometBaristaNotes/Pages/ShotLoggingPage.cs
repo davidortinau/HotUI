@@ -10,13 +10,10 @@ using Syncfusion.Maui.Gauges;
 
 using MauiLabel = Microsoft.Maui.Controls.Label;
 using MauiBorder = Microsoft.Maui.Controls.Border;
-using MauiScrollView = Microsoft.Maui.Controls.ScrollView;
 using MauiSlider = Microsoft.Maui.Controls.Slider;
-using MauiEditor = Microsoft.Maui.Controls.Editor;
 using MauiButton = Microsoft.Maui.Controls.Button;
 using MauiGrid = Microsoft.Maui.Controls.Grid;
 using MauiBoxView = Microsoft.Maui.Controls.BoxView;
-using MauiEllipse = Microsoft.Maui.Controls.Shapes.Ellipse;
 using SolidColorBrush = Microsoft.Maui.Controls.SolidColorBrush;
 using MauiFontAttributes = Microsoft.Maui.Controls.FontAttributes;
 using MauiPicker = Microsoft.Maui.Controls.Picker;
@@ -28,7 +25,9 @@ namespace CometBaristaNotes.Pages;
 /// Native MAUI controls are built once and updated directly in event handlers,
 /// avoiding full UI rebuild on each state change.
 /// </summary>
-public class ShotLoggingPage : Comet.View
+public class ShotLoggingPageState { }
+
+public class ShotLoggingPage : Component<ShotLoggingPageState>
 {
 // Edit mode: if > 0, we're editing an existing shot
 int _editingShotId = 0;
@@ -73,7 +72,7 @@ MauiLabel? _timeValueLabel;
 MauiLabel? _machineNameLabel;
 VerticalStackLayout? _additionalStack;
 Microsoft.Maui.Controls.ActivityIndicator? _savingIndicator;
-MauiButton? _saveButton;
+View? _saveButton;
 
 // Data
 List<Bag> _bags = new();
@@ -85,8 +84,7 @@ static readonly string[] DrinkTypes = { "Espresso", "Americano", "Latte", "Cappu
 
 double Ratio => _doseIn > 0 ? Math.Round(_doseOut / _doseIn, 1) : 0;
 
-[Body]
-Comet.View body()
+public override View Render()
 {
 var store = InMemoryDataStore.Instance;
 _bags = store?.GetAllBags().Where(b => !b.IsComplete).ToList() ?? new();
@@ -98,8 +96,6 @@ _profiles = store?.GetAllProfiles() ?? new();
 if (IsEditMode)
 	LoadExistingShot(store);
 
-var contentStack = new VerticalStackLayout { Spacing = Theme.SpacingM, Padding = new Thickness(Theme.SpacingM) };
-
 _savingIndicator = new Microsoft.Maui.Controls.ActivityIndicator
 {
 	Color = Theme.Primary,
@@ -107,46 +103,51 @@ _savingIndicator = new Microsoft.Maui.Controls.ActivityIndicator
 	IsVisible = false,
 	HeightRequest = 32,
 };
-contentStack.Add(_savingIndicator);
 
-contentStack.Add(BuildDoseGaugesRow());
-contentStack.Add(BuildRatioDisplay());
-contentStack.Add(BuildTimeSlider());
-contentStack.Add(BuildUserSelectionRow());
-contentStack.Add(BuildRating());
-contentStack.Add(BuildTastingNotes());
-var saveBtn = FormHelpers.MakePrimaryButton(IsEditMode ? "Update Shot" : "Add Shot", SaveShot);
-_saveButton = saveBtn as MauiButton;
-saveBtn.Margin = new Thickness(0, Theme.SpacingS, 0, 0);
-contentStack.Add(saveBtn);
+var items = new List<View>();
 
-contentStack.Add(BuildAdditionalDetails());
+// Saving indicator — MAUI ActivityIndicator, wrapped
+items.Add(new MauiViewHost(_savingIndicator));
 
+// Syncfusion gauges & imperative MAUI sections — wrapped
+items.Add(new MauiViewHost(BuildDoseGaugesRow()));
+items.Add(new MauiViewHost(BuildRatioDisplay()));
+items.Add(new MauiViewHost(BuildTimeSlider()));
+items.Add(new MauiViewHost(BuildUserSelectionRow()));
+items.Add(new MauiViewHost(BuildRating()));
+
+// Tasting notes — pure Comet
+items.Add(BuildTastingNotes());
+
+// Save button — already Comet
+var saveBtn = FormHelpers.MakePrimaryButton(IsEditMode ? "Update Shot" : "Add Shot", SaveShot)
+	.Margin(new Thickness(0, Theme.SpacingS, 0, 0));
+_saveButton = saveBtn;
+items.Add(saveBtn);
+
+// Additional details — MAUI, wrapped
+items.Add(new MauiViewHost(BuildAdditionalDetails()));
+
+// Delete button — pure Comet
 if (IsEditMode)
 {
-	var deleteBtn = new MauiButton
-	{
-		Text = "Delete Shot",
-		FontFamily = Theme.FontSemibold,
-		FontSize = 16,
-		TextColor = Theme.Error,
-		BackgroundColor = Colors.Transparent,
-		BorderWidth = 1,
-		BorderColor = Theme.Error,
-		CornerRadius = (int)Theme.RadiusPill,
-		HeightRequest = Theme.ButtonHeight,
-	};
-	deleteBtn.Clicked += async (s, e) => await DeleteShot();
-	deleteBtn.Margin = new Thickness(0, Theme.SpacingS, 0, Theme.SpacingXL);
-	contentStack.Add(deleteBtn);
+	items.Add(Button("Delete Shot", async () => await DeleteShot())
+		.FontFamily(Theme.FontSemibold).FontSize(16)
+		.Color(Theme.Error).Background(Colors.Transparent)
+		.CornerRadius((int)Theme.RadiusPill)
+		.Frame(height: Theme.ButtonHeight)
+		.Margin(new Thickness(0, Theme.SpacingS, 0, Theme.SpacingXL)));
 }
 else
 {
-	saveBtn.Margin = new Thickness(0, Theme.SpacingS, 0, Theme.SpacingXL);
+	saveBtn.Margin(new Thickness(0, Theme.SpacingS, 0, Theme.SpacingXL));
 }
 
-var scrollView = new MauiScrollView { Content = contentStack, BackgroundColor = Theme.Background };
-return new MauiViewHost(scrollView);
+var stack = VStack(Theme.SpacingM);
+foreach (var item in items) stack.Add(item);
+stack.Padding(new Thickness(Theme.SpacingM));
+
+return ScrollView(stack).Background(Theme.Background);
 }
 
 Microsoft.Maui.Controls.View BuildDoseGaugesRow()
@@ -331,7 +332,7 @@ try
 var equipment = InMemoryDataStore.Instance?.GetAllEquipment() ?? new List<Models.Equipment>();
 if (equipment.Count == 0)
 {
-	var alertPage = Application.Current?.Windows.FirstOrDefault()?.Page;
+	var alertPage = Services.PageHelper.GetCurrentPage();
 	if (alertPage != null)
 		await alertPage.DisplayAlertAsync("No Equipment", "Add equipment in Settings first.", "OK");
 	return;
@@ -409,13 +410,13 @@ catch (Exception ex)
 {
 	System.Diagnostics.Debug.WriteLine($"[Equipment] ERROR: {ex}");
 	// Fallback to action sheet
-	var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+	var page = Services.PageHelper.GetCurrentPage();
 	if (page != null)
 	{
 		var equipment = InMemoryDataStore.Instance?.GetAllEquipment() ?? new List<Models.Equipment>();
 		var names = equipment.OrderBy(e => e.Type).ThenBy(e => e.Name)
 			.Select(e => $"{e.Type}: {e.Name}").ToArray();
-		var result = await page.DisplayActionSheet("Select Equipment", "Cancel", null, names);
+		var result = await page.DisplayActionSheetAsync("Select Equipment", "Cancel", null, names);
 		if (result != null && result != "Cancel")
 		{
 			var selected = equipment.FirstOrDefault(e => $"{e.Type}: {e.Name}" == result);
@@ -645,8 +646,10 @@ try
 catch
 {
 	// Fallback to ActionSheet if UXDivers popup fails
-	var result = await Application.Current?.Windows.FirstOrDefault()?.Page?.DisplayActionSheet(
-		title, "Cancel", null, items.ToArray())!;
+	var fallbackPage = Services.PageHelper.GetCurrentPage();
+	var result = fallbackPage != null
+		? await fallbackPage.DisplayActionSheetAsync(title, "Cancel", null, items.ToArray())
+		: null;
 	if (result != null && result != "Cancel")
 	{
 		var idx = items.IndexOf(result);
@@ -740,29 +743,24 @@ row.Add(lbl);
 return row;
 }
 
-Microsoft.Maui.Controls.View BuildTastingNotes()
-{
-var stack = new VerticalStackLayout { Spacing = 0 };
-stack.Add(new MauiLabel { Text = "Tasting Notes (optional)", FontFamily = Theme.FontRegular, FontSize = 12, TextColor = Theme.TextSecondary, Margin = new Thickness(16, 0, 0, 4) });
-
-var editor = new MauiEditor
-{
-Text = _tastingNotes, FontSize = 16, FontFamily = Theme.FontRegular,
-TextColor = Theme.TextPrimary, BackgroundColor = Colors.Transparent, HeightRequest = 80,
-Placeholder = "E.g., bright, fruity, slightly sour...",
-Margin = new Thickness(16, 8),
-};
-editor.TextChanged += (s, e) => _tastingNotes = e.NewTextValue ?? "";
-
-var border = new MauiBorder
-{
-Content = editor, StrokeThickness = 0,
-StrokeShape = new RoundRectangle { CornerRadius = Theme.RadiusEditor },
-BackgroundColor = Theme.SurfaceVariant,
-};
-stack.Add(border);
-return stack;
-}
+View BuildTastingNotes() =>
+	VStack(
+		Text("Tasting Notes (optional)")
+			.FontFamily(Theme.FontRegular).FontSize(12).Color(Theme.TextSecondary)
+			.Margin(new Thickness(16, 0, 0, 4)),
+		Border(
+			TextEditor(_tastingNotes)
+				.FontSize(16).FontFamily(Theme.FontRegular)
+				.Color(Theme.TextPrimary).Background(Colors.Transparent)
+				.Frame(height: 80)
+				.Margin(new Thickness(16, 8))
+				.Placeholder("E.g., bright, fruity, slightly sour...")
+				.OnTextChanged(v => _tastingNotes = v)
+		)
+		.CornerRadius(Theme.RadiusEditor)
+		.Background(Theme.SurfaceVariant)
+		.StrokeThickness(0)
+	);
 
 // Bag picker reference for refreshing after inline creation
 MauiPicker? _bagPicker;
@@ -822,7 +820,7 @@ return stack;
 
 async Task AddNewBeanInline()
 {
-var page = Microsoft.Maui.Controls.Shell.Current?.CurrentPage;
+var page = Services.PageHelper.GetCurrentPage();
 if (page == null) return;
 
 var beanName = await page.DisplayPromptAsync(
@@ -966,7 +964,7 @@ if (_savingIndicator != null)
 	_savingIndicator.IsVisible = true;
 }
 if (_saveButton != null)
-	_saveButton.IsEnabled = false;
+	_saveButton.IsEnabled(false);
 
 var store = InMemoryDataStore.Instance;
 if (store == null)
@@ -979,7 +977,7 @@ var bagIdx = _selectedBagIndex;
 if (bagIdx < 0 && _bags.Count > 0) bagIdx = 0;
 if (bagIdx < 0 || bagIdx >= _bags.Count)
 {
-	Microsoft.Maui.Controls.Application.Current?.Dispatcher.Dispatch(async () =>
+	Services.PageHelper.DispatchOnMainThread(async () =>
 	{
 		await _feedbackService.ShowWarning("Please select a coffee bag before saving your shot. Add a bag in Settings if none are available.");
 	});
@@ -1022,12 +1020,12 @@ else
 	store.CreateShot(record);
 }
 
-Microsoft.Maui.Controls.Application.Current?.Dispatcher.Dispatch(async () =>
+Services.PageHelper.DispatchOnMainThread(async () =>
 {
 	if (IsEditMode)
 	{
 		await _feedbackService.ShowSuccess($"Your {drinkType} shot ({_doseIn:F1}g dose) has been updated.");
-		await Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+		Navigation?.Pop();
 	}
 	else
 	{
@@ -1045,12 +1043,12 @@ void SetSavingState(bool isSaving)
 		_savingIndicator.IsVisible = isSaving;
 	}
 	if (_saveButton != null)
-		_saveButton.IsEnabled = !isSaving;
+		_saveButton.IsEnabled(!isSaving);
 }
 
 async Task DeleteShot()
 {
-	var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+	var page = Services.PageHelper.GetCurrentPage();
 	if (page == null) return;
 
 	var confirm = await page.DisplayAlertAsync(
@@ -1061,7 +1059,7 @@ async Task DeleteShot()
 	if (confirm)
 	{
 		InMemoryDataStore.Instance?.DeleteShot(_editingShotId);
-		await Microsoft.Maui.Controls.Shell.Current.GoToAsync("..");
+		Navigation?.Pop();
 	}
 }
 

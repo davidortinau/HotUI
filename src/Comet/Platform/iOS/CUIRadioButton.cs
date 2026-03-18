@@ -3,7 +3,7 @@ using UIKit;
 
 namespace Comet.iOS
 {
-	class CUIRadioButton : UIButton
+	public class CUIRadioButton : UIButton
 	{
 		private const float CONTENT_SPACING = 10;
 
@@ -14,32 +14,17 @@ namespace Comet.iOS
 
 		public event EventHandler IsCheckedChanged;
 
+		private UIColor _foregroundColor = UIColor.SystemBlue;
+		private string _title;
+		private bool _isChecked;
+
 		public CUIRadioButton(bool isChecked = false)
 		{
-			SetImage(_isChecked ? SelectedImage : DeselectedImage, UIControlState.Normal);
-			IsChecked = isChecked;
-
-			SetTitleColor(UIColor.Blue, UIControlState.Normal);
-
-			var config = UIButtonConfiguration.PlainButtonConfiguration;
-			config.ContentInsets = new NSDirectionalEdgeInsets(0, CONTENT_SPACING, 0, CONTENT_SPACING);
-			config.TitlePadding = CONTENT_SPACING;
-			Configuration = config;
-
+			_isChecked = isChecked;
+			HorizontalAlignment = UIControlContentHorizontalAlignment.Left;
+			ApplyConfiguration();
 			TouchUpInside += (sender, e) => { if (!IsChecked) IsChecked = true; };
 		}
-
-		public override void SetTitleColor(UIColor color, UIControlState forState)
-		{
-			base.SetTitleColor(color, forState);
-
-			if (forState == UIControlState.Normal)
-			{
-				ImageView.TintColor = color;
-			}
-		}
-
-		private bool _isChecked = false;
 
 		public bool IsChecked
 		{
@@ -49,10 +34,43 @@ namespace Comet.iOS
 				if (_isChecked != value)
 				{
 					_isChecked = value;
-					SetImage(_isChecked ? SelectedImage : DeselectedImage, UIControlState.Normal);
+					ApplyConfiguration();
 					IsCheckedChanged?.Invoke(this, new EventArgs());
 				}
 			}
+		}
+
+		// UIButtonConfiguration takes over all rendering — legacy SetTitle/SetTitleColor
+		// are ignored once Configuration is set. Override them to update through the
+		// configuration instead.
+		public override void SetTitle(string title, UIControlState forState)
+		{
+			if (forState == UIControlState.Normal)
+			{
+				_title = title;
+				ApplyConfiguration();
+			}
+		}
+
+		public override void SetTitleColor(UIColor color, UIControlState forState)
+		{
+			if (forState == UIControlState.Normal && color != null)
+			{
+				_foregroundColor = color;
+				ApplyConfiguration();
+			}
+		}
+
+		void ApplyConfiguration()
+		{
+			var config = UIButtonConfiguration.PlainButtonConfiguration;
+			config.Image = _isChecked ? SelectedImage : DeselectedImage;
+			config.ImagePadding = CONTENT_SPACING;
+			config.BaseForegroundColor = _foregroundColor;
+			config.ContentInsets = new NSDirectionalEdgeInsets(4, 0, 4, 0);
+			if (_title != null)
+				config.Title = _title;
+			Configuration = config;
 		}
 	}
 }
