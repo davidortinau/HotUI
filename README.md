@@ -108,11 +108,6 @@ Comet requires .NET 10 with the MAUI workload.
 
 ```bash
 dotnet workload install maui
-```
-
-Add the NuGet package to your project:
-
-```bash
 dotnet add package Clancey.Comet
 ```
 
@@ -125,50 +120,76 @@ builder.UseCometHandlers();
 return builder.Build();
 ```
 
-Then define your app as a `View`:
-
-```csharp
-public class MyApp : View
-{
-    [Body]
-    View body() => new CounterView();
-}
-```
-
 ## Hot Reload
 
 MAUI's built-in hot reload works with Comet. Change a `[Body]` method, save, and the view updates on the running app. State is preserved across reloads.
 
-## Fluent API
+## Styling
 
-Layout and styling use method chaining:
+Every visual property is a fluent method call. No XAML styles, no CSS, no resource dictionaries.
+
+```csharp
+new Text("Welcome")
+    .FontSize(24)
+    .FontWeight(FontWeight.Bold)
+    .Color(Colors.White)
+    .Background(Colors.DodgerBlue)
+    .Padding(new Thickness(16, 12))
+    .Shadow(Colors.Black, radius: 4f, x: 0f, y: 2f)
+    .ClipShape(new RoundRectangle().CornerRadius(8))
+```
+
+### Cascading Styles
+
+Font properties cascade by default. Set `.FontSize()` on a container and every `Text` child inherits it — like SwiftUI's `.font()` modifier on a `VStack`:
 
 ```csharp
 new VStack {
-    new Text(() => $"Count: {count.Value}")
-        .FontSize(48)
-        .Color(Colors.DodgerBlue),
-    new HStack {
-        new Button("OK", onOk),
-        new Button("Cancel", onCancel)
-    }
+    new Text("Title"),
+    new Text("Subtitle"),
+    new Text("Body text")
 }
+.FontSize(18)
+.Color(Colors.DarkSlateGray)
+```
+
+All three labels render at size 18 in dark slate gray. No per-element styling needed.
+
+### Type-Targeted Styles
+
+Apply a style to a specific control type within a container. Only views of that type pick it up:
+
+```csharp
+new VStack {
+    new Text("Styled label"),
+    new Button("Styled button", () => { }),
+    new Text("Also styled")
+}
+.Color(typeof(Text), Colors.Navy)
+.Background(typeof(Button), Colors.Orange)
+.Shadow(Colors.Gray, radius: 3f, type: typeof(Button))
+```
+
+The `Text` views turn navy. The `Button` gets an orange background and a shadow. Each type receives only its targeted properties.
+
+### Custom Environment Values
+
+The styling system is built on a key-value environment that propagates down the view tree. You can store and retrieve custom values the same way:
+
+```csharp
+// Set a custom value on a parent — all descendants can read it
+new VStack { ... }
+    .SetEnvironment("App.Accent", Colors.Coral, cascades: true);
+
+// Read it in a child view
+var accent = this.GetEnvironment<Color>("App.Accent");
 ```
 
 ## Navigation
 
-Comet includes a fluent Shell wrapper and typed navigation:
+Fluent Shell wrapper with typed navigation — no route strings at call sites:
 
 ```csharp
-CometShell.RegisterRoute<DetailPage>("detail");
-
-var shell = new CometShell()
-    .AddItem("Projects", item => item
-        .WithRoute("//projects")
-        .AddSection("Browse", section => section
-            .AddContent<ListPage>("List")));
-
-// Navigate with typed parameters
 Navigation.Navigate<DetailPage>(new DetailProps { Id = 42 });
 ```
 
