@@ -8,14 +8,16 @@ namespace Comet.iOS
 {
 	public class CometView : UIView, IReloadHandler
 	{
+		bool _inLayout;
+
 		public CometView(IMauiContext mauiContext) {
 			MauiContext = mauiContext;
-			BackgroundColor = UIColor.White;
+			BackgroundColor = UIColor.SystemBackground;
 		}
 		public CometView(CGRect rect, IMauiContext mauiContext) : base(rect)
 		{
 			MauiContext = mauiContext;
-			BackgroundColor = UIColor.White;
+			BackgroundColor = UIColor.SystemBackground;
 		}
 		IView _view;
 		public IView CurrentView
@@ -70,11 +72,30 @@ namespace Comet.iOS
 
 		public override void LayoutSubviews()
 		{
-			base.LayoutSubviews();
-			if (currentPlatformView == null)
+			if (_inLayout)
 				return;
-			_view?.Measure(Bounds.Width, Bounds.Height);
-			currentPlatformView.Frame = Bounds;
+			_inLayout = true;
+			try
+			{
+				base.LayoutSubviews();
+				if (currentPlatformView == null || Bounds.Width <= 0 || Bounds.Height <= 0)
+					return;
+
+				// Invalidate measurement so the view tree remeasures with
+				// new constraints (critical for device rotation).
+				if (_view is View cometView)
+					cometView.MeasurementValid = false;
+
+				_view?.Measure(Bounds.Width, Bounds.Height);
+				_view?.Arrange(new Microsoft.Maui.Graphics.Rect(0, 0, Bounds.Width, Bounds.Height));
+				currentPlatformView.Frame = Bounds;
+				currentPlatformView.SetNeedsLayout();
+				currentPlatformView.LayoutIfNeeded();
+			}
+			finally
+			{
+				_inLayout = false;
+			}
 		}
 
 

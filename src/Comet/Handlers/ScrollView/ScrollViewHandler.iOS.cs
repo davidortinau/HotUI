@@ -22,15 +22,35 @@ namespace Comet.Handlers
 
 		void Arange(Rect rect)
 		{
-			var sizeAllowed = this.VirtualView.Orientation == Orientation.Vertical ? new Size(rect.Width, Double.PositiveInfinity) : new Size(Double.PositiveInfinity, rect.Height);
+			var isVertical = this.VirtualView.Orientation == Orientation.Vertical;
+			var sizeAllowed = isVertical
+				? new Size(rect.Width, Double.PositiveInfinity)
+				: new Size(Double.PositiveInfinity, rect.Height);
+
+			// Invalidate content measurement so it picks up the new width/height
+			// constraint (e.g. after rotation).
+			if (VirtualView?.Content is View contentView)
+				contentView.MeasurementValid = false;
+
 			var measuredSize = VirtualView?.Content?.Measure(sizeAllowed.Width, sizeAllowed.Height) ?? Size.Zero;
-			//Make sure we at least fit the scroll view
+
 			if (double.IsInfinity(measuredSize.Width))
 				measuredSize.Width = rect.Width;
 			if (double.IsInfinity(measuredSize.Height))
 				measuredSize.Height = rect.Height;
-			measuredSize.Width = Math.Max(measuredSize.Width, rect.Width);
-			measuredSize.Height = Math.Max(measuredSize.Height, rect.Height);
+
+			// Clamp the non-scrolling dimension to the scroll view's bounds
+			// so a vertical ScrollView never scrolls horizontally and vice-versa.
+			if (isVertical)
+			{
+				measuredSize.Width = rect.Width;
+				measuredSize.Height = Math.Max(measuredSize.Height, rect.Height);
+			}
+			else
+			{
+				measuredSize.Width = Math.Max(measuredSize.Width, rect.Width);
+				measuredSize.Height = rect.Height;
+			}
 
 			PlatformView.ContentSize = measuredSize.ToCGSize();
 			_content.Frame = new CGRect(CGPoint.Empty, measuredSize);

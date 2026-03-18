@@ -45,12 +45,10 @@ namespace Comet
 			
 			if (Content != null)
 			{
-				var contentSize = Content.MeasuredSize;
-				if (!Content.MeasurementValid)
-				{
-					contentSize = Content.Measure(contentMeasureSize.Width, contentMeasureSize.Height);
-					Content.MeasuredSize = contentSize;
-				}
+				// Always remeasure content with current constraints — they change
+				// on rotation and the old cached size would be stale.
+				var contentSize = Content.Measure(contentMeasureSize.Width, contentMeasureSize.Height);
+				Content.MeasuredSize = contentSize;
 				MeasurementValid = true;
 				return MeasuredSize = new Size(
 					Math.Min(availableSize.Width, contentSize.Width),

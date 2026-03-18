@@ -42,10 +42,49 @@ namespace Comet.Styles
 
 		/// <summary>
 		/// Sets the active theme globally. Reactive — views that read tokens update.
+		/// Also syncs MAUI's Application.Current.UserAppTheme so platform chrome
+		/// (navigation bar, status bar, page backgrounds) follows the theme.
 		/// </summary>
 		public static void SetTheme(Theme theme)
 		{
 			View.SetGlobalEnvironment(ActiveThemeKey, theme);
+
+			// Sync with MAUI's theme system so native chrome respects the theme
+			SyncMauiAppTheme(theme);
+		}
+
+		/// <summary>
+		/// Maps the Comet theme's CurrentTheme to MAUI's UserAppTheme property
+		/// so navigation bars, status bars and other platform chrome follow along.
+		/// </summary>
+		static void SyncMauiAppTheme(Theme theme)
+		{
+			if (theme == null)
+				return;
+
+			try
+			{
+				var app = Microsoft.Maui.Controls.Application.Current;
+				if (app == null)
+					return;
+
+				switch (theme.CurrentTheme)
+				{
+					case AppTheme.Dark:
+						app.UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Dark;
+						break;
+					case AppTheme.Light:
+						app.UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Light;
+						break;
+					default:
+						app.UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Unspecified;
+						break;
+				}
+			}
+			catch
+			{
+				// Application.Current may not be available during startup or tests
+			}
 		}
 
 		/// <summary>

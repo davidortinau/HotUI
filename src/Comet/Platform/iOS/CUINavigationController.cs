@@ -19,7 +19,7 @@ namespace Comet.iOS
 			}
 
 			// Ensure the nav controller's view has a background for safe area coverage
-			View.BackgroundColor = UIColor.White;
+			View.BackgroundColor = UIColor.SystemBackground;
 		}
 		public override UIViewController[] PopToRootViewController(bool animated)
 		{
