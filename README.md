@@ -1,241 +1,214 @@
-<img src="https://repobeats.axiom.co/api/embed/f917a77cbbdeee19b87fa1f2f932895d1df18b56.svg" />
-
 # Comet ☄️
 
 [![dev-build](https://github.com/dotnet/Comet/actions/workflows/dev.yml/badge.svg)](https://github.com/dotnet/Comet/actions/workflows/dev.yml)  [![Clancey.Comet on fuget.org](https://www.fuget.org/packages/Clancey.Comet/badge.svg)](https://www.fuget.org/packages/Clancey.Comet)
-[Chat on Discord](https://discord.gg/7Ms7ptM)
 
+Comet is an MVU framework for [.NET MAUI](https://learn.microsoft.com/dotnet/maui/what-is-maui). Write your entire UI in C# with a reactive state system that tracks what you read and updates only what changed. No XAML, no view models, no binding markup.
 
-What is Comet? Comet is a modern way of writing cross-platform UIs. Based on [.NET MAUI](https://docs.microsoft.com/en-us/dotnet/maui/what-is-maui), it follows the Model View Update (MVU) pattern and magically databinds for you!
+```csharp
+public class MyApp : View
+{
+    [Body]
+    View body() => new Text("Hello, Comet!");
+}
+```
 
-Watch this video to get a preview of the developer experience:
+## Reactive State
 
-[![Video Demo](http://img.youtube.com/vi/-Ieg9UadN8s/0.jpg)](http://www.youtube.com/watch?v=-Ieg9UadN8s)
+One primitive: `Reactive<T>`. Declare it, read `.Value` in a lambda, write `.Value` anywhere. The UI updates automatically.
+
+```csharp
+public class CounterView : View
+{
+    readonly Reactive<int> count = 0;
+
+    [Body]
+    View body() => new VStack {
+        new Text(() => $"Count: {count.Value}"),
+        new Button("Increment", () => count.Value++)
+    };
+}
+```
+
+When the button increments `count.Value`, only the `Text` control updates — `body()` does not re-execute. Comet tracks the read inside the lambda and performs a fine-grained update at the control level.
+
+### Two-Way Binding
+
+Bind a `Reactive<T>` to input controls. Typing updates the signal; changing the signal updates the control.
+
+```csharp
+public class GreetingView : View
+{
+    readonly Reactive<string> name = "World";
+
+    [Body]
+    View body() => new VStack {
+        new Text(() => $"Hello, {name.Value}!"),
+        new TextField(() => name.Value, () => "Enter name")
+            .OnTextChanged(v => name.Value = v ?? "")
+    };
+}
+```
+
+## Before / After: XAML+MVVM vs Comet
+
+A text field bound to a greeting label.
+
+**XAML + MVVM** — 3 files, ~30 lines:
+
+```xml
+<!-- GreetingPage.xaml -->
+<VerticalStackLayout>
+    <Label Text="{Binding Greeting}" />
+    <Entry Text="{Binding Name, Mode=TwoWay}" />
+</VerticalStackLayout>
+```
+```csharp
+// GreetingViewModel.cs
+public partial class GreetingViewModel : ObservableObject
+{
+    [ObservableProperty] string name = "World";
+    public string Greeting => $"Hello, {Name}!";
+
+    partial void OnNameChanged(string value) =>
+        OnPropertyChanged(nameof(Greeting));
+}
+```
+```csharp
+// GreetingPage.xaml.cs
+public partial class GreetingPage : ContentPage
+{
+    public GreetingPage() {
+        InitializeComponent();
+        BindingContext = new GreetingViewModel();
+    }
+}
+```
+
+**Comet** — 1 file, 10 lines:
+
+```csharp
+public class GreetingView : View
+{
+    readonly Reactive<string> name = "World";
+
+    [Body]
+    View body() => new VStack {
+        new Text(() => $"Hello, {name.Value}!"),
+        new TextField(() => name.Value, () => "Enter name")
+            .OnTextChanged(v => name.Value = v ?? "")
+    };
+}
+```
+
+Same result. The binding, change notification, and UI update are all handled by `Reactive<T>`.
 
 ## Getting Started
 
-When you're ready to take a ride on the Comet, head over to the wiki and follow the [Getting Started](https://github.com/Clancey/Comet/wiki/Getting-Started) guide.
+Comet requires .NET 10 with the MAUI workload.
 
-## Evolved MVU Surface
-
-Comet now ships an evolved, component-first MVU surface alongside the classic `[Body]` API. The project name, package name, and namespaces stay **Comet** — you migrate the API surface, not the brand.
-
-``` cs
-public class CounterPage : Component<CounterState>
-{
-public override View Render() =>
-new VStack
-{
-new Text($"Count: {State.Count}"),
-new Button("Increment", () => SetState(s => s.Count++)),
-};
-}
+```bash
+dotnet workload install maui
 ```
 
-Use the evolved surface when you want:
+Add the NuGet package to your project:
 
-- `Component<TState>` for local state managed with `SetState(...)`
-- `Component<TState, TProps>` for typed props passed during navigation
-- `Reactive<T>` for lightweight reactive values outside component state classes
-- typed navigation through `Navigation.Navigate<TView>(props)` or `CometShell.GoToAsync<TView>(props)`
+```bash
+dotnet add package Clancey.Comet
+```
 
-Reference implementations:
+Register Comet handlers in `MauiProgram.cs`:
 
-- [Comet Counter sample](sample/CometMauiApp/README.md)
-- [Barista Notes coffee sample](sample/CometBaristaNotes/README.md)
-- [Comet TaskApp sample](sample/CometTaskApp)
-- [Comet AllTheLists sample](sample/CometAllTheLists)
-- [Migration guide](docs/migration-guide.md)
+```csharp
+var builder = MauiApp.CreateBuilder();
+builder.UseMauiApp<MyApp>();
+builder.UseCometHandlers();
+return builder.Build();
+```
 
-For sample-grade tab layouts today, prefer `TabView` + `NavigationView` tabs while `TabbedPage` handler wiring remains unfinished.
+Then define your app as a `View`:
 
-## Key Concepts
-
-### Classic `[Body]` surface (still supported)
-
-Comet is based on the MVU architecture:
-
-![MVU pattern](art/mvu-pattern.png)
-
-`View` is a screen. Views have a `Body` method that you can assign either by using an attribute `[Body]`:
-
-``` cs
-public class MyPage : View {
+```csharp
+public class MyApp : View
+{
     [Body]
-    View body () => new Text("Hello World");
+    View body() => new CounterView();
 }
 ```
 
-Or manually from your constructor:
+## Hot Reload
 
-``` cs
-public class MyPage : View {
-    public MyPage() {
-        Body = body;
+MAUI's built-in hot reload works with Comet. Change a `[Body]` method, save, and the view updates on the running app. State is preserved across reloads.
+
+## Fluent API
+
+Layout and styling use method chaining:
+
+```csharp
+new VStack {
+    new Text(() => $"Count: {count.Value}")
+        .FontSize(48)
+        .Color(Colors.DodgerBlue),
+    new HStack {
+        new Button("OK", onOk),
+        new Button("Cancel", onCancel)
     }
-    View body () => new Text("Hello World");
 }
 ```
 
 ## Navigation
 
-Comet now includes a fluent Shell wrapper plus typed navigation helpers so you can keep route names out of call sites:
+Comet includes a fluent Shell wrapper and typed navigation:
 
-``` cs
-CometShell.RegisterRoute<ProjectDetailPage>("project-detail");
+```csharp
+CometShell.RegisterRoute<DetailPage>("detail");
 
 var shell = new CometShell()
     .AddItem("Projects", item => item
         .WithRoute("//projects")
         .AddSection("Browse", section => section
-            .AddContent<ProjectListPage>("List")));
+            .AddContent<ListPage>("List")));
 
-await new Button("Open").GoToAsync<ProjectDetailPage>(new { id = 42 });
+// Navigate with typed parameters
+Navigation.Navigate<DetailPage>(new DetailProps { Id = 42 });
 ```
 
-If the destination is a `Component<TState, TProps>`, typed navigation will apply a matching props object before the view is presented.
+## MAUI Interop
 
-Inside a `NavigationView`, you can use the same typed-parameter pattern without route strings:
+Embed MAUI views in Comet or Comet views in MAUI:
 
-``` cs
-Navigation.Navigate<ProjectDetailPage>(new ProjectDetailProps { Id = 42 });
+- **`CometHost`** — use a Comet `View` inside a MAUI `ContentPage`
+- **`MauiViewHost`** — use a MAUI `IView` inside a Comet view tree
+- **`NativeHost`** — embed raw platform views (`UIView`, `Android.Views.View`)
+
+## Samples
+
+The [`sample/`](sample/) directory contains working apps:
+
+| Sample | What it demonstrates |
+|--------|---------------------|
+| [CometControlsGallery](sample/CometControlsGallery) | 30+ controls with sidebar navigation |
+| [Comet.Sample](sample/Comet.Sample) | 50+ component and feature demos |
+| [CometMauiApp](sample/CometMauiApp) | Minimal starter template |
+| [CometTaskApp](sample/CometTaskApp) | TabView navigation pattern |
+| [CometBaristaNotes](sample/CometBaristaNotes) | Real app with Syncfusion gauges |
+| [CometStressTest](sample/CometStressTest) | Performance and stress tests |
+
+## Build
+
+```bash
+# Source generator first, then the framework
+dotnet build src/Comet.SourceGenerator/Comet.SourceGenerator.csproj -c Release
+dotnet build src/Comet/Comet.csproj -c Release
+
+# Tests
+dotnet build tests/Comet.Tests/Comet.Tests.csproj -c Release
+dotnet test tests/Comet.Tests/Comet.Tests.csproj --no-build -c Release
 ```
 
-## Interop
+## Platforms
 
-Comet now ships a three-way host bridge:
+Comet targets every platform .NET MAUI supports: **Android**, **iOS**, **macOS (Catalyst)**, and **Windows**.
 
-- `MauiViewHost` embeds a MAUI `IView` inside a Comet view tree.
-- `NativeHost` embeds a raw platform view and lets you synchronize native properties from Comet state.
-- `CometHost` embeds a Comet `View` inside MAUI pages and controls.
+## Disclaimer
 
-``` cs
-var host = new NativeHost(ctx => CreateNativeLabel(ctx))
-    .Sync("Text", "Hello native", (native, text) => UpdateNativeLabel(native, text))
-    .Frame(height: 44);
-```
-
-Use the `NativeHost` factory to return the raw platform view you want to host (`UIView`, `Android.Views.View`, or `FrameworkElement`).
-
-## Hot Reload
-
-Using Hot Reload is the fastest way to develop your user interface.
-
-The setup is simple and only requires a few steps:
-1. Install the Visual Studio extension `Comet.Reload` from [Releases](https://github.com/dotnet/Comet/releases) (or [Comet for .NET Mobile](https://marketplace.visualstudio.com/items?itemName=Clancey.comet-debug) if you use Visual Studio Code)
-2. Install the [Comet project template](https://www.nuget.org/packages/Clancey.Comet.Templates.Multiplatform) available on NuGet.
-3. Add this short snippet to your `AppDelegate.cs` and/or `MainActivity.cs`, or equivalent.
-
-``` cs
-#if DEBUG
-Comet.Reload.Init();
-#endif
-```
-
- See the sample projects [here](https://github.com/dotnet/Comet/tree/dev/sample) for examples.
-
-## State
-
-As of right now there are two supported families of state APIs. The evolved surface uses `Component<TState>` / `Component<TState, TProps>` with `SetState(...)`; the classic surface below uses `State<T>` and `[State]`.
-
-### 1. Simple data types like int, bool?
-
-Just add a `State<T>` field to your View
-
-``` cs
-class MyPage : View {
-    readonly State<int> clickCount = 1;
-}
-```
-
-`View` is state aware. When the state changes, databinding will automatically update, or rebuild the view as needed.
-
-### 2. Do you want to use more complex data types?
-
-You can either implement [INotifyPropertyRead](https://github.com/Clancey/Comet/blob/master/src/Comet/BindingObject.cs#L13) or you can use [BindingObject](https://github.com/Clancey/Comet/blob/master/src/Comet/BindingObject.cs) to make it even simpler.
-
-Add it as a Field/Property, and add the `[State]` attribute!
-
-
-``` cs
-public class MainPage : View {
-    class MyBindingObject : BindingObject {
-        public bool CanEdit {
-            get => GetProperty<bool> ();
-            set => SetProperty (value);
-        }
-        public string Text {
-            get => GetProperty<string> ();
-            set => SetProperty (value);
-        }
-    }
-
-    [State]
-    readonly MyBindingObject state;
-}
-
-```
-
-`INotifyPropertyRead` is just like `INotifyPropertyChanged`. Just call `PropertyRead` whenever a property getter is called. And `PropertyChanged` whenever a property value changes.
-
-### How do I use the State?
-
-Simply update the stateful value and the framework handles the rest.
-
-``` cs
-public class MyPage : View {
-
-    readonly State<int> clickCount = 1;
-    readonly State<string> text = "Hello World";
-
-    public MyPage() {
-        Body = () => new VStack {
-            new Text (text),
-            new Button("Update Text", () => state.Text = $"Click Count: {clickCount.Value++}")
-        };
-
-    }
-}
-```
-
-That is all!, now when the text changes everything updates.
-
-### What if I want to format my value without an extra state property?
-
-While `new Button("Update Text", () => state.Text = $"Click Count: {clickCount.Value++}" )` works, it isn't efficient.
-
-Instead, use `new Text(()=> $"Click Count: {clickCount}")`.
-
-``` cs
-public class MyPage : View {
-
-    readonly State<int> clickCount = new State<int> (1);
-
-    public MyPage() {
-        Body = () => new VStack {
-            new Text (() => $"Click Count: {clickCount}"),
-            new Button("Update Text", () => {
-                clickCount.Value++;
-            }
-        };
-    }
-}
-
-```
-
-
-## What platforms are supported?
-
-Comet is developed on top of .NET MAUI handlers, providing its own implementation for interfaces such as `Microsoft.Maui.IButton` and other controls. Any platform supported by .NET MAUI can be targeted:
-
-* Windows
-* Android
-* iOS
-* macOS
-* Blazor
-
-Non-MAUI application models, such as UWP or WPF, are not supported.
-
-# Disclaimer
-
-Comet is a **proof of concept**. There is **no** official support. Use at your own risk.
+Comet is a **proof of concept**. There is no official support. Use at your own risk.
