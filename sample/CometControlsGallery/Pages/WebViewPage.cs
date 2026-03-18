@@ -1,6 +1,7 @@
 using System;
 using Comet;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
 using static Comet.CometControls;
 
@@ -49,9 +50,8 @@ namespace CometControlsGallery.Pages
 					.Frame(width: 60)
 				),
 
-				// Try explicit width + height frame AND FillHorizontal
 				webView
-					.Frame(width: 900, height: 600)
+					.Frame(height: DeviceInfo.Idiom == DeviceIdiom.Phone ? 400 : 600)
 			}
 			.Title("WebView")
 			.Padding(20);

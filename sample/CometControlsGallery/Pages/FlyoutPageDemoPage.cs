@@ -38,35 +38,47 @@ namespace CometControlsGallery.Pages
 				.FontSize(13)
 				.Color(Colors.Grey),
 
-			// Sidebar + Detail layout
-			Grid(
-				new object[] { 200, "*" },
-				null,
-				// Sidebar
-				ScrollView(
-					VStack((float?)0, BuildMenuItems())
+			// Sidebar + Detail layout (adaptive for phone)
+			DeviceInfo.Idiom == DeviceIdiom.Phone
+				? (View)VStack(12,
+					// On phone, show menu as horizontal scroll strip
+					ScrollView(Orientation.Horizontal,
+						HStack(4, BuildMenuItems())
+					).Frame(height: 44),
+					Text(() => State.SelectedTitle)
+						.FontSize(20)
+						.FontWeight(FontWeight.Bold)
+						.Color(() => State.SelectedColor),
+					Text(() => $"{State.MessageCount} messages")
+						.FontSize(14)
+						.Color(Colors.Grey),
+					BuildMessageList()
 				)
-				.Background(Color.FromArgb("#F5F5F5"))
-				.Frame(height: 400)
-				.Cell(row: 0, column: 0),
-
-				// Detail
-				ScrollView(
-					VStack(12,
-						Text(() => State.SelectedTitle)
-							.FontSize(20)
-							.FontWeight(FontWeight.Bold)
-							.Color(() => State.SelectedColor),
-						Text(() => $"{State.MessageCount} messages")
-							.FontSize(14)
-							.Color(Colors.Grey),
-						BuildMessageList()
+				: Grid(
+					new object[] { 200, "*" },
+					null,
+					ScrollView(
+						VStack((float?)0, BuildMenuItems())
 					)
-					.Padding(new Thickness(24))
+					.Background(Color.FromArgb("#F5F5F5"))
+					.Frame(height: 400)
+					.Cell(row: 0, column: 0),
+					ScrollView(
+						VStack(12,
+							Text(() => State.SelectedTitle)
+								.FontSize(20)
+								.FontWeight(FontWeight.Bold)
+								.Color(() => State.SelectedColor),
+							Text(() => $"{State.MessageCount} messages")
+								.FontSize(14)
+								.Color(Colors.Grey),
+							BuildMessageList()
+						)
+						.Padding(new Thickness(24))
+					)
+					.Frame(height: 400)
+					.Cell(row: 0, column: 1)
 				)
-				.Frame(height: 400)
-				.Cell(row: 0, column: 1)
-			)
 		);
 
 		View[] BuildMenuItems()

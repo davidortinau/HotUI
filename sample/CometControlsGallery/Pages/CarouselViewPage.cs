@@ -55,7 +55,13 @@ namespace CometControlsGallery.Pages
 						.CornerRadius(12)
 						.StrokeThickness(0),
 					Position = position,
-					PositionChanged = pos => position.Value = pos,
+					PositionChanged = pos =>
+					{
+						// Guard: only write when value actually changes to prevent
+						// body rebuild -> carousel recreate -> flash-back loop
+						if (pos != position.Value)
+							position.Value = pos;
+					},
 				}
 				.Frame(height: 300),
 

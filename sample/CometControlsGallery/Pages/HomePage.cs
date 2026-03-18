@@ -34,7 +34,7 @@ namespace CometControlsGallery.Pages
 
 		[Body]
 		View body() =>
-			ScrollView(
+			ScrollView(Orientation.Vertical,
 				VStack(16,
 					Text(PlatformTitle)
 						.FontSize(32)

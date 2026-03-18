@@ -1,6 +1,7 @@
 using System;
 using Comet;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
 using static Comet.CometControls;
 
@@ -18,34 +19,38 @@ namespace CometControlsGallery.Pages
 						canvas.FillColor = Colors.Gray.WithAlpha(0.1f);
 						canvas.FillRectangle(0, 0, rect.Width, rect.Height);
 
+						// Adaptive: divide available width into 5 columns
+						float col = rect.Width / 5f;
+						float r = Math.Min(col * 0.4f, 45);
+
 						canvas.StrokeColor = Colors.DodgerBlue;
 						canvas.StrokeSize = 3;
-						canvas.DrawCircle(60, 70, 45);
+						canvas.DrawCircle(col * 0.5f, 70, r);
 						canvas.FontSize = 11;
 						canvas.FontColor = Colors.DodgerBlue;
-						canvas.DrawString("Circle", 15, 115, 90, 20, HorizontalAlignment.Center, VerticalAlignment.Top);
+						canvas.DrawString("Circle", col * 0, 115, col, 20, HorizontalAlignment.Center, VerticalAlignment.Top);
 
 						canvas.FillColor = Colors.Coral;
-						canvas.FillEllipse(140, 35, 90, 60);
+						canvas.FillEllipse(col * 1 + 5, 35, col - 10, 60);
 						canvas.FontColor = Colors.Coral;
-						canvas.DrawString("Ellipse", 140, 115, 90, 20, HorizontalAlignment.Center, VerticalAlignment.Top);
+						canvas.DrawString("Ellipse", col * 1, 115, col, 20, HorizontalAlignment.Center, VerticalAlignment.Top);
 
 						canvas.StrokeColor = Colors.MediumSeaGreen;
 						canvas.StrokeSize = 2;
-						canvas.DrawRectangle(270, 30, 80, 70);
+						canvas.DrawRectangle(col * 2 + 5, 30, col - 10, 70);
 						canvas.FontColor = Colors.MediumSeaGreen;
-						canvas.DrawString("Rectangle", 260, 115, 100, 20, HorizontalAlignment.Center, VerticalAlignment.Top);
+						canvas.DrawString("Rectangle", col * 2, 115, col, 20, HorizontalAlignment.Center, VerticalAlignment.Top);
 
 						canvas.FillColor = Colors.MediumPurple;
-						canvas.FillRoundedRectangle(390, 30, 90, 70, 12);
+						canvas.FillRoundedRectangle(col * 3 + 5, 30, col - 10, 70, 12);
 						canvas.FontColor = Colors.MediumPurple;
-						canvas.DrawString("Rounded", 390, 115, 90, 20, HorizontalAlignment.Center, VerticalAlignment.Top);
+						canvas.DrawString("Rounded", col * 3, 115, col, 20, HorizontalAlignment.Center, VerticalAlignment.Top);
 
 						canvas.StrokeColor = Colors.Crimson;
 						canvas.StrokeSize = 3;
-						canvas.DrawLine(520, 30, 580, 100);
+						canvas.DrawLine(col * 4 + 10, 30, col * 5 - 10, 100);
 						canvas.FontColor = Colors.Crimson;
-						canvas.DrawString("Line", 520, 115, 60, 20, HorizontalAlignment.Center, VerticalAlignment.Top);
+						canvas.DrawString("Line", col * 4, 115, col, 20, HorizontalAlignment.Center, VerticalAlignment.Top);
 					}
 				}.Frame(height: 140)
 			),
@@ -131,32 +136,37 @@ namespace CometControlsGallery.Pages
 						canvas.FillColor = Color.FromArgb("#1a1a2e");
 						canvas.FillRectangle(0, 0, rect.Width, rect.Height);
 
+						// Adaptive: use proportional positions
+						float cx = Math.Min(rect.Width * 0.25f, 140);
 						canvas.FillColor = Color.FromRgba(231, 76, 60, 100);
-						canvas.FillCircle(120, 70, 50);
+						canvas.FillCircle(cx - 20, 70, 40);
 						canvas.FillColor = Color.FromRgba(46, 204, 113, 100);
-						canvas.FillCircle(160, 70, 50);
+						canvas.FillCircle(cx + 20, 70, 40);
 						canvas.FillColor = Color.FromRgba(52, 152, 219, 100);
-						canvas.FillCircle(140, 40, 50);
+						canvas.FillCircle(cx, 40, 40);
 
-						canvas.FontSize = 20;
+						float textX = Math.Min(rect.Width * 0.45f, 250);
+						float textW = rect.Width - textX - 10;
+						canvas.FontSize = Math.Min(20, rect.Width / 25);
 						canvas.FontColor = Colors.White;
-						canvas.DrawString("CoreGraphics Rendering", 250, 30, 300, 30, HorizontalAlignment.Left, VerticalAlignment.Center);
+						canvas.DrawString("CoreGraphics Rendering", textX, 30, textW, 30, HorizontalAlignment.Left, VerticalAlignment.Center);
 
-						canvas.FontSize = 13;
+						canvas.FontSize = Math.Min(13, rect.Width / 35);
 						canvas.FontColor = Color.FromArgb("#bdc3c7");
-						canvas.DrawString("Shapes . Text . Colors . Transforms", 250, 60, 350, 20, HorizontalAlignment.Left, VerticalAlignment.Center);
+						canvas.DrawString("Shapes . Text . Colors . Transforms", textX, 60, textW, 20, HorizontalAlignment.Left, VerticalAlignment.Center);
 
+						float btnW = Math.Min(120, (textW - 20) / 2);
 						canvas.StrokeColor = Color.FromArgb("#e74c3c");
 						canvas.StrokeSize = 2;
-						canvas.DrawRoundedRectangle(250, 90, 120, 40, 8);
+						canvas.DrawRoundedRectangle(textX, 90, btnW, 40, 8);
 						canvas.FontColor = Color.FromArgb("#e74c3c");
 						canvas.FontSize = 12;
-						canvas.DrawString("DrawRoundedRect", 255, 95, 110, 30, HorizontalAlignment.Center, VerticalAlignment.Center);
+						canvas.DrawString("DrawRoundedRect", textX + 5, 95, btnW - 10, 30, HorizontalAlignment.Center, VerticalAlignment.Center);
 
 						canvas.StrokeColor = Color.FromArgb("#3498db");
-						canvas.DrawRoundedRectangle(390, 90, 100, 40, 8);
+						canvas.DrawRoundedRectangle(textX + btnW + 10, 90, btnW, 40, 8);
 						canvas.FontColor = Color.FromArgb("#3498db");
-						canvas.DrawString("DrawCircle", 395, 95, 90, 30, HorizontalAlignment.Center, VerticalAlignment.Center);
+						canvas.DrawString("DrawCircle", textX + btnW + 15, 95, btnW - 10, 30, HorizontalAlignment.Center, VerticalAlignment.Center);
 					}
 				}.Frame(height: 160)
 			)

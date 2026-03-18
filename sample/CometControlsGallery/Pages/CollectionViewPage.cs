@@ -75,7 +75,7 @@ namespace CometControlsGallery.Pages
 						TabButton(TabTitles[9], 9),
 						TabButton(TabTitles[10], 10)
 					)
-				).Frame(height: 36).Padding(new Thickness(16, 0, 16, 8)),
+				).Frame(height: 40).Padding(new Thickness(16, 0, 16, 8)),
 				activeTab.Value switch
 				{
 					0 => VerticalListContent(),

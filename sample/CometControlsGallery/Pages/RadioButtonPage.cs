@@ -22,7 +22,7 @@ namespace CometControlsGallery.Pages
 		static readonly string[] Plans = { "Free", "Pro", "Enterprise" };
 
 		public override View Render() =>
-			ScrollView(
+			ScrollView(Orientation.Vertical,
 				VStack(16,
 					Text("RadioButton Demos")
 						.FontSize(24)

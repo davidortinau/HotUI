@@ -32,7 +32,7 @@ namespace CometControlsGallery.Pages
 			GalleryPageHelpers.Section("🌐 Browser & Launcher",
 				TextField(() => State.Url, () => "URL to open")
 					.OnTextChanged(v => SetState(s => s.Url = v)),
-				HStack(8,
+				GalleryPageHelpers.ButtonRow(8,
 					Button("🌐 Open in Browser", OpenInBrowser),
 					Button("📂 Open File with Default App", LaunchFile)
 				)

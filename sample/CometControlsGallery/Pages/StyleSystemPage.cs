@@ -3,6 +3,7 @@ using Comet;
 using Comet.Styles;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Primitives;
 using static Comet.CometControls;
 
@@ -63,7 +64,7 @@ namespace CometControlsGallery.Pages
 					// --- Section 7: Token Log ---
 					BuildTokenLogSection()
 				)
-				.Padding(new Thickness(24))
+				.Padding(new Thickness(GalleryPageHelpers.IsPhone ? 16 : 24))
 			)
 			.Background(Colors.White)
 			.Title("Style System");
@@ -101,14 +102,14 @@ namespace CometControlsGallery.Pages
 					.FontSize(13).Color(Colors.DimGrey),
 
 				// Color swatches
-				HStack(8,
+				SwatchRow(
 					ColorSwatch("Primary", primary, onPrimary),
 					ColorSwatch("OnPrimary", onPrimary, primary),
 					ColorSwatch("Secondary", secondary, Colors.White),
 					ColorSwatch("Surface", surface, onSurface),
 					ColorSwatch("Error", error, Colors.White)
 				),
-				HStack(8,
+				SwatchRow(
 					ColorSwatch("Background", background, onSurface),
 					ColorSwatch("Outline", outline, Colors.White),
 					ColorSwatch("PrimaryContainer", primaryContainer, Colors.Black),
@@ -156,7 +157,7 @@ namespace CometControlsGallery.Pages
 				Text("Each button uses a different ButtonStyle via .ButtonStyle():")
 					.FontSize(13).Color(Colors.DimGrey),
 
-				HStack(12,
+				GalleryPageHelpers.ButtonRow(12,
 					Button("Filled", () => { })
 						.ButtonStyle(ButtonStyles.Filled),
 					Button("Outlined", () => { })
@@ -175,7 +176,7 @@ namespace CometControlsGallery.Pages
 				// Global style switcher
 				Text("Switch global button style:")
 					.FontSize(13).FontWeight(FontWeight.Semibold),
-				HStack(8,
+				GalleryPageHelpers.ButtonRow(8,
 					Button("Set Filled", () => SwitchGlobalButtonStyle("Filled", ButtonStyles.Filled)),
 					Button("Set Outlined", () => SwitchGlobalButtonStyle("Outlined", ButtonStyles.Outlined)),
 					Button("Set Text", () => SwitchGlobalButtonStyle("Text", ButtonStyles.Text)),
@@ -184,7 +185,7 @@ namespace CometControlsGallery.Pages
 
 				Text("These buttons use the global default (from ThemeManager).")
 					.FontSize(12).Color(Colors.DimGrey),
-				HStack(12,
+				GalleryPageHelpers.ButtonRow(12,
 					Button("Global A", () => { }),
 					Button("Global B", () => { }),
 					Button("Global C", () => { })
@@ -236,7 +237,7 @@ namespace CometControlsGallery.Pages
 				Text($"Active theme: {State.ActiveThemeName}")
 					.FontSize(14).FontWeight(FontWeight.Semibold),
 
-				HStack(8,
+				GalleryPageHelpers.ButtonRow(8,
 					Button("Light Theme", () => SwitchTheme("Light (Default)", Defaults.Light)),
 					Button("Dark Theme", () => SwitchTheme("Dark", Defaults.Dark)),
 					Button("Custom (Purple)", () => SwitchTheme("Custom Purple", CreatePurpleTheme()))
@@ -258,7 +259,7 @@ namespace CometControlsGallery.Pages
 			var secondary = ColorTokens.Secondary.Resolve(theme);
 			var surface = ColorTokens.Surface.Resolve(theme);
 
-			return HStack(8,
+			return SwatchRow(
 				ColorSwatch("Primary", primary, Colors.White),
 				ColorSwatch("Secondary", secondary, Colors.White),
 				ColorSwatch("Surface", surface, Colors.Black)
@@ -442,18 +443,26 @@ namespace CometControlsGallery.Pages
 				.Frame(height: 1)
 				.Opacity(0.3f);
 
-		static View ColorSwatch(string label, Color bg, Color fg) =>
-			Border(
+		static View SwatchRow(params View[] swatches) =>
+			GalleryPageHelpers.IsPhone
+				? ScrollView(Orientation.Horizontal, HStack(6, swatches))
+				: (View)HStack(8, swatches);
+
+		static View ColorSwatch(string label, Color bg, Color fg)
+		{
+			var isPhone = GalleryPageHelpers.IsPhone;
+			return Border(
 				Text(label)
-					.FontSize(10)
+					.FontSize(isPhone ? 8 : 10)
 					.FontWeight(FontWeight.Bold)
 					.Color(fg)
 					.HorizontalTextAlignment(TextAlignment.Center)
 			)
 			.Background(bg)
 			.CornerRadius(8)
-			.Frame(width: 90, height: 44)
+			.Frame(width: isPhone ? 62 : 90, height: isPhone ? 36 : 44)
 			.Padding(new Thickness(4, 2));
+		}
 	}
 
 	/// <summary>

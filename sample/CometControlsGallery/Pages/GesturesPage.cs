@@ -1,6 +1,7 @@
 using System;
 using Comet;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
 using static Comet.CometControls;
 
@@ -52,7 +53,7 @@ namespace CometControlsGallery.Pages
 			var panContainer = Border(panBox)
 				.Background(Color.FromArgb("#F0F0F0"))
 				.StrokeThickness(0)
-				.Frame(width: 400, height: 120)
+				.Frame(height: 120)
 				.OnPan(gesture =>
 				{
 					if (gesture.Status == Comet.GestureStatus.Running)
@@ -74,7 +75,7 @@ namespace CometControlsGallery.Pages
 				.Background(Color.FromArgb("#E8F0FE"))
 				.CornerRadius(8)
 				.StrokeThickness(0)
-				.Frame(width: 300, height: 80)
+				.Frame(height: 80)
 				.AddGesture(new SwipeGesture(_ => swipeResult.Value = "Swiped: Left") { Direction = Comet.SwipeDirection.Left })
 				.AddGesture(new SwipeGesture(_ => swipeResult.Value = "Swiped: Right") { Direction = Comet.SwipeDirection.Right })
 				.AddGesture(new SwipeGesture(_ => swipeResult.Value = "Swiped: Up") { Direction = Comet.SwipeDirection.Up })

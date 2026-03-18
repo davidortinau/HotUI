@@ -30,7 +30,7 @@ namespace CometControlsGallery.Pages
 			var surface = ColorTokens.Surface.Resolve(theme);
 			var onSurface = ColorTokens.OnSurface.Resolve(theme);
 
-			return ScrollView(
+			return ScrollView(Orientation.Vertical,
 				VStack(16,
 					// Title
 					Text("App Theme & Comet Style System")
@@ -61,7 +61,7 @@ namespace CometControlsGallery.Pages
 					// MAUI theme buttons
 					Text("MAUI App Theme:")
 						.FontSize(14).FontWeight(FontWeight.Semibold),
-					HStack(8,
+					GalleryPageHelpers.ButtonRow(8,
 						Button("Force Light", () =>
 						{
 							if (Microsoft.Maui.Controls.Application.Current != null)
@@ -80,7 +80,7 @@ namespace CometControlsGallery.Pages
 								Microsoft.Maui.Controls.Application.Current.UserAppTheme = MauiAppTheme.Unspecified;
 							UpdateThemeInfo();
 						})
-					).HorizontalLayoutAlignment(LayoutAlignment.Center),
+					),
 
 					// Comet theme section
 					new ShapeView(new Rectangle())

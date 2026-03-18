@@ -121,22 +121,22 @@ namespace CometControlsGallery.Pages
 					.HorizontalLayoutAlignment(LayoutAlignment.Center),
 				GalleryPageHelpers.Section("Basic Transforms",
 					targetBox,
-					HStack(8,
+					GalleryPageHelpers.ButtonRow(8,
 						translateBtn,
 						scaleBtn,
 						rotateBtn,
 						fadeBtn
-					).HorizontalLayoutAlignment(LayoutAlignment.Center),
+					),
 					resetBtn
 				),
 				GalleryPageHelpers.Section("AnchorX / AnchorY",
 					GalleryPageHelpers.BodyText("Tap an anchor button to set the rotation pivot point"),
 					anchorBox,
-					HStack(8,
+					GalleryPageHelpers.ButtonRow(8,
 						anchorTopLeftBtn,
 						anchorCenterBtn,
 						anchorBottomRightBtn
-					).HorizontalLayoutAlignment(LayoutAlignment.Center)
+					)
 				),
 				GalleryPageHelpers.Section("Composite Animation",
 					GalleryPageHelpers.BodyText("Translate + Scale + Rotate + Fade simultaneously")

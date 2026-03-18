@@ -34,7 +34,7 @@ namespace CometControlsGallery.Pages
 			GalleryPageHelpers.Section("📋 Clipboard",
 				TextField(() => State.ClipboardEntry, () => "Text to copy...")
 					.OnTextChanged(v => SetState(s => s.ClipboardEntry = v)),
-				HStack(8,
+				GalleryPageHelpers.ButtonRow(8,
 					Button("📋 Copy to Clipboard", CopyToClipboard),
 					Button("📄 Paste from Clipboard", PasteFromClipboard)
 				),
@@ -51,7 +51,7 @@ namespace CometControlsGallery.Pages
 					TextField(() => State.PrefsValue, () => "Value")
 						.OnTextChanged(v => SetState(s => s.PrefsValue = v))
 				),
-				HStack(8,
+				GalleryPageHelpers.ButtonRow(8,
 					Button("💾 Save Preference", SavePreference),
 					Button("📂 Load Preference", LoadPreference),
 					Button("🗑️ Clear All Preferences", ClearPreferences)
@@ -69,7 +69,7 @@ namespace CometControlsGallery.Pages
 					TextField(() => State.SecureValue, () => "Secret value")
 						.OnTextChanged(v => SetState(s => s.SecureValue = v))
 				),
-				HStack(8,
+				GalleryPageHelpers.ButtonRow(8,
 					Button("🔐 Store Secret", StoreSecret),
 					Button("🔓 Retrieve Secret", RetrieveSecret)
 				),

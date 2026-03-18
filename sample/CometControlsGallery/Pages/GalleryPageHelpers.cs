@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Comet;
 using Comet.Styles;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
 using static Comet.CometControls;
 
@@ -12,13 +13,22 @@ namespace CometControlsGallery.Pages
 	{
 		static readonly Color PageBackground = Colors.White;
 
+		/// <summary>True when running on a phone-class device.</summary>
+		public static bool IsPhone => DeviceInfo.Idiom == DeviceIdiom.Phone;
+
 		public static View Scaffold(string title, params View[] sections) =>
-			ScrollView(
-				VStack(16, sections)
-					.Padding(new Thickness(24))
+			ScrollView(Orientation.Vertical,
+				VStack(IsPhone ? 12f : 16f, sections)
+					.Padding(new Thickness(IsPhone ? 16 : 24))
 			)
 			.Background(PageBackground)
 			.Title(title);
+
+		/// <summary>
+		/// Button row that stacks vertically on phone, horizontal on desktop.
+		/// </summary>
+		public static View ButtonRow(float spacing, params View[] views) =>
+			IsPhone ? (View)VStack(spacing / 2, views) : HStack(spacing, views);
 
 		public static View Section(string title, params View[] content)
 		{

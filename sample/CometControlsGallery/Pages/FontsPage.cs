@@ -11,7 +11,7 @@ namespace CometControlsGallery.Pages
 		[Body]
 		View body()
 		{
-			return ScrollView(
+			return ScrollView(Orientation.Vertical,
 				VStack(15,
 					// System & Embedded Fonts
 					Text("System Font (Default)").FontSize(16),
