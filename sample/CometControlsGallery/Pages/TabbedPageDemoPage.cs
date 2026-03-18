@@ -1,6 +1,7 @@
 using System;
 using Comet;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
 using static Comet.CometControls;
 
@@ -47,11 +48,11 @@ namespace CometControlsGallery.Pages
 		}
 
 		View BuildOverviewTab() => VStack(12,
-			Text("This is a TabbedPage rendered with native NSTabView.")
+			Text(DeviceInfo.Platform == DevicePlatform.iOS ? "This is a TabbedPage rendered with native UITabBarController." : "This is a TabbedPage rendered with native NSTabView.")
 				.FontSize(13)
 				.Color(Colors.Grey),
 			GalleryPageHelpers.Separator(),
-			Text("Native NSTabView tab rendering")
+			Text(DeviceInfo.Platform == DevicePlatform.iOS ? "Native UITabBarController tab rendering" : "Native NSTabView tab rendering")
 				.FontSize(14),
 			Text("Automatic tab label from Page.Title")
 				.FontSize(14),

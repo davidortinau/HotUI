@@ -12,6 +12,7 @@ using Microsoft.Maui;
 using Microsoft.Maui.Controls.Hosting;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Hosting;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.LifecycleEvents;
 using static Comet.CometControls;
 #if DEBUG
@@ -191,6 +192,7 @@ namespace CometControlsGallery
 	{
 		readonly Reactive<int> selectedIndex = 0;
 		NavigationView? _mainNav;
+		NavigationView? _phoneNav;
 
 		/// <summary>
 		/// Singleton for programmatic navigation (e.g., from MauiDevFlow automation).
@@ -208,16 +210,25 @@ namespace CometControlsGallery
 		public void NavigateToIndex(int index)
 		{
 			if (index < 0 || index >= navItems.Count) return;
-			// NOTE: Signal writes from background threads (e.g., the nav server)
-			// don't reliably trigger visual UI updates on macCatalyst, even when
-			// dispatched to the main thread. This is a known limitation — the
-			// ReactiveScheduler's own Dispatch(FlushEntry) can get double-queued.
-			// Direct user interaction (taps) works correctly.
+
 			if (Microsoft.Maui.Controls.Application.Current?.Dispatcher is { } dispatcher)
 			{
 				dispatcher.Dispatch(() =>
 				{
-					selectedIndex.Value = index;
+					if (DeviceInfo.Idiom == DeviceIdiom.Phone && _phoneNav != null)
+					{
+						// On phone, push navigation directly — no signal write needed
+						// since the page list doesn't depend on selectedIndex.
+						_phoneNav.PopToRoot();
+						var detail = navItems[index].CreatePage()
+							.Title(navItems[index].Title);
+						_phoneNav.Navigate(detail);
+					}
+					else
+					{
+						// Desktop sidebar: signal write triggers body rebuild to swap detail
+						selectedIndex.Value = index;
+					}
 				});
 			}
 			else
@@ -291,6 +302,14 @@ namespace CometControlsGallery
 		[Body]
 		View body()
 		{
+			if (DeviceInfo.Idiom == DeviceIdiom.Phone)
+				return BuildPhoneLayout();
+
+			return BuildDesktopLayout();
+		}
+
+		View BuildDesktopLayout()
+		{
 			var sidebar = BuildSidebar();
 			var idx = selectedIndex.Value;
 			var detail = navItems[idx].CreatePage();
@@ -308,6 +327,72 @@ namespace CometControlsGallery
 				sidebar.Cell(row: 0, column: 0),
 				separator.Cell(row: 0, column: 1),
 				_mainNav.Cell(row: 0, column: 2)
+			);
+		}
+
+		View BuildPhoneLayout()
+		{
+			var pageList = BuildPhonePageList();
+
+			_phoneNav = NavigationView(pageList)
+				.Title("Comet Gallery");
+
+			return _phoneNav;
+		}
+
+		View BuildPhonePageList()
+		{
+			var items = new List<View>();
+			string? lastCategory = null;
+
+			for (int i = 0; i < navItems.Count; i++)
+			{
+				var item = navItems[i];
+				var capturedIndex = i;
+
+				if (item.Category != lastCategory)
+				{
+					if (lastCategory != null)
+					{
+						items.Add(
+							new ShapeView(new Rectangle())
+								.Background(Colors.Grey)
+								.Frame(height: 1)
+								.Opacity(0.15f)
+						);
+					}
+					lastCategory = item.Category;
+					items.Add(
+						Text(item.Category)
+							.FontSize(12)
+							.FontWeight(FontWeight.Semibold)
+							.Color(CategoryHeaderColor)
+							.Padding(new Thickness(16, 12, 16, 4))
+					);
+				}
+
+				items.Add(
+					HStack(12,
+						Text(item.Title)
+							.FontSize(16)
+							.Color(ItemTextColor),
+						new Spacer(),
+						Text("\u203A")
+							.FontSize(18)
+							.Color(Colors.Grey)
+					)
+					.Padding(new Thickness(16, 12))
+					.OnTap((v) =>
+					{
+						var detail = navItems[capturedIndex].CreatePage()
+							.Title(navItems[capturedIndex].Title);
+						_phoneNav?.Navigate(detail);
+					})
+				);
+			}
+
+			return ScrollView(
+				VStack((float?)0, items.ToArray())
 			);
 		}
 

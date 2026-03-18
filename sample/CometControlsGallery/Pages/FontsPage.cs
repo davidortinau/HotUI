@@ -32,10 +32,10 @@ namespace CometControlsGallery.Pages
 					Text("OpenSans Size 24")
 						.FontFamily("OpenSansRegular").FontSize(24),
 
-					// macOS System Fonts
-					Text("Menlo (macOS system font)")
+					// Platform System Fonts
+					Text("Menlo (system monospace font)")
 						.FontFamily("Menlo").FontSize(14),
-					Text("Georgia (macOS system font)")
+					Text("Georgia (system serif font)")
 						.FontFamily("Georgia").FontSize(14),
 
 					// Controls with Embedded Fonts

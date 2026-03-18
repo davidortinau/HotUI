@@ -1,5 +1,6 @@
 using Comet;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
 using static Comet.CometControls;
 
@@ -69,7 +70,7 @@ namespace CometControlsGallery.Pages
 				new Span(". This is rendered natively using ").Size(15),
 				new Span("NSAttributedString").Size(14).Font("Menlo").Color(Colors.Purple)
 					.Background(Color.FromRgba(0.95, 0.92, 1.0, 1.0)),
-				new Span(" on macOS.").Size(15)
+				new Span(DeviceInfo.Platform == DevicePlatform.iOS ? " on iOS." : " on macOS.").Size(15)
 			).ToView(),
 
 			GalleryPageHelpers.SectionHeader("Code-Style Text"),

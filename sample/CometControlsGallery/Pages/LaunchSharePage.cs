@@ -2,6 +2,7 @@ using System;
 using Comet;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Microsoft.Maui.Graphics;
@@ -93,7 +94,7 @@ namespace CometControlsGallery.Pages
 				await share.RequestAsync(new ShareTextRequest
 				{
 					Title = "Share from MAUI",
-					Text = "Hello from .NET MAUI on macOS!",
+					Text = $"Hello from .NET MAUI on {DeviceInfo.Platform}!",
 				});
 				SetState(s =>
 				{

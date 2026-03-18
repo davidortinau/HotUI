@@ -2,6 +2,7 @@ using System;
 using Comet;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Storage;
@@ -16,7 +17,7 @@ namespace CometControlsGallery.Pages
 		public Color ClipboardResultColor { get; set; } = Colors.Grey;
 
 		public string PrefsKey { get; set; } = "demo_key";
-		public string PrefsValue { get; set; } = "Hello from macOS!";
+		public string PrefsValue { get; set; } = DeviceInfo.Platform == DevicePlatform.iOS ? "Hello from iOS!" : "Hello from macOS!";
 		public string PrefsResult { get; set; } = "(no value)";
 		public Color PrefsResultColor { get; set; } = Colors.Grey;
 

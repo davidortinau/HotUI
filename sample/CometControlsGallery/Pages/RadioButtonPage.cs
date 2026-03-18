@@ -1,6 +1,7 @@
 using System;
 using Comet;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
 using static Comet.CometControls;
 
@@ -32,8 +33,8 @@ namespace CometControlsGallery.Pages
 						.Color(Colors.DodgerBlue)
 						.Margin(new Thickness(0, 0, 0, 10)),
 
-					SectionHeader("Native RadioButton (NSButton)"),
-					Text("Standard native macOS radio buttons:")
+					SectionHeader(DeviceInfo.Platform == DevicePlatform.iOS ? "Native RadioButton (UIButton)" : "Native RadioButton (NSButton)"),
+					Text(DeviceInfo.Platform == DevicePlatform.iOS ? "Standard native iOS radio buttons:" : "Standard native macOS radio buttons:")
 						.FontSize(13).Color(Colors.Grey),
 					BuildGroup("size", Sizes, State.SizeIndex,
 						(index, label) => SetState(s => { s.SizeIndex = index; s.SelectedLabel = label; })),

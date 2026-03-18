@@ -1,6 +1,7 @@
 using System;
 using Comet;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
 using static Comet.CometControls;
 
@@ -31,7 +32,9 @@ namespace CometControlsGallery.Pages
 				.FontSize(24)
 				.FontWeight(FontWeight.Bold),
 
-			Text("Simulates a FlyoutPage with sidebar + detail. The real FlyoutPageHandler uses NSSplitView.")
+			Text(DeviceInfo.Platform == DevicePlatform.iOS
+				? "Simulates a FlyoutPage with sidebar + detail. The real FlyoutPageHandler uses UISplitViewController."
+				: "Simulates a FlyoutPage with sidebar + detail. The real FlyoutPageHandler uses NSSplitView.")
 				.FontSize(13)
 				.Color(Colors.Grey),
 

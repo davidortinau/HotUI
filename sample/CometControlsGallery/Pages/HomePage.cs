@@ -73,7 +73,9 @@ namespace CometControlsGallery.Pages
 					.CornerRadius(8)
 					.StrokeColor(Colors.DodgerBlue)
 					.StrokeThickness(1),
-					Text("Use the menu on the left to explore different control demos.")
+					Text(DeviceInfo.Idiom == DeviceIdiom.Phone
+						? "Tap the back button to browse control demos."
+						: "Use the menu on the left to explore different control demos.")
 						.FontSize(14)
 						.Color(Colors.Grey)
 						.HorizontalTextAlignment(TextAlignment.Center)
