@@ -2044,3 +2044,20 @@ Implemented `PropertySubscription<T>` in `src/Comet/Reactive/PropertySubscriptio
 - `SetEnvironment` overload ambiguity between `(string, string, object)` and `(string, object)` required explicit `(object)` casts in generated extension methods.
 - ListView/CollectionView's `StateBuilder` and `MonitorListViewObject` were thin wrappers around StateManager. Removing them simplifies the code without losing functionality since the reactive system handles dependency tracking automatically.
 - The BindingState changeDictionary was used for hot reload state transfer (`TransferState` reads `ChangedProperties`). With it gone, hot reload transfers state differently — TBD if any edge cases surface.
+
+### Session: Reactive State Developer Guide (docs)
+
+**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
+**Task:** Write developer-facing documentation for the reactive state system.
+**Outcome:** ✅ Shipped `docs/reactive-state-guide.md` (823 lines).
+
+**What was delivered:**
+- Complete user guide covering Reactive<T>, Signal<T>, Computed<T>, Effect, SignalList<T>, Component<TState>, hot reload behavior, and migration from old State<T>/Binding<T> API.
+- Every concept grounded in actual source code and real sample patterns from CometControlsGallery.
+- Practical "common mistake" warnings (inline .Value vs lambda .Value, loop variable capture).
+
+**Learnings:**
+- `Reactive<T>` fields are NOT transferred during hot reload — only `Signal<T>` fields are (View.TransferHotReloadStateToCore checks `typeof(Signal<>)` but not `typeof(Reactive<>)`). This is a gap worth flagging for future work.
+- The `PropertySubscription<T>` class is the internal bridge between user-facing lambdas/signals and the handler property system — users never see it directly but it's the engine behind fine-grained updates.
+- `ReactiveScheduler.EnsureFlushScheduled()` is called after every signal write and uses the MAUI dispatcher to post a single flush. This is why synchronous loops of signal writes coalesce into one UI update.
+- `Component<TState>` state transfer works via `IComponentWithState.TransferStateFrom()` which copies the TState reference, not individual properties.
