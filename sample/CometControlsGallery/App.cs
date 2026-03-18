@@ -270,6 +270,7 @@ namespace CometControlsGallery
 			// Platform
 			new NavItem { Title = "Menu Bar", Category = "Platform", Icon = "menubar.rectangle", CreatePage = () => new MenuBarPage() },
 			new NavItem { Title = "Theme", Category = "Platform", Icon = "sun.max", CreatePage = () => new ThemePage() },
+			new NavItem { Title = "Style System", Category = "Platform", Icon = "paintpalette", CreatePage = () => new StyleSystemPage() },
 			new NavItem { Title = "WebView", Category = "Platform", Icon = "globe", CreatePage = () => new WebViewPage() },
 			new NavItem { Title = "Device & App Info", Category = "Platform", Icon = "iphone", CreatePage = () => new DeviceInfoPage() },
 			new NavItem { Title = "Battery & Network", Category = "Platform", Icon = "battery.100", CreatePage = () => new BatteryNetworkPage() },
