@@ -10,6 +10,9 @@ throughout.
 
 These are the primary docs for developers building with Comet.
 
+- [Getting Started](getting-started.md) -- Zero to a running Comet app.
+  Prerequisites, project setup, build commands, and a walkthrough of the counter
+  example.
 - [Reactive State Guide](reactive-state-guide.md) -- Practical, code-forward
   guide to every state management pattern: `State<T>`, `BindingObject`,
   `Binding<T>`, and automatic dependency tracking.
