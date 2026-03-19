@@ -4,7 +4,7 @@
 > **Author:** Comet Team  
 > **Target:** .NET 10 / MAUI 10 / C# 13  
 > **Scope:** Replace `State<T>`, `Binding<T>`, and `StateManager` with a signal-based reactive system  
-> **Reviews:** [Skeptic R1](state-management-proposal-skeptic-review.md) | [Skeptic R2](state-management-proposal-skeptic-review-r2.md) | [Skeptic R3](state-management-proposal-skeptic-review-r3.md)
+> **Reviews:** [Skeptic R1](../research/state-management-proposal-skeptic-review.md) | [Skeptic R2](../research/state-management-proposal-skeptic-review-r2.md) | [Skeptic R3](../research/state-management-proposal-skeptic-review-r3.md)
 
 ---
 
@@ -2266,7 +2266,7 @@ in `.squad/decisions/` and this document will be updated to reflect the final de
 
 ### Rev 2 — Skeptic Review Fixes
 
-Addressed all findings from the [skeptic review](state-management-proposal-skeptic-review.md):
+Addressed all findings from the [skeptic review](../research/state-management-proposal-skeptic-review.md):
 
 **Critical (3 fixed):**
 1. **Signal setter thread safety:** Added `_writeLock` to `Signal<T>.Value` setter with `StrongBox<T>` pattern. The equality check, box swap, and subscriber notification are now atomic. Prevents torn reads for all types and missed notifications from concurrent writes. (§4.1)
@@ -2288,7 +2288,7 @@ Addressed all findings from the [skeptic review](state-management-proposal-skept
 
 ### Rev 3 — Second Skeptic Review Fixes
 
-Addressed findings from the [second skeptic review](state-management-proposal-skeptic-review-r2.md):
+Addressed findings from the [second skeptic review](../research/state-management-proposal-skeptic-review-r2.md):
 
 **Critical (1 fixed):**
 1. **Signal getter torn reads:** The Rev 2 `_writeLock` only protected the setter — the getter read `_value` naked, causing torn reads for large value types (`decimal`, `Matrix4x4`, custom structs > 8 bytes). Replaced raw `_value` field with `volatile StrongBox<T> _box`. The getter reads the volatile reference (pointer-atomic on all platforms), the setter swaps to a new `StrongBox<T>` inside the lock. Cost: one allocation per write — negligible for UI state mutations. (§4.1, §3.D)
@@ -2312,7 +2312,7 @@ Addressed findings from the [second skeptic review](state-management-proposal-sk
 
 ### Rev 4 — Third Skeptic Review Fixes
 
-Addressed findings from the [third skeptic review](state-management-proposal-skeptic-review-r3.md):
+Addressed findings from the [third skeptic review](../research/state-management-proposal-skeptic-review-r3.md):
 
 **High (2 fixed):**
 1. **Effect-based body tracking replaced with dedicated invalidation tracking:** The Rev 3 `Effect` integration re-executed `Body` during effect flush and then again during `Reload()`, while also changing exception behavior and briefly dropping subscriptions during rebuild. Rev 4 replaces `_bodyEffect` with a view-owned `BodyDependencySubscriber` + `_bodyDependencies` set. Dependencies are now captured during the real Body build, old deps remain subscribed until the new set is known, and dependency changes only mark the view dirty. (§4.6, §5.1, §6.2)
