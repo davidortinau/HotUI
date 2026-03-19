@@ -300,17 +300,19 @@ its display automatically.
 
 **Fluent API** -- methods like `.FontSize(32)`, `.Color(Colors.Purple)`, and
 `.Padding(new Thickness(24))` set properties via a fluent builder pattern. These
-store values in Comet's environment system and propagate down the view tree.
+store values in Comet's environment system and propagate down the view tree. For
+the full list of fluent methods, see the [Control Catalog](controls.md).
 
 
 ## Next Steps
 
-- [Reactive State Guide](reactive-state-guide.md) -- comprehensive coverage of
-  `Reactive<T>`, `Component<TState>`, `BindingObject`, and automatic dependency
-  tracking.
+- [Control Catalog](controls.md) -- explore every control available in Comet
+  with code examples and the fluent API reference.
+- [Layout System](layout.md) -- learn how to arrange views with VStack, HStack,
+  Grid, and other layout containers.
+- [Reactive State Guide](reactive-state-guide.md) -- deep dive on `Reactive<T>`,
+  `Signal<T>`, `Component<TState>`, and automatic dependency tracking.
+- [Navigation Guide](navigation.md) -- build multi-page apps with stack, tab,
+  and Shell navigation.
 - [Documentation Index](index.md) -- full list of guides, architecture docs, and
   research.
-- [Controls Gallery](../sample/CometControlsGallery/) -- 50+ interactive
-  examples covering every control, layout, gesture, and platform API in Comet.
-- [README](../README.md) -- project overview, API reference, and contribution
-  guide.

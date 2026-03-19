@@ -105,7 +105,8 @@ controls like `UITextField` (iOS), `EditText` (Android), and WinUI text boxes.
 
 Comet registers handlers for all its controls in
 `AppHostBuilderExtensions.UseCometHandlers()`. This is called automatically by
-`UseCometApp<T>()` or can be called directly:
+`UseCometApp<T>()` or can be called directly. For the complete handler mapping,
+see the [Handler Architecture Guide](handlers.md).
 
 ```csharp
 var builder = MauiApp.CreateBuilder();
@@ -447,6 +448,19 @@ All three handlers follow the same pattern:
    and arrange the virtual view, then position the native content.
 4. `DisconnectHandler()` clears the content and releases references.
 
+For details on the handler architecture, see the
+[Handler Architecture Guide](handlers.md).
+
 The `GetDesiredSize` override on all platforms delegates to
 `IContentView.CrossPlatformMeasure()` for proper auto-sizing, falling back to
 default dimensions (400x800) when constraints are infinite.
+
+
+## See Also
+
+- [Handler Architecture](handlers.md) -- how Comet handlers work, property
+  mappers, and creating custom platform handlers.
+- [MAUI Integration Guide](maui-interop.md) -- embedding native platform views
+  in Comet and accessing platform APIs.
+- [Contributing Guide](contributing.md) -- platform-specific file conventions
+  and code organization guidelines for contributors.

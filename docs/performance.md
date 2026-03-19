@@ -94,7 +94,9 @@ class CounterView : View
 The difference is subtle in this example because `Text(() => ...)` creates a
 `PropertySubscription<string>` that tracks `count` at the property level. The
 body itself does not read `count.Value` directly -- the lambda is evaluated
-later, inside the subscription scope. This is the preferred pattern.
+later, inside the subscription scope. This is the preferred pattern. See the
+[Reactive State Guide](reactive-state-guide.md) for a comprehensive treatment
+of fine-grained vs body-level reactivity.
 
 The cost comparison:
 
@@ -530,3 +532,16 @@ View body()
 | `.Key(string)` | Dynamic lists | Preserves view identity on reorder |
 | `SetState` grouping | Multiple state changes | Scheduler coalesces into one rebuild |
 | Separate View subclasses | Stable subtrees | Diff scope limited to subtree |
+
+For a deep dive on the diff algorithm, see the
+[Architecture Overview](architecture.md).
+
+
+## See Also
+
+- [Reactive State Guide](reactive-state-guide.md) -- state patterns that
+  directly affect performance, including Signal, Computed, and Peek.
+- [Layout System](layout.md) -- layout containers and how view tree depth
+  impacts diff cost.
+- [Architecture Overview](architecture.md) -- the diff algorithm implementation
+  details and handler reuse strategy.

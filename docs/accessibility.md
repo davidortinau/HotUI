@@ -331,7 +331,8 @@ In this layout, Tab moves focus through the text fields and button in order.
 
 The test suite in `tests/Comet.Tests/AccessibilityTests.cs` provides 13 tests
 covering semantic properties, automation IDs, heading levels, view state
-synchronization, and handler bridging. Use these as reference patterns.
+synchronization, and handler bridging. Use these as reference patterns. For
+the full testing guide, see [Testing Guide](testing.md).
 
 ```csharp
 [Fact]
@@ -410,3 +411,15 @@ When building a Comet view, verify the following:
 8. Error messages are programmatically associated with their fields.
 9. The tab order follows a logical reading sequence on Windows and macOS.
 10. The app is usable with system font scaling set to the maximum level.
+
+
+## See Also
+
+- [Control Catalog](controls.md) -- semantic property extensions available on
+  every control, including SemanticDescription and AutomationName.
+- [Styling and Theming](styling.md) -- color contrast considerations when
+  defining theme tokens for accessible color pairings.
+- [Form Handling](forms.md) -- making form fields accessible with labels, help
+  text, and error message associations.
+- [Platform-Specific Guides](platform-guides.md) -- platform screen reader
+  details for VoiceOver, TalkBack, and Narrator.

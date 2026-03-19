@@ -117,7 +117,9 @@ Use this when route registration is useful across tabs, flyouts, or deep links. 
 
 ## 4. Reactive values still work
 
-`Reactive<T>` is the forward-facing alias for lightweight reactive values:
+`Reactive<T>` is the forward-facing alias for lightweight reactive values.
+For a full treatment of all state primitives, see the
+[Reactive State Guide](reactive-state-guide.md).
 
 ```csharp
 readonly Reactive<string> status = "Ready";
@@ -150,7 +152,8 @@ Two more migration-ready references now build on that same idea:
 
 ## 6. MAUI 10 guardrails while migrating
 
-As you update sample code:
+As you update sample code, follow these
+[MAUI 10 guardrails](troubleshooting.md) to avoid deprecated APIs:
 
 - prefer `Border` over `Frame`
 - prefer `CollectionView` over `ListView` for new data lists
@@ -175,3 +178,13 @@ For component-surface confidence, run the focused component tests after building
 ```bash
 dotnet test tests/Comet.Tests/Comet.Tests.csproj --no-build -c Release --filter "FullyQualifiedName~Component"
 ```
+
+
+## See Also
+
+- [Reactive State Guide](reactive-state-guide.md) -- comprehensive guide to the
+  new Signal, Computed, and Component patterns referenced in this migration.
+- [Changelog](changelog.md) -- detailed list of everything that changed,
+  including breaking changes and deprecations.
+- [Troubleshooting](troubleshooting.md) -- solutions for common issues
+  encountered during migration, including state update and binding problems.

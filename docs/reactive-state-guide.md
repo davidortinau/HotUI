@@ -1490,7 +1490,9 @@ TextField(() => x.Value, () => "...").OnTextChanged(v => x.Value = v ?? "")
 
 ### Keep body() fast
 
-The body method runs on the UI thread. Never block it:
+The body method runs on the UI thread. Never block it. For performance
+guidelines on body evaluation cost, see the
+[Performance Optimization Guide](performance.md).
 
 ```csharp
 // WRONG -- blocks UI thread
@@ -1646,3 +1648,16 @@ Text("Hello, World!")
 view.SetEnvironment("key", (object)value);
 var val = this.GetEnvironment<Color>(this, "key");
 ```
+
+
+## See Also
+
+- [Performance Optimization](performance.md) -- how state patterns impact
+  performance, including body-level vs property-level updates and the diff
+  algorithm.
+- [Testing Guide](testing.md) -- patterns for testing reactive state, including
+  Signal, Computed, Effect, and view rebuild verification.
+- [Troubleshooting](troubleshooting.md) -- common state bugs like missing UI
+  updates, slider drag resets, and StackOverflowException during state updates.
+- [Form Handling](forms.md) -- two-way binding patterns for form controls using
+  Signal and PropertySubscription.

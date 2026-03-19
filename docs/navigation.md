@@ -433,7 +433,8 @@ and `IQueryAttributable` targets.
 ### Shared State
 
 For views that need to observe the same data, share a `State<T>` or
-`BindingObject` reference:
+`BindingObject` reference. For a comprehensive guide to shared state patterns,
+see the [Reactive State Guide](reactive-state-guide.md).
 
 ```csharp
 public class AppState : BindingObject
@@ -559,3 +560,20 @@ public class MainApp : View
 
 Each tab maintains its own navigation stack. Pushing a view inside one tab does
 not affect the other tabs.
+
+For details on NavigationView and TabView APIs, see the
+[Control Catalog](controls.md). For platform-specific navigation differences,
+see the [Platform-Specific Guides](platform-guides.md). To integrate Shell
+navigation with MAUI, see the [MAUI Integration Guide](maui-interop.md).
+
+
+## See Also
+
+- [Control Catalog](controls.md) -- NavigationView, TabView, and ModalView API
+  reference with code examples.
+- [Platform-Specific Guides](platform-guides.md) -- platform differences in
+  navigation bar behavior and safe area handling.
+- [MAUI Integration Guide](maui-interop.md) -- using CometShell alongside MAUI
+  Shell and embedding Comet views in MAUI navigation pages.
+- [Reactive State Guide](reactive-state-guide.md) -- how reactive state
+  integrates with navigation parameters and shared state patterns.

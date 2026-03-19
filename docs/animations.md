@@ -571,7 +571,9 @@ These extension methods are available on all `View` subclasses:
 
 ## Combining Animations with State Changes
 
-Animations compose with Comet's reactive state system. When a state change
+Animations compose with Comet's reactive state system. For a deep dive on
+how state changes trigger view rebuilds, see the
+[Reactive State Guide](reactive-state-guide.md). When a state change
 triggers a body rebuild, you can animate the transition:
 
 ```csharp
@@ -624,3 +626,16 @@ public class AnimatedCounter : View
 - **Animation IDs:** Use `AbortAnimation(id)` to cancel running animations
   before starting new ones on the same property. Overlapping animations on the
   same property may produce unexpected interpolation.
+
+For more on optimizing UI updates, see the
+[Performance Optimization Guide](performance.md).
+
+
+## See Also
+
+- [Control Catalog](controls.md) -- every control that can be animated, plus
+  the fluent property API used by the animation system.
+- [Performance Optimization](performance.md) -- animation performance tips and
+  how to minimize per-frame work.
+- [Styling and Theming](styling.md) -- animating between theme states and
+  building animated theme transitions.

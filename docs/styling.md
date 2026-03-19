@@ -546,3 +546,16 @@ ThemeManager.SetTheme(theme);
 
 Type-targeted styles cascade through the view tree. A `Text` view inside
 a `VStack` inside a `ScrollView` still resolves the `Text`-scoped style.
+
+For the full list of styleable controls, see the
+[Control Catalog](controls.md).
+
+
+## See Also
+
+- [Control Catalog](controls.md) -- all controls that can be styled, including
+  constructor parameters and fluent API methods.
+- [Platform-Specific Guides](platform-guides.md) -- platform differences in
+  theming behavior and native appearance integration.
+- [Accessibility Guide](accessibility.md) -- color contrast requirements and
+  accessible color token pairing for WCAG compliance.

@@ -16,7 +16,9 @@ guide covers three integration patterns and explains when to use each one.
 ## Pattern 1: Embedding MAUI Views in Comet (MauiViewHost)
 
 `MauiViewHost` wraps any `Microsoft.Maui.IView` (XAML control, third-party
-control, or code-behind view) so it can appear inside a Comet view tree.
+control, or code-behind view) so it can appear inside a Comet view tree. For
+the handler that powers this, see the
+[Handler Architecture Guide](handlers.md).
 
 ### MauiViewHost API
 
@@ -457,6 +459,19 @@ Building a new app entirely in Comet?
   --> Use CometApp + NavigationView/TabView/CometShell
       No interop layer needed
 ```
+
+For the full handler system that powers these integration patterns, see the
+[Handler Architecture Guide](handlers.md).
+
+
+## See Also
+
+- [Handler Architecture](handlers.md) -- the handler system that powers
+  MauiViewHost, CometHost, and NativeHost integration.
+- [Control Catalog](controls.md) -- Comet controls that can host MAUI content
+  and the CometApp entry point.
+- [Architecture Overview](architecture.md) -- the view pipeline that connects
+  Comet views to native platform controls.
 
 
 ## Complete Integration Example

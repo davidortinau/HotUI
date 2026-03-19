@@ -411,6 +411,9 @@ new VStack(spacing: OnPlatform.Value(iOS: 12f, android: 8f, windows: 16f))
 }
 ```
 
+For more platform-specific patterns, see the
+[Platform-Specific Guides](platform-guides.md).
+
 ### Device Idiom Checks
 
 Adapt layout based on the device form factor:
@@ -484,6 +487,7 @@ new ScrollView
 
 If you need a scrollable list inside a scrollable page, use a ListView or
 CollectionView instead. They handle virtualization and nested scrolling properly.
+See the [Control Catalog](controls.md) for ListView and CollectionView usage.
 
 ### Unconstrained Stacks in ScrollView
 
@@ -513,3 +517,13 @@ new Grid(columns: new object[] { "*", "*" })
 	new Text("B").Cell(row: 0, column: 1),
 }
 ```
+
+
+## See Also
+
+- [Control Catalog](controls.md) -- full reference for all child controls you
+  can place inside layout containers.
+- [Performance Optimization](performance.md) -- layout-related performance tips
+  including diff algorithm cost and view tree depth.
+- [Platform-Specific Guides](platform-guides.md) -- platform differences in
+  layout behavior, safe areas, and density-independent measurement.

@@ -29,7 +29,8 @@ the framework knows to re-evaluate the lambda and update the text. A plain
 string has no such tracking.
 
 **Fix**: Always use `() => ...` lambda syntax for any text or property that
-should update reactively.
+should update reactively. For a complete guide to reactive binding patterns,
+see the [Reactive State Guide](reactive-state-guide.md).
 
 
 ### "Slider resets to its initial position while dragging"
@@ -340,7 +341,8 @@ class DebugView : View
 For `PropertySubscription`-bound properties (sliders, text fields), the handler
 receives property-level updates without a full body rebuild. Verify this by
 checking that the body rebuild count stays constant while the handler's
-`ChangedProperties` list grows.
+`ChangedProperties` list grows. For more on fine-grained vs body-level updates,
+see [Performance Optimization](performance.md).
 
 
 ## FAQ
@@ -390,6 +392,18 @@ A:
 dotnet test tests/Comet.Tests/Comet.Tests.csproj --no-build -c Release \
 	--filter "FullyQualifiedName~ReactiveTests"
 ```
+
+For the full testing guide, see [Testing Guide](testing.md).
+
+
+## See Also
+
+- [Reactive State Guide](reactive-state-guide.md) -- detailed coverage of
+  every state primitive, resolving the "why doesn't my UI update?" questions.
+- [Performance Optimization](performance.md) -- diagnosing performance-related
+  issues like excessive rebuilds and flush depth limits.
+- [Testing Guide](testing.md) -- reproducing and isolating issues using the
+  test infrastructure and FlushSync.
 
 **Q: What is the difference between `Signal<T>` and `Reactive<T>`?**
 

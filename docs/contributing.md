@@ -324,7 +324,7 @@ handlers.AddHandler<MyControl, MyControlHandler>();
 ### Test Infrastructure
 
 All tests inherit from `TestBase`, which initializes the Comet test
-environment:
+environment. For the complete testing guide, see [Testing Guide](testing.md).
 
 ```csharp
 public class MyTests : TestBase
@@ -489,6 +489,16 @@ dotnet test tests/Comet.Tests/Comet.Tests.csproj --no-build -c Release
 
 ## Architecture Overview
 
-See the [Contributing Guide](contributing.md) for a full architecture
-overview covering the reactive pipeline, handler system, and environment
-propagation.
+See the [Architecture Overview](architecture.md) for a full description of
+the reactive pipeline, handler system, environment propagation, and diff
+algorithm.
+
+
+## See Also
+
+- [Architecture Overview](architecture.md) -- detailed codebase overview for
+  contributors, covering the source generator, reactive system, and build system.
+- [Testing Guide](testing.md) -- test infrastructure, patterns, and the
+  requirements for submitting changes with passing tests.
+- [Handler Architecture](handlers.md) -- how to add handlers for new controls,
+  including property mappers and platform-specific files.

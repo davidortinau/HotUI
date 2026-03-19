@@ -10,7 +10,9 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Unified reactive state system.** Introduced `Signal<T>`, `Computed<T>`,
   `Effect`, `ReactiveScope`, `ReactiveScheduler`, `PropertySubscription<T>`,
-  and `SignalList<T>` as the foundation for all state management. Signals are
+  and `SignalList<T>` as the foundation for all state management. For a
+  practical guide to using these primitives, see the
+  [Reactive State Guide](reactive-state-guide.md). Signals are
   thread-safe with lock-based writes and lock-free reads. Computed values use
   lazy memoization with version-based invalidation. The reactive scheduler
   coalesces multiple writes into a single batch flush.
@@ -255,3 +257,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **CometHostHandler measurement.** Fixed handler to measure content instead
   of filling constraints.
+
+
+## See Also
+
+- [Migration Guide](migration-guide.md) -- how to move from the classic API
+  surface to the evolved MVU API, including handling breaking changes.
+- [Reactive State Guide](reactive-state-guide.md) -- the new unified reactive
+  state system introduced in this release.

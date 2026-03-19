@@ -8,7 +8,9 @@ customize or create new ones.
 
 ## Overview
 
-The handler pipeline works as follows:
+The handler pipeline works as follows. For a high-level view of how handlers
+fit into the framework architecture, see the
+[Architecture Overview](architecture.md).
 
 1. A Comet `View` subclass (e.g., `Button`, `Text`) implements one or more MAUI
    interfaces (e.g., `ITextButton`, `ILabel`).
@@ -421,4 +423,17 @@ that resolve the current control style (e.g., `ButtonConfiguration`,
 individual property mappers execute.
 
 Style resolution is registered in `RegisterStyleResolutionMappers()` within
-`AppHostBuilderExtensions` and runs automatically during startup.
+`AppHostBuilderExtensions` and runs automatically during startup. For details
+on the styling system, see the [Styling and Theming Guide](styling.md).
+
+
+## See Also
+
+- [Architecture Overview](architecture.md) -- how handlers fit into the overall
+  framework layer stack, including the diff algorithm and view pipeline.
+- [Control Catalog](controls.md) -- the complete control-to-handler mapping and
+  fluent API reference for every control.
+- [MAUI Integration Guide](maui-interop.md) -- embedding native platform views
+  and MAUI controls using NativeHost and MauiViewHost.
+- [Contributing Guide](contributing.md) -- step-by-step instructions for adding
+  new handlers to the framework.

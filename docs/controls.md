@@ -23,7 +23,9 @@ new Text("Hello, Comet!")
 ```
 
 The fluent calls can be chained in any order. Each one sets an environment key
-that the handler reads when rendering the native view.
+that the handler reads when rendering the native view. See the
+[Styling and Theming Guide](styling.md) for design tokens and theme-aware
+styling.
 
 
 ## Generated Controls
@@ -575,7 +577,8 @@ swipe.RightItems = new SwipeItems
 
 #### ScrollView (handwritten)
 
-Scrollable content wrapper. See the [Layout Guide](layout.md) for details.
+Scrollable content wrapper. See the [Layout System Guide](layout.md) for details
+on scroll orientation, nested scroll handling, and content sizing.
 
 #### FlyoutView (generated from IFlyoutView)
 
@@ -666,3 +669,17 @@ All views support these common fluent extension methods:
 Every Comet control maps to a MAUI handler registered in
 `AppHostBuilderExtensions.UseCometHandlers()`. The full mapping is listed in the
 [Handler Architecture](handlers.md) documentation.
+
+
+## See Also
+
+- [Layout System](layout.md) -- VStack, HStack, ZStack, Grid, and other layout
+  containers used to arrange controls.
+- [Form Handling](forms.md) -- in-depth coverage of form controls, two-way
+  binding, and validation patterns.
+- [Styling and Theming](styling.md) -- design tokens, control styles, and
+  theme-aware styling for controls.
+- [Handler Architecture](handlers.md) -- how controls map to MAUI handlers and
+  how to customize or create new handlers.
+- [Animations and Gestures](animations.md) -- animate control properties and
+  attach gesture recognizers.

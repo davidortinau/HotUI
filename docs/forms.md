@@ -244,8 +244,9 @@ new TextField(() => name.Value, "Name")
 ### Bidirectional Signal Binding
 
 For full two-way binding, pass a `Signal<T>` directly using the factory
-methods from `SignalExtensions`. User input writes back to the signal, and
-signal changes update the control:
+methods from `SignalExtensions`. For a comprehensive treatment of binding
+patterns, see the [Reactive State Guide](reactive-state-guide.md). User input
+writes back to the signal, and signal changes update the control:
 
 ```csharp
 readonly Signal<string> username = new("");
@@ -535,3 +536,15 @@ All callback methods return the control instance for fluent chaining.
 Form controls support the same fluent styling as all Comet views. Use
 `ControlStyle<T>` for consistent form field styling across the app via
 the theme system (see [Styling and Theming](styling.md)).
+
+
+## See Also
+
+- [Control Catalog](controls.md) -- full API reference for every form control
+  including constructors, properties, and handler mappings.
+- [Reactive State Guide](reactive-state-guide.md) -- comprehensive guide to
+  two-way binding, Signal, Computed, and dependency tracking patterns.
+- [Styling and Theming](styling.md) -- design tokens and ControlStyle for
+  consistent form field appearance across themes.
+- [Accessibility Guide](accessibility.md) -- making form fields accessible with
+  semantic labels, help text, and screen reader support.

@@ -157,7 +157,8 @@ The newer signal-based system lives in `Reactive/`:
 
 The two systems coexist. Classic tracking handles `State<T>` and
 `BindingObject`; signal tracking handles `Signal<T>`. Both trigger view
-rebuilds through the same pipeline.
+rebuilds through the same pipeline. For practical usage patterns, see the
+[Reactive State Guide](reactive-state-guide.md).
 
 ### PropertySubscription&lt;T&gt;
 
@@ -378,3 +379,13 @@ The package includes:
 - Layout containers use C# collection initializer syntax for children
 - State fields: `readonly State<T> fieldName = defaultValue;`
 - Complex state: `[State]` attribute on `BindingObject`-derived fields
+
+
+## See Also
+
+- [Handler Architecture](handlers.md) -- detailed handler layer documentation,
+  property mappers, and customization patterns.
+- [Reactive State Guide](reactive-state-guide.md) -- the reactive system from
+  an application developer's perspective.
+- [Contributing Guide](contributing.md) -- how to set up a development
+  environment and submit changes to the framework.

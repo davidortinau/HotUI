@@ -536,4 +536,15 @@ execution and `Task.Run` to simulate background thread writes.
   prevent interference with subsequent tests.
 - **Build order**: Always build the source generator, then Comet for Mac
   Catalyst, then the test project. The direct DLL reference means stale builds
-  will silently use outdated code.
+  will silently use outdated code. See the
+  [Contributing Guide](contributing.md) for the full build sequence.
+
+
+## See Also
+
+- [Reactive State Guide](reactive-state-guide.md) -- the state primitives
+  tested in this suite: Signal, Computed, Effect, and ReactiveScope.
+- [Contributing Guide](contributing.md) -- test requirements, build order, and
+  PR process for submitting changes.
+- [Architecture Overview](architecture.md) -- test infrastructure details and
+  the framework internals that tests validate.
