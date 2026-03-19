@@ -1,5 +1,12 @@
 # Comet Documentation
 
+## For AI Agents
+
+Start with [AGENTS.md](../AGENTS.md) for a complete framework reference.
+For specific topics: [controls](controls.md) | [state](reactive-state-guide.md) | [layout](layout.md) | [navigation](navigation.md) | [troubleshooting](troubleshooting.md)
+
+---
+
 Documentation for the Comet MVU framework -- a declarative, code-only UI layer
 built on .NET MAUI. Views are defined as C# functions, state changes
 automatically trigger re-rendering, and platform-native controls are used
