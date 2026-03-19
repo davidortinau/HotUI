@@ -13,6 +13,10 @@ These are the primary docs for developers building with Comet.
 - [Getting Started](getting-started.md) -- Zero to a running Comet app.
   Prerequisites, project setup, build commands, and a walkthrough of the counter
   example.
+- [Control Catalog](controls.md) -- Every control in Comet: constructors,
+  properties, code examples, and the fluent API pattern.
+- [Layout System](layout.md) -- VStack, HStack, ZStack, Grid, FlexLayout,
+  spacing, padding, margin, alignment, and responsive patterns.
 - [Reactive State Guide](reactive-state-guide.md) -- Practical, code-forward
   guide to every state management pattern: `State<T>`, `BindingObject`,
   `Binding<T>`, and automatic dependency tracking.
@@ -28,6 +32,15 @@ These are the primary docs for developers building with Comet.
 - [Troubleshooting and FAQ](troubleshooting.md) -- Common issues with reactive
   state, hot reload, builds, and debugging tips.
 - [Changelog](changelog.md) -- Release notes for the current development cycle.
+- [Performance Optimization](performance.md) -- Body rebuild cost, fine-grained
+  vs. body-level updates, Signal.Peek(), SetState batching, SignalList, diff
+  algorithm, and common anti-patterns.
+- [Styling and Theming](styling.md) -- Design tokens, ControlStyle, built-in
+  button styles, ViewModifiers, theme switching, and scoped overrides.
+- [Form Handling and Validation](forms.md) -- Form controls, two-way binding,
+  validation patterns, error display, multi-step forms, and callback reference.
+- [Contributing](contributing.md) -- Development setup, build order, code style,
+  source generator internals, testing, and PR process.
 
 
 ## Architecture and Design
@@ -35,6 +48,10 @@ These are the primary docs for developers building with Comet.
 Design proposals, ADRs, and technical analysis that informed implementation
 decisions. Useful for contributors and anyone working on the framework internals.
 
+- [Architecture Overview](architecture.md) -- Key layers, source generator
+  pipeline, reactive system, diff algorithm, hot reload, and build system.
+- [Handler Architecture](handlers.md) -- How Comet views map to MAUI handlers,
+  property mappers, customization patterns, and creating custom handlers.
 - [ADR: Dual Reactive State Tracking](architecture/adr-dual-tracking-systems.md)
   -- Decision record for maintaining both classic and signal-based tracking.
 - [State Management v2 Proposal](architecture/state-management-proposal.md) --
