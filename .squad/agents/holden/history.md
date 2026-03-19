@@ -2077,3 +2077,35 @@ Added three new subsections to README.md under "Reactive State" covering state u
 - Batching for `Reactive<T>` is automatic: `EnsureFlushScheduled()` posts once to the dispatcher; rapid synchronous writes before the flush coalesce.
 - `Component<TState>.SetState(Action<TState>)` is the explicit batch API: runs mutator, then calls `ReactiveScheduler.MarkViewDirty(this)` once.
 - `Computed<T>` has both `Value` (tracked) and `Peek()` (untracked), same pattern as `Signal<T>`.
+
+### Session: Comprehensive Reactive State Guide Expansion
+
+**Date:** 2025-07-26
+**Task:** Expand docs/reactive-state-guide.md to comprehensively cover all state management use cases, matching MauiReactor docs coverage.
+**Outcome:** Shipped expanded guide (1648 lines, up from 823).
+
+**What was delivered:**
+Restructured and expanded the guide from 11 sections to 16, covering every state pattern:
+1. Stateless views (composition, passing data via constructors, passing Reactive<T> to children)
+2. Stateful views (full rebuild cycle explanation: setter → equality check → subscribers → scheduler → flush → body → diff)
+3. Core primitives (Reactive<T> vs Signal<T> comparison table, when to use which)
+4. Fine-grained vs body-level updates (lambda reads vs direct reads, scope explanation)
+5. Non-tracking reads (Signal<T>.Peek(), tracked vs untracked contexts, ReactiveScope rules)
+6. Two-way binding (all 6 control callbacks: TextField, Slider, Stepper, Toggle, CheckBox, Picker; shared state between controls; missing callback pitfall)
+7. Computed/derived state (how recalculation works, Peek on Computed, custom comparer, disposal)
+8. Side effects (Effect lifecycle, deferred run, batching, cycle avoidance)
+9. Lists/collections (SignalList<T> full API, batch mutations, pre-population)
+10. Component<TState> (SetState, Component<TState,TProps>, ShouldUpdate, comparison with View+[Body])
+11. View lifecycle (OnLoaded → ViewDidAppear → ViewDidDisappear → OnUnloaded → Dispose; Component's OnMounted/OnWillUnmount; async init patterns)
+12. Shared state (3 patterns: prop drilling, DI registration, environment values with cascading scope table)
+13. Async state updates (loading/data/error pattern, background thread writes, thread safety table, SignalList dispatch requirement, known limitation note)
+14. Hot reload (what transfers and what doesn't: Signal<T> yes, Reactive<T> no, Component state yes, Computed/Effect re-created, environment copied)
+15. Best practices (readonly fields, lambda vs callback, body speed, coalescing, loop capture, disposal)
+16. Quick reference (copy-paste snippet covering all patterns)
+
+**Learnings:**
+- Reactive<T>.Value setter uses StrongBox<T> swap (not in-place mutation) for the new value, then fires notifications. This is safe for concurrent reads.
+- Signal<T>.Value setter has an explicit _writeLock, making it thread-safe for concurrent writes. Reactive<T> does not have a write lock -- it relies on StrongBox swap being atomic enough for most cases.
+- View.GetRenderViewReactive() wraps Body.Invoke() in ReactiveScope.BeginTracking() and manages subscription/unsubscription delta after each body evaluation -- this is how dependency tracking is automatic.
+- Component.OnMounted() fires inside OnLoaded() with a _mounted guard to ensure it only fires once.
+- SignalList<T> is NOT thread-safe for mutations (no internal lock). This contrasts with Signal<T> and Reactive<T> which are safe for writes from any thread.
