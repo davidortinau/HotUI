@@ -41,6 +41,15 @@ These are the primary docs for developers building with Comet.
   validation patterns, error display, multi-step forms, and callback reference.
 - [Contributing](contributing.md) -- Development setup, build order, code style,
   source generator internals, testing, and PR process.
+- [Navigation Guide](navigation.md) -- Stack navigation, tab navigation, Shell
+  routes, modal presentation, data passing, and adaptive layouts.
+- [Platform-Specific Guides](platform-guides.md) -- Platform file conventions,
+  conditional compilation, handler architecture, and per-platform details for
+  iOS, Android, Mac Catalyst, and Windows.
+- [MAUI Integration Guide](maui-interop.md) -- Embedding MAUI views in Comet,
+  Comet views in MAUI, native platform views, and DI service access.
+- [Animations and Gestures](animations.md) -- Property animations, spring
+  physics, keyframe animations, animation sequences, and gesture recognizers.
 
 
 ## Architecture and Design
