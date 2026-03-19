@@ -2061,3 +2061,19 @@ Implemented `PropertySubscription<T>` in `src/Comet/Reactive/PropertySubscriptio
 - The `PropertySubscription<T>` class is the internal bridge between user-facing lambdas/signals and the handler property system — users never see it directly but it's the engine behind fine-grained updates.
 - `ReactiveScheduler.EnsureFlushScheduled()` is called after every signal write and uses the MAUI dispatcher to post a single flush. This is why synchronous loops of signal writes coalesce into one UI update.
 - `Component<TState>` state transfer works via `IComponentWithState.TransferStateFrom()` which copies the TState reference, not individual properties.
+
+### 2026-07-25 — State Update API Surface Documentation (README)
+
+**Status:** ✅ Completed
+
+**What was done:**
+Added three new subsections to README.md under "Reactive State" covering state updates in methods, non-tracking reads, and batched writes. Examples verified against actual source code.
+
+**Key API surface findings:**
+- `Reactive<T>.Value` setter: always notifies subscribers, fires `PropertyChanged`, calls `ReactiveScheduler.EnsureFlushScheduled()`. Equality check (`EqualityComparer<T>.Default`) short-circuits if value unchanged.
+- `Reactive<T>.Value` getter: always fires `PropertyRead` and tracks via `ReactiveScope.Current`. Tracking only creates a binding when read inside a body/lambda captured by a control — reads in regular methods are inert.
+- `Reactive<T>` has NO `Peek()` method. `Signal<T>` (in `Comet.Reactive`) does have `Peek()` which reads `_box.Value` directly, skipping both `ReactiveScope` tracking and `PropertyRead` events.
+- `ReactiveScheduler.SuppressNotifications` is `internal` — not a public batch API. It's used internally during `View.UpdateFromOldView()` to prevent re-dirtying during state transfer.
+- Batching for `Reactive<T>` is automatic: `EnsureFlushScheduled()` posts once to the dispatcher; rapid synchronous writes before the flush coalesce.
+- `Component<TState>.SetState(Action<TState>)` is the explicit batch API: runs mutator, then calls `ReactiveScheduler.MarkViewDirty(this)` once.
+- `Computed<T>` has both `Value` (tracked) and `Peek()` (untracked), same pattern as `Signal<T>`.

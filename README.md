@@ -49,6 +49,121 @@ public class GreetingView : View
 }
 ```
 
+### State Updates in Methods
+
+Writing to `.Value` triggers a UI refresh. The reactive scheduler dispatches a rebuild to the main thread automatically, even from background threads.
+
+```csharp
+public class ProfileView : View
+{
+	readonly Reactive<string> name = "";
+	readonly Reactive<bool> loading = false;
+
+	[Body]
+	View body() => new VStack {
+		new Text(() => loading.Value ? "Loading..." : $"Hello, {name.Value}!"),
+		new Button("Load Profile", LoadProfile)
+	};
+
+	async void LoadProfile()
+	{
+		loading.Value = true;                   // triggers rebuild → shows "Loading..."
+		var result = await Api.FetchProfile();
+		name.Value = result.Name;               // triggers rebuild
+		loading.Value = false;                   // triggers rebuild → shows greeting
+	}
+}
+```
+
+### Reading State Without Creating a Binding
+
+Reads inside `() => ...` lambdas passed to controls create reactive bindings. Reads in regular methods are plain value access — no binding, no tracking.
+
+```csharp
+public class DiagnosticsView : View
+{
+	readonly Reactive<int> count = 0;
+
+	[Body]
+	View body() => new VStack {
+		// This read IS tracked — Text updates when count changes
+		new Text(() => $"Count: {count.Value}"),
+		new Button("Increment", () => count.Value++),
+		new Button("Log", LogCount)
+	};
+
+	void LogCount()
+	{
+		// This read is NOT tracked — just retrieves the current value
+		Console.WriteLine($"Current count: {count.Value}");
+	}
+}
+```
+
+`Signal<T>` (in `Comet.Reactive`) provides a `Peek()` method that reads the value without triggering any tracking, even inside a reactive scope:
+
+```csharp
+var signal = new Signal<int>(0);
+int current = signal.Peek();    // no tracking, no PropertyRead event
+```
+
+### Batching Multiple State Updates
+
+Multiple `.Value` writes in the same synchronous block are coalesced into a single UI update. The `ReactiveScheduler` posts one flush to the dispatcher — rapid writes before that flush piggyback on it.
+
+```csharp
+public class SettingsView : View
+{
+	readonly Reactive<bool> darkMode = false;
+	readonly Reactive<bool> notifications = true;
+	readonly Reactive<string> language = "en";
+
+	[Body]
+	View body() => new VStack {
+		new Toggle(() => darkMode.Value).OnToggled(v => darkMode.Value = v),
+		new Toggle(() => notifications.Value).OnToggled(v => notifications.Value = v),
+		new Text(() => $"Language: {language.Value}"),
+		new Button("Reset All", ResetDefaults)
+	};
+
+	void ResetDefaults()
+	{
+		// Three writes, one UI update — the scheduler coalesces them
+		darkMode.Value = false;
+		notifications.Value = true;
+		language.Value = "en";
+	}
+}
+```
+
+For components with typed state, `SetState()` batches mutations explicitly — the entire action runs before a single rebuild is scheduled:
+
+```csharp
+class FormState
+{
+	public string FirstName { get; set; } = "";
+	public string LastName { get; set; } = "";
+	public string Email { get; set; } = "";
+}
+
+public class FormComponent : Component<FormState>
+{
+	public override View Render() => new VStack {
+		new TextField(() => State.FirstName).OnTextChanged(v =>
+			SetState(s => s.FirstName = v ?? "")),
+		new TextField(() => State.LastName).OnTextChanged(v =>
+			SetState(s => s.LastName = v ?? "")),
+		new TextField(() => State.Email).OnTextChanged(v =>
+			SetState(s => s.Email = v ?? "")),
+		new Button("Reset", () => SetState(s => {
+			s.FirstName = "";
+			s.LastName = "";
+			s.Email = "";
+		}))
+	};
+}
+```
+
 ## XAML+MVVM vs Comet
 
 A text field bound to a greeting label — same UI, different approaches.
