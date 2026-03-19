@@ -21,6 +21,13 @@ These are the primary docs for developers building with Comet.
   advanced patterns.
 - [Migration Guide](migration-guide.md) -- How to move from the prior Comet API
   surface to the evolved MVU API without renaming the project.
+- [Testing Guide](testing.md) -- Test infrastructure, reactive state testing,
+  view tree verification, hot reload tests, and build/run commands.
+- [Accessibility Guide](accessibility.md) -- Screen reader support, semantic
+  properties, automation IDs, keyboard navigation, and platform bridging.
+- [Troubleshooting and FAQ](troubleshooting.md) -- Common issues with reactive
+  state, hot reload, builds, and debugging tips.
+- [Changelog](changelog.md) -- Release notes for the current development cycle.
 
 
 ## Architecture and Design
